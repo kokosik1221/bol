@@ -2,27 +2,6 @@ if myHero.charName ~= "Morgana" then return end
 
 require 'VPrediction'
 
-local ToInterrupt = {}
-local InterruptList = {
-    { charName = "Caitlyn", spellName = "CaitlynAceintheHole"},
-    { charName = "FiddleSticks", spellName = "Crowstorm"},
-    { charName = "FiddleSticks", spellName = "DrainChannel"},
-    { charName = "Galio", spellName = "GalioIdolOfDurand"},
-    { charName = "Karthus", spellName = "FallenOne"},
-    { charName = "Katarina", spellName = "KatarinaR"},
-    { charName = "Lucian", spellName = "LucianR"},
-    { charName = "Malzahar", spellName = "AlZaharNetherGrasp"},
-    { charName = "MissFortune", spellName = "MissFortuneBulletTime"},
-    { charName = "Nunu", spellName = "AbsoluteZero"},                            
-    { charName = "Pantheon", spellName = "Pantheon_GrandSkyfall_Jump"},
-    { charName = "Shen", spellName = "ShenStandUnited"},
-    { charName = "Urgot", spellName = "UrgotSwap2"},
-    { charName = "Varus", spellName = "VarusQ"},
-	{ charName = "Warwick", spellName = "InfiniteDuress"},
-	{ charName = "Velkoz", spellName = "VelkozR"}
-}
-
-
 function Menu()
     MenuMorg = AutoCarry.PluginMenu
 	MenuMorg:addSubMenu("Combo Settings", "comboConfig")
@@ -82,7 +61,6 @@ end
 function PluginOnLoad()
 	Menu()
 	Variables()
-	spellshieldcharexist = true
 end
 
 function PluginOnTick()
@@ -92,17 +70,6 @@ function PluginOnTick()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = ((myHero:CanUseSpell(_R) ~= NOTLEARNED) and (myHero:CanUseSpell(_R) ~= COOLDOWN))
 	IReady = (ignite ~= nil and myHero:CanUseSpell(ignite) == READY)
-
-	
-	if spellshieldcharexist == true then
-		if MenuMorg.drawConfig.AE then
-			shieldall = true
-		end
-		if not MenuMorg.drawConfig.AE then
-			shieldall = false
-		end
-	end
-	
 	
 	if AutoCarry.MainMenu.AutoCarry and Target ~= nil then
 		if MenuMorg.comboConfig.USEQ then
@@ -281,16 +248,6 @@ function PluginOnDraw()
 	end
 	if MenuMorg.drawConfig.DR and RReady then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, rRange, ARGB(255,0,255,0))
-	end
-end
-
-function OnProcessSpell(object,spell)
-	if MenuMorg.drawConfig.AE and EReady and #ToInterrupt > 0 then
-		for _, ability in pairs(ToInterrupt) do
-			if spell.name == ability and unit.team ~= myHero.team then
-				if GetDistance(unit) <= 1500 then CastSpell(_E) end
-			end
-		end
 	end
 end
 
