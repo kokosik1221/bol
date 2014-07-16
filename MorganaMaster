@@ -1,0 +1,648 @@
+--[[
+	MORGANA MASTER KOKOSIK1221
+
+	Changelog:
+ 
+	1.0 - First Relase
+	1.1 - add drawing options
+            - improved collisions
+        1.2 - fixed combo
+            - add new option in harras
+        1.3 - add mana manager
+            - improved Cast Q
+            - add auto zhonya
+            - add auto lvl spells
+            - add auto "E"
+        1.4 - small fix
+   
+]]--
+
+
+if myHero.charName ~= "Morgana" then return end
+
+require 'VPrediction'
+
+Champions = {
+    ["Lux"] = {charName = "Lux", qwer = {
+        ["LuxLightBinding"] =  {spellName = "LuxLightBinding", range = 1300},
+        ["LuxLightStrikeKugel"] = {spellName = "LuxLightStrikeKugel", range = 1100},
+        ["LuxMaliceCannon"] =  {spellName = "LuxMaliceCannon", range = 3500},
+    }},
+    ["Nidalee"] = {charName = "Nidalee", qwer = {
+        ["JavelinToss"] = {spellName = "JavelinToss", range = 1500}
+    }},
+    ["Akali"] = {charName = "Akali", qwer = {
+        ["AkaliMota"] = {spellName = "AkaliMota", range = 1500}
+    }},
+    ["Kennen"] = {charName = "Kennen", qwer = {
+        ["KennenShurikenHurlMissile1"] = {spellName = "KennenShurikenHurlMissile1", range = 1050}
+    }},
+    ["Amumu"] = {charName = "Amumu", qwer = {
+        ["BandageToss"] = {spellName = "BandageToss", range = 1100}
+    }},
+    ["Morgana"] = {charName = "Morgana", qwer = {
+        ["DarkBindingMissile"] = {spellName = "DarkBindingMissile", range = 1300},
+        ["TormentedSoil"] = {spellName = "TormentedSoil", range = 900},
+    }},
+    ["Ezreal"] = {charName = "Ezreal", qwer = {
+        ["EzrealMysticShot"] = {spellName = "EzrealMysticShot", range = 1200},
+        ["EzrealEssenceFlux"] = {spellName = "EzrealEssenceFlux", range = 1050},
+        ["EzrealMysticShotPulse"] = {spellName = "EzrealMysticShotPulse", range = 1200},
+        ["EzrealTrueshotBarrage"] = {spellName = "EzrealTrueshotBarrage", range = 20000},
+    }},
+    ["Ahri"] = {charName = "Ahri", qwer = {
+        ["AhriOrbofDeception"] = {spellName = "AhriOrbofDeception", range = 900},
+        ["AhriSeduce"] = {spellName = "AhriSeduce", range = 1000}
+    }},
+    ["Olaf"] = {charName = "Olaf", qwer = {
+        ["OlafAxeThrow"] = {spellName = "OlafAxeThrow", range = 1000}
+    }},
+    ["Leona"] = {charName = "Leona", qwer = { 
+        ["LeonaZenithBlade"] = {spellName = "LeonaZenithBlade", range = 900},
+        ["LeonaSolarFlare"] = {spellName = "LeonaSolarFlare", range = 1200}
+    }},
+    ["Karthus"] = {charName = "Karthus", qwer = {
+        ["LayWaste"] = {spellName = "LayWaste", range = 875}
+    }},
+    ["Chogath"] = {charName = "Chogath", qwer = {
+        ["Rupture"] = {spellName = "Rupture", range = 950}
+    }},
+    ["Blitzcrank"] = {charName = "Blitzcrank", qwer = {
+       ["RocketGrabMissile"] = {spellName = "RocketGrabMissile", range = 1050}
+    }},
+    ["Anivia"] = {charName = "Anivia", qwer = {
+        ["FlashFrostSpell"] = {spellName = "FlashFrostSpell", range = 1100},
+        ["FrostBite"] = {spellName = "FrostBite", range = 1100},
+    }},
+    ["Annie"] = {charName = "Annie", qwer = {
+        ["Disintegrate"] = {spellName = "Disintegrate", range = 875}
+    }},
+    ["Katarina"] = {charName = "Katarina", qwer = {
+        ["KatarinaR"] = {spellName = "KatarinaR", range = 550},
+        ["KatarinaQ"] = {spellName = "KatarinaQ", range = 675},
+    }},    
+    ["Zyra"] = {charName = "Zyra", qwer = {
+        ["ZyraGraspingRoots"] = {spellName = "ZyraGraspingRoots", range = 1150},
+        ["zyrapassivedeathmanager"] = {spellName = "zyrapassivedeathmanager", range = 1474},
+    }},
+    ["Gragas"] = {charName = "Gragas", qwer = {
+        ["GragasExplosiveCask"] = {spellName="GragasExplosiveCask", range=1050},
+        ["GragasBarrelRoll"] = {spellName="GragasBarrelRoll", range=950}
+    }},
+    ["Nautilus"] = {charName = "Nautilus", qwer = {
+        ["NautilusAnchorDrag"] = {spellName = "NautilusAnchorDrag", range = 1080},
+    }},
+    ["Caitlyn"] = {charName = "Caitlyn", qwer = {
+        ["CaitlynPiltoverPeacemaker"] = {spellName = "CaitlynPiltoverPeacemaker", range = 1300},
+        ["CaitlynEntrapment"] = {spellName = "CaitlynEntrapment", range = 950},
+        ["CaitlynHeadshotMissile"] = {spellName = "CaitlynHeadshotMissile", range = 3000},
+    }},
+    ["Mundo"] = {charName = "DrMundo", qwer = {
+        ["InfectedCleaverMissile"] = {spellName = "InfectedCleaverMissile", range = 1050},
+    }},
+    ["Brand"] = {charName = "Brand", qwer = { -- Q+ W+
+        ["BrandBlaze"] = {spellName = "BrandBlaze", range = 1100},
+        ["BrandWildfire"] = {spellName = "BrandWildfire", range = 1100}
+    }},
+    ["Corki"] = {charName = "Corki", qwer = {
+        ["MissileBarrage"] = {spellName = "MissileBarrage", range = 1300},
+    }},
+    ["TwistedFate"] = {charName = "TwistedFate", qwer = {
+        ["WildCards"] = {spellName = "WildCards", range = 1450},
+    }},
+    ["Swain"] = {charName = "Swain", qwer = {
+        ["SwainShadowGrasp"] = {spellName = "SwainShadowGrasp", range = 900},
+        ["SwainTorment"] = {spellName = "SwainTorment", range = 900}
+    }},
+    ["Cassiopeia"] = {charName = "Cassiopeia", qwer = {
+        ["CassiopeiaNoxiousBlast"] = {spellName = "CassiopeiaNoxiousBlast", range = 850},
+    }},
+    ["Sivir"] = {charName = "Sivir", qwer = { 
+        ["SivirQ"] = {spellName = "SivirQ", range = 1175},
+    }},
+    ["Ashe"] = {charName = "Ashe", qwer = {
+        ["EnchantedCrystalArrow"] = {spellName = "EnchantedCrystalArrow", range = 25000},
+        ["Volley"] = {spellName = "Volley", range = 1200},
+    }},
+    ["KogMaw"] = {charName = "KogMaw", qwer = {
+        ["KogMawLivingArtillery"] = {spellName = "KogMawLivingArtillery", range = 2200}
+    }},
+    ["Khazix"] = {charName = "Khazix", qwer = {
+        ["KhazixW"] = {spellName = "KhazixW", range = 1025},
+    }},
+    ["Zed"] = {charName = "Zed", qwer = {
+        ["ZedShuriken"] = {spellName = "ZedShuriken", range = 925},
+    }},
+    ["Leblanc"] = {charName = "Leblanc", qwer = {
+        ["LeblancChaosOrb"] = {spellName = "LeblancChaosOrb", range = 960},
+        ["LeblancChaosOrbM"] = {spellName = "LeblancChaosOrbM", range = 960},
+        ["LeblancSoulShackle"] = {spellName = "LeblancSoulShackle", range = 960},
+        ["LeblancSoulShackleM"] = {spellName = "LeblancSoulShackleM", range = 960},
+        ["LeblancMimic"] = {spellName="LeblancMimic", range=650}
+    }},
+    ["Draven"] = {charName = "Draven", qwer = {
+        ["DravenDoubleShot"] = {spellName = "DravenDoubleShot", range = 1100},
+        ["DravenRCast"] = {spellName = "DravenRCast", range = 25000},
+    }},
+    ["Elise"] = {charName = "Elise", qwer = {
+        ["EliseHumanE"] = {spellName = "EliseHumanE", range = 1100}
+    }},
+    ["Lulu"] = {charName = "Lulu", qwer = {
+        ["LuluQ"] = {spellName = "LuluQ", range = 1000}
+    }},
+    ["Thresh"] = {charName = "Thresh", qwer = {
+        ["ThreshQ"] = {spellName = "ThreshQ", range = 1100}
+    }},
+    ["Shen"] = {charName = "Shen", qwer = {
+        ["ShenShadowDash"] = {spellName = "ShenShadowDash", range = 575}
+    }},
+    ["Quinn"] = {charName = "Quinn", qwer = {
+        ["QuinnQ"] = {spellName = "QuinnQ", range = 1050}
+    }},
+    ["Veigar"] = {charName = "Veigar", qwer = {
+        ["VeigarPrimordialBurst"] = {spellName="VeigarPrimordialBurst", range = 650},
+        ["VeigarBalefulStrike"] = {spellName="VeigarBalefulStrike", range=650}
+    }},
+    ["Nami"] = {charName = "Nami", qwer = {
+        ["NamiQ"] = {spellName = "NamiQ", range = 1625}
+    }},
+    ["Fizz"] = {charName = "Fizz", qwer = {
+        ["FizzMarinerDoom"] = {spellName = "FizzMarinerDoom", range = 1275},
+    }},
+    ["Varus"] = {charName = "Varus", qwer = {
+        ["VarusQ"] = {spellName = "VarusQ", range = 1600},
+        ["VarusE"] = {spellName = "VarusE", range = 925},
+        ["VarusR"] = {spellName = "VarusR", range = 1250},
+    }},
+    ["Karma"] = {charName = "Karma", qwer = {
+        ["KarmaQ"] = {spellName = "KarmaQ", range = 1050},
+    }},
+    ["Aatrox"] = {charName = "Aatrox", qwer = {
+        ["AatroxE"] = {spellName = "AatroxE", range = 1075},
+        ["AatroxQ"] = {spellName = "AatroxQ", range = 650},
+   }},
+    ["Xerath"] = {charName = "Xerath", qwer = {
+        ["XerathArcanopulse"] =  {spellName = "XerathArcanopulse", range = 1025},
+        ["xeratharcanopulseextended"] =  {spellName = "xeratharcanopulseextended", range = 1625},
+        ["xeratharcanebarragewrapper"] = {spellName = "xeratharcanebarragewrapper", range = 1100},
+        ["xeratharcanebarragewrapperext"] = {spellName = "xeratharcanebarragewrapperext", range = 1600}
+    }},
+    ["Lucian"] = {charName = "Lucian", qwer = {
+        ["LucianQ"] =  {spellName = "LucianQ", range = 570*2},
+        ["LucianW"] =  {spellName = "LucianW", range = 1000},
+    }},
+    ["Rumble"] = {charName = "Rumble", qwer = {
+        ["RumbleGrenade"] =  {spellName = "RumbleGrenade", range = 950},
+    }},
+    ["Nocturne"] = {charName = "Nocturne", qwer = {
+        ["NocturneDuskbringer"] =  {spellName = "NocturneDuskbringer", range = 1125},
+    }},
+    ["MissFortune"] = {charName = "MissFortune", qwer = {
+        ["MissFortuneScattershot"] =  {spellName = "MissFortuneScattershot", range = 800},
+        ["MissFortuneBulletTime"] =  {spellName = "MissFortuneBulletTime", range = 1400}
+    }},
+    ["Ziggs"] = {charName = "Ziggs", qwer = { 
+        ["ZiggsQ"] =  {spellName = "ZiggsQ", range = 1500},
+        ["ZiggsW"] =  {spellName = "ZiggsW", range = 1500},
+        ["ZiggsE"] =  {spellName = "ZiggsE", range = 1500},
+        ["ZiggsR"] =  {spellName = "ZiggsR", range = 1500}
+    }},
+    ["Galio"] = {charName = "Galio", qwer = {
+        ["GalioResoluteSmite"] =  {spellName = "GalioResoluteSmite", range = 2000},
+    }},
+    ["Yasuo"] = {charName = "Yasuo", qwer = {
+        ["yasuoq3w"] =  {spellName = "yasuoq3w", range = 900},
+    }},
+    ["Kassadin"] = {charName = "Kassadin", qwer = {
+        ["NullLance"] =  {spellName = "NullLance", range = 650},
+    }},
+    ["Jinx"] = {charName = "Jinx", qwer = { 
+        ["JinxWMissile"] =  {spellName = "JinxWMissile", range = 1450},
+        ["JinxRWrapper"] =  {spellName = "JinxRWrapper", range = 20000}
+    }},
+    ["Taric"] = {charName = "Taric", qwer = {
+        ["Dazzle"] = {spellName="Dazzle", range=625},
+        }},
+    ["FiddleSticks"] = {charName = "FiddleSticks", qwer = {
+        ["FiddlesticksDarkWind"] = {spellName="FiddlesticksDarkWind", range=750},
+    }},           
+    ["Syndra"] = {charName = "Syndra", qwer = {
+        ["SyndraQ"] = {spellName = "SyndraQ", range = 800},
+        ["SyndraR"] = {spellName="SyndraR", range=675}
+    }},
+    ["Kayle"] = {charName = "Kayle", qwer = {
+        ["JudicatorReckoning"] = {spellName="JudicatorReckoning", range=650},
+    }},
+    ["Heimerdinger"] = {charName = "Heimerdinger", qwer = {
+        ["HeimerdingerW"] =  {spellName = "HeimerdingerW", range = 2000},
+        ["HeimerdingerE"] = {spellName="HeimerdingerE", range=750}
+    }},    
+    ["Annie"] = {charName = "Annie", qwer = {
+        ["Disintegrate"] = {spellName = "Disintegrate", range = 875}
+    }},
+    ["Janna"] = {charName = "Janna", qwer = {
+        ["HowlingGale"] = {spellName = "HowlingGale", range = 1500}
+    }},
+    ["Lissandra"] = {charName = "Lissandra", qwer = {
+        ["LissandraQ"] = {spellName = "LissandraQ", range = 1500},
+        ["LissandraE"] = {spellName = "LissandraE", range = 1500}
+    }},
+    ["Sejuani"] = {charName = "Sejuani", qwer = {
+        ["SejuaniR"] = {spellName = "SejuaniR", range = 1500}
+    }},
+    ["Ryze"] = {charName = "Ryze", qwer = {
+        ["Overload"] = {spellName = "Overload", range = 1500},
+        ["SpellFlux"] = {spellName = "SpellFlux", range = 1500}
+    }},
+    ["Malphite"] = {charName = "Malphite", qwer = {
+        ["SeismicShard"] = {spellName = "SeismicShard", range = 1500}
+    }},
+    ["Sona"] = {charName = "Sona", qwer = {
+        ["SonaHymnofValor"] = {spellName = "SonaHymnofValor", range = 1500},
+        ["SonaCrescendo"] = {spellName = "SonaCrescendo", range = 1500}
+    }},
+    ["Teemo"] = {charName = "Teemo", qwer = {
+        ["BlindingDart"] = {spellName = "BlindingDart", range = 680}
+    }},
+    ["Vayne"] = {charName = "Vayne", qwer = {
+        ["VayneCondemn"] = {spellName = "VayneCondemn", range = 550}
+    }},
+}
+
+
+
+function Menu()
+    MenuMorg = AutoCarry.PluginMenu
+	MenuMorg:addSubMenu("Combo Settings", "comboConfig")
+    MenuMorg.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
+    MenuMorg.comboConfig:addParam("USEW", "Use W in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.comboConfig:addParam("USEE", "Use E in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.comboConfig:addParam("USER", "Use R in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.comboConfig:addParam("ENEMYTOR", "Min Enemies to Cast R: ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
+	
+	MenuMorg:addSubMenu("Mana Config" , "mpConfig")
+	MenuMorg.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptocw", "Min Mana To Cast W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptocr", "Min Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptohq", "Min Mana To Harras Q", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptohw", "Min Mana To Harras W", SCRIPT_PARAM_SLICE, 55, 0, 100, 0)
+	
+	MenuMorg:addSubMenu("KS Settings", "ksConfig")
+    MenuMorg.ksConfig:addParam("IGN", "KS Ignite", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.ksConfig:addParam("KSQ", "KS Q", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.ksConfig:addParam("KSW", "KS W", SCRIPT_PARAM_ONOFF, true)
+    MenuMorg.ksConfig:addParam("KSULT", "KS R", SCRIPT_PARAM_ONOFF, true)
+	
+	MenuMorg:addSubMenu("Harras Settings", "harrasConfig")
+    MenuMorg.harrasConfig:addParam("HQ", "Harras enemy Q", SCRIPT_PARAM_ONKEYTOGGLE, true, GetKey("X"))
+	MenuMorg.harrasConfig:addParam("HW", "Harras enemy W", SCRIPT_PARAM_ONKEYTOGGLE, true, GetKey("Z"))
+	MenuMorg.harrasConfig:addParam("HWS", "Only On Stunned Enemy", SCRIPT_PARAM_ONOFF, true)
+	
+	MenuMorg:addSubMenu("Extra Settings", "exConfig")
+	MenuMorg.exConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.exConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuMorg.exConfig:addParam("AE", "Use Shield When Coming Stun ETC.", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.exConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.exConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	
+	MenuMorg:addSubMenu("Draw Settings", "drawConfig")
+	MenuMorg.drawConfig:addParam("DQL", "Draw Q Collision Line", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DQ", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DW", "Draw W Range", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
+
+end
+
+function Variables()
+	VP = VPrediction()
+	IgniteKey = nil;
+	zhonyaslot = GetInventorySlotItem(3157)
+	if myHero:GetSpellData(SUMMONER_1).name:find("SummonerDot") then
+		IgniteKey = SUMMONER_1
+	elseif myHero:GetSpellData(SUMMONER_2).name:find("SummonerDot") then
+		IgniteKey = SUMMONER_2
+	else
+		IgniteKey = nil
+	end
+	abilitylvl = 0
+	-- Q --
+	qRange = 1300
+	qDelay = 250
+	qSpeed = 1200
+	qWidth = 60
+	-- W --
+	wRange = 900
+	wDelay = 150
+	wSpeed = 1200
+	wWidth = 105
+	-- E --
+	eRange = 750
+	-- R --
+	rRange = 600
+	AutoCarry.SkillsCrosshair.range = 1300
+end
+
+function PluginOnLoad()
+	Menu()
+	Variables()
+end
+
+function PluginOnTick()
+	Target = AutoCarry.GetAttackTarget()
+	QReady = (myHero:CanUseSpell(_Q) == READY)
+	WReady = (myHero:CanUseSpell(_W) == READY)
+	EReady = (myHero:CanUseSpell(_E) == READY)
+	RReady = ((myHero:CanUseSpell(_R) ~= NOTLEARNED) and (myHero:CanUseSpell(_R) ~= COOLDOWN))
+	IReady = (ignite ~= nil and myHero:CanUseSpell(ignite) == READY)
+	ZhonyaReady	= (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
+	cancast()
+	autolvl()
+	
+	if AutoCarry.MainMenu.AutoCarry and Target ~= nil then
+		if MenuMorg.comboConfig.USEQ then
+			CastQ()
+		end
+		if MenuMorg.comboConfig.USEW then
+			CastW()
+		end
+		if MenuMorg.comboConfig.USEE then
+			CastE()
+		end
+		if MenuMorg.comboConfig.USER then
+			CastR()
+		end
+	end
+	
+	if MenuMorg.ksConfig.KSQ and QReady and ccq then
+		players = heroManager.iCount
+		for i = 1, players, 1 do
+            target = heroManager:getHero(i)
+			qDmg = getDmg("Q", myHero, target)
+            if target ~= nil and target.team ~= player.team and not target.dead then
+                if QReady and qDmg > target.health then
+					local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(target, qDelay, qWidth, qRange, qSpeed, myHero, true)
+					if CastPosition and HitChance >= 2 then
+						CastSpell(_Q, CastPosition.x, CastPosition.z)
+						return
+					end
+                end
+            end
+        end
+	end
+	
+	if MenuMorg.ksConfig.KSW and WReady and ccw then
+		players = heroManager.iCount
+		for i = 1, players, 1 do
+            target = heroManager:getHero(i)
+			wDmg = getDmg("W", myHero, target)
+            if target ~= nil and target.team ~= player.team and not target.dead then
+                if WReady and wDmg > target.health then
+					local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(target, wDelay, wWidth, wRange, wSpeed, myHero, false)
+					if CastPosition and not target.canMove and HitChance >= 2 then
+						CastSpell(_W, CastPosition.x, CastPosition.z)
+						return
+					end
+                end
+            end
+        end
+	end
+	
+	if MenuMorg.ksConfig.KSULT and RReady and ccr then
+		players = heroManager.iCount
+		for i = 1, players, 1 do
+            target = heroManager:getHero(i)
+			rDmg = getDmg("R", myHero, target)
+            if target ~= nil and target.team ~= player.team and not target.dead then
+                if RReady and rDmg > target.health then
+					CastSpell(_R)
+                end
+            end
+        end
+	end
+	
+	if MenuMorg.ksConfig.KSIGNITE and IgniteKey ~= nil then
+		players = heroManager.iCount
+		for i = 1, players, 1 do
+            target = heroManager:getHero(i)
+			iDmg = getDmg("IGNITE", myHero, Target)
+            if target ~= nil and target.team ~= player.team and not target.dead then
+                if IReady and iDmg > target.health then
+					CastSpell(IgniteKey, target)
+                end
+            end
+        end
+	end
+	
+	if MenuMorg.harrasConfig.HQ and QReady and chq then
+		players = heroManager.iCount
+		for i = 1, players, 1 do
+            target = heroManager:getHero(i)
+            if target ~= nil and target.team ~= player.team and not target.dead then
+				local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(target, qDelay, qWidth, qRange, qSpeed, myHero, true)
+				if CastPosition and HitChance >= 2 then
+					CastSpell(_Q, CastPosition.x, CastPosition.z)
+					return
+				end
+            end
+        end
+	end
+	
+	if MenuMorg.harrasConfig.HW and WReady and chw then
+		if MenuMorg.harrasConfig.HWS then
+			players = heroManager.iCount
+			for i = 1, players, 1 do
+				target = heroManager:getHero(i)
+				if target ~= nil and target.team ~= player.team and not target.dead and not target.canMove then
+					local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(target, wDelay, wWidth, wRange, wSpeed, myHero, false)
+					if CastPosition and HitChance >= 2 then
+						CastSpell(_W, CastPosition.x, CastPosition.z)
+						return
+					end
+				end
+			end
+		end
+		if not MenuMorg.harrasConfig.HWS then
+			players = heroManager.iCount
+			for i = 1, players, 1 do
+				target = heroManager:getHero(i)
+				if target ~= nil and target.team ~= player.team and not target.dead then
+					local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(target, wDelay, wWidth, wRange, wSpeed, myHero, false)
+					if CastPosition and HitChance >= 2 then
+						CastSpell(_W, CastPosition.x, CastPosition.z)
+						return
+					end
+				end
+			end
+		end
+	end
+	if MenuMorg.exConfig.AZ then
+		if ZhonyaReady and ((myHero.health/myHero.maxHealth)*100) < MenuMorg.exConfig.AZHP then
+			CastSpell(zhonyaslot)
+		end
+	end
+end
+
+
+function CastQ()
+	if QReady and MenuMorg.comboConfig.USEQ and Target.canMove and ccq then
+	if Target ~= nil and Target.team ~= player.team and not Target.dead then
+		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(Target, qDelay, qWidth, qRange, qSpeed, myHero, true)
+		local enemyCountQ = EnemyCount(myHero, qRange)
+		if CastPosition and HitChance >= 2 and enemyCountQ >= 1 then
+			CastSpell(_Q, CastPosition.x, CastPosition.z)
+			return
+		end
+	end
+	end
+end
+
+function CastW()
+	if WReady and MenuMorg.comboConfig.USEW and ccw then
+	if Target ~= nil and Target.team ~= player.team and not Target.dead then
+		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(Target, wDelay, wWidth, wRange, wSpeed, myHero, false)
+		if CastPosition and not Target.canMove and HitChance >= 2 then
+			CastSpell(_W, CastPosition.x, CastPosition.z)
+			return
+		end
+	end
+	end
+end
+
+function CastE()
+	if EReady and MenuMorg.comboConfig.USEE then
+		CastSpell(_E)
+	end
+end
+
+function CastR()
+	local enemyCount = EnemyCount(myHero, rRange)
+	if RReady and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR and ccr then
+		CastSpell(_R)
+	end
+end
+
+function EnemyCount(point, range)
+	local count = 0
+	for _, enemy in pairs(GetEnemyHeroes()) do
+		if enemy and not enemy.dead and GetDistance(point, enemy) <= range then
+			count = count + 1
+		end
+	end            
+	return count
+end
+
+function PluginOnDraw()
+	if MenuMorg.drawConfig.DQL and ValidTarget(Target, qRange) then
+		QMark = Target
+		DrawLine3D(myHero.x, myHero.y, myHero.z, QMark.x, QMark.y, QMark.z, qWidth, ARGB(150,40,4,4))
+	end
+	if MenuMorg.drawConfig.DQ and QReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, qRange, ARGB(255,0,0,255))
+	end
+	if MenuMorg.drawConfig.DW and WReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, wRange, ARGB(255,255,0,0))
+	end
+	if MenuMorg.drawConfig.DR and RReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, rRange, ARGB(255,0,255,0))
+	end
+end
+
+function cancast()
+	--Q--
+	if ((myHero.mana/myHero.maxMana)*100) >= MenuMorg.mpConfig.mptocq then
+		ccq = true
+	else
+		ccq = false
+	end
+	if ((myHero.mana/myHero.maxMana)*100) >= MenuMorg.mpConfig.mptohq then
+		chq = true
+	else
+		chq = false
+	end
+	--W--
+	if ((myHero.mana/myHero.maxMana)*100) >= MenuMorg.mpConfig.mptocw then
+		ccw = true
+	else
+		ccw = false
+	end
+	if ((myHero.mana/myHero.maxMana)*100) >= MenuMorg.mpConfig.mptohw then
+		chw = true
+	else
+		chw = false
+	end
+	--R--
+	if ((myHero.mana/myHero.maxMana)*100) >= MenuMorg.mpConfig.mptocr then
+		ccr = true
+	else
+		ccr = false
+	end
+end
+
+function autolvl()
+	if not MenuMorg.exConfig.ALS then return end
+
+	
+	if myHero.level > abilitylvl then
+		abilitylvl = abilitylvl + 1
+		if MenuMorg.exConfig.AL == 1 then			
+			LevelSpell(_R)
+			LevelSpell(_Q)
+			LevelSpell(_W)
+			LevelSpell(_E)
+		end
+		if MenuMorg.exConfig.AL == 2 then	
+			LevelSpell(_R)
+			LevelSpell(_Q)
+			LevelSpell(_E)
+			LevelSpell(_W)
+		end
+		if MenuMorg.exConfig.AL == 3 then	
+			LevelSpell(_R)
+			LevelSpell(_W)
+			LevelSpell(_Q)
+			LevelSpell(_E)
+		end
+		if MenuMorg.exConfig.AL == 4 then	
+			LevelSpell(_R)
+			LevelSpell(_W)
+			LevelSpell(_E)
+			LevelSpell(_Q)
+		end
+		if MenuMorg.exConfig.AL == 5 then	
+			LevelSpell(_R)
+			LevelSpell(_E)
+			LevelSpell(_Q)
+			LevelSpell(_W)
+		end
+		if MenuMorg.exConfig.AL == 6 then	
+			LevelSpell(_R)
+			LevelSpell(_E)
+			LevelSpell(_W)
+			LevelSpell(_Q)
+		end
+	end
+end
+
+function PluginOnProcessSpell(object,spellProc)
+	if MenuMorg.exConfig.AE then
+		if object.team ~= player.team and string.find(spellProc.name, "Basic") == nil then
+			if Champions[object.charName] ~= nil then
+                skillshot = Champions[object.charName].qwer[spellProc.name]
+                if skillshot ~= nil then
+					range = skillshot.range
+					if not spellProc.startPos then
+                        spellProc.startPos.x = object.x
+                        spellProc.startPos.z = object.z                        
+                    end     
+					if GetDistance(spellProc.startPos) <= range then		
+						if GetDistance(spellProc.endPos) <= eRange then
+							if EReady then
+								CastSpell(_E)
+							end
+						end
+					end
+                end
+			end
+		end	
+	end
+end
