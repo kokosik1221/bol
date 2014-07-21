@@ -46,7 +46,31 @@ if RequireI.downloadNeeded == true then return end
 --END AUTO UPDATE--
 -------------------
 
-function Menu()
+Champions = {
+    ["Katarina"] = {charName = "Katarina", qwer = {
+        ["KatarinaR"] = {spellName = "KatarinaR", range = 550},
+    }}, 
+    ["Caitlyn"] = {charName = "Caitlyn", qwer = {
+        ["CaitlynAceintheHole"] = {spellName = "CaitlynAceintheHole", range = 3000},
+    }},
+	["Shen"] = {charName = "Shen", qwer = {
+        ["ShenStandUnited"] = {spellName = "ShenStandUnited", range = 550},
+    }},
+	["Urgot"] = {charName = "Urgot", qwer = {
+        ["UrgotSwap2"] = {spellName = "UrgotSwap2", range = 550},
+    }},
+	["MissFortune"] = {charName = "MissFortune", qwer = {
+        ["MissFortuneBulletTime"] =  {spellName = "MissFortuneBulletTime", range = 1400},
+    }},
+	["Galio"] = {charName = "Galio", qwer = {
+        ["GalioIdolOfDurand"] =  {spellName = "GalioIdolOfDurand", range = 560},
+    }},
+	["FiddleSticks"] = {charName = "FiddleSticks", qwer = {
+        ["Crowstorm"] = {spellName="Crowstorm", range=600},
+    }},  
+}
+
+function Menuu()
 	MumuMenu = scriptConfig("Amumu Master "..version, "Amumu Master "..version)
 	MumuMenu:addSubMenu("Orbwalking", "Orbwalking")
 	SOWi:LoadToMenu(MumuMenu.Orbwalking)
@@ -65,7 +89,17 @@ function Menu()
 	MumuMenu.combo.EO:addParam("UEMC", "Min Mana To Cast E", SCRIPT_PARAM_SLICE, 20, 0, 100)
 	MumuMenu.combo:addSubMenu("R Options", "RO")
 	MumuMenu.combo.RO:addParam("USER", "Use R In Combo", SCRIPT_PARAM_ONOFF, true)
-	MumuMenu.combo.RO:addParam("RC", "Use R To Stop Enemy Spells", SCRIPT_PARAM_ONOFF, true)
+	MumuMenu.combo.RO:addParam("RCS", "Use R To Stop Enemy Spells", SCRIPT_PARAM_ONOFF, true)
+	for i = 1, heroManager.iCount,1 do
+        local hero = heroManager:getHero(i)
+        if hero.team ~= player.team then
+            if Champions[hero.charName] ~= nil then
+                for index, skillshot in pairs(Champions[hero.charName].qwer) do
+                    MumuMenu.combo.RO:addParam(skillshot.spellName, hero.charName .. " - " .. skillshot.name, SCRIPT_PARAM_ONOFF, true)
+                end
+            end
+        end
+    end
 	MumuMenu.combo:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	--[[--- Harras --]]--
 	MumuMenu:addSubMenu("Harras", "harras")
@@ -202,8 +236,8 @@ end
 
 function OnLoad()
 	LoadLibs()
+	Menuu()
 	Variables()
-	Menu()
 end
 
 function OnTick()
@@ -610,6 +644,30 @@ function EnemyCount(point, range)
 	return count
 end
 
+function OnProcessSpell(object,spellProc)
+if MumuMenu.combo.RO.RCS then
+	if object.team ~= player.team and string.find(spellProc.name, "Basic") == nil then
+		if Champions[object.charName] ~= nil then
+            skillshot = Champions[object.charName].qwer[spellProc.name]
+            if skillshot ~= nil then
+				range = skillshot.range
+				if not spellProc.startPos then
+                    spellProc.startPos.x = object.x
+                    spellProc.startPos.z = object.z                        
+                end     
+				if GetDistance(spellProc.startPos) <= range then		
+					if GetDistance(spellProc.endPos) <= skills.skillR.range then
+						if RReady and MumuMenu.combo.RO[spellProc.name] then
+							CastSpell(_R)
+						end
+					end
+				end
+            end
+		end
+	end	
+end
+end
+
 function DmgCalc()
     for _,enemy in pairs(GetEnemyHeroes()) do
         if not enemy.dead and enemy.visible then
@@ -647,11 +705,11 @@ function DmgCalc()
                 killstring[enemy.networkID] = "Q+R+Items Kill"
             elseif eDmg + rDmg + itemsDmg > enemy.health then
                 killstring[enemy.networkID] = "E+R+Items Kill"
-            elseif qDmg > + itemsDmg > enemy.health then
+            elseif qDmg + itemsDmg > enemy.health then
                 killstring[enemy.networkID] = "Q+Items Kill"
-			elseif eDmg > + itemsDmg > enemy.health then
+			elseif eDmg + itemsDmg > enemy.health then
                 killstring[enemy.networkID] = "E+Items Kill"	
-			elseif rDmg > + itemsDmg > enemy.health then
+			elseif rDmg + itemsDmg > enemy.health then
 				killstring[enemy.networkID] = "R+Items Kill"
 			elseif itemsDmg > enemy.health then
 				killstring[enemy.networkID] = "Items Kill"									
