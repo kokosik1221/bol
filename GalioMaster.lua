@@ -8,6 +8,7 @@
             - Added Auto Zhonya
             - Added Auto Lvl Skills
             - Added Support Prodiction(Not Tested)
+        1.2 - fix error with cast ultimate
  
 
 ]]--
@@ -336,7 +337,7 @@ function CastW()
 end
 
 function CastR()
-	local enemyCount = EnemyCount(myHero, rRange)
+	local enemyCount = EnemyCount(myHero, skills.skillR.range)
 	if RReady and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR then
 		CastSpell(_R)
 	end
@@ -443,4 +444,3 @@ function PluginOnDraw()
 		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(255,0,255,0))
 	end
 end
-
