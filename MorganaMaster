@@ -1,6 +1,6 @@
 --[[
 	MORGANA MASTER KOKOSIK1221
-uu
+zz
 	Changelog:
  
 	0.1 - First Relase
@@ -789,7 +789,6 @@ function OnDraw()
             end
         end
 	end
-	
 	if MenuMorg.drawConfig.DLC then
 		if MenuMorg.drawConfig.DQR and QReady then
 			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 90, 1, RGB(180,13,182)) 
@@ -896,51 +895,50 @@ function OnProcessSpell(object,spellProc)
 end
 
 function DmgCalc()
-    for _,enemy in pairs(GetEnemyHeroes()) do
+	for i=1, heroManager.iCount do
+		local enemy = heroManager:GetHero(i)
         if not enemy.dead and enemy.visible then
             local qDmg = getDmg("Q", enemy, myHero)
             local wDmg = getDmg("W", enemy, myHero)
 			local rDmg = getDmg("R", enemy, myHero)
-			local deathfiregraspDmg = ((deathfiregraspready and getDmg("DFG", Enemy, myHero)) or 0)
-			local hextechDmg = ((hextechready and getDmg("HXG", Enemy, myHero)) or 0)
-			local bilgewaterDmg = ((bilgewaterready and getDmg("BWC", Enemy, myHero)) or 0)
-			local blackfiretorchdmg = ((blackfiretorchready and getDmg("BLACKFIRE", Enemy, myHero)) or 0)
-			local tiamatdmg = ((tiamatready and getDmg("TIAMAT", Enemy, myHero)) or 0)
-			local brkdmg = ((brkready and getDmg("RUINEDKING", Enemy, myHero)) or 0)
-			local hydradmg = ((hydraready and getDmg("HYDRA", Enemy, myHero)) or 0)
+			local deathfiregraspDmg = ((deathfiregraspready and getDmg("DFG", enemy, myHero)) or 0)
+			local hextechDmg = ((hextechready and getDmg("HXG", enemy, myHero)) or 0)
+			local bilgewaterDmg = ((bilgewaterready and getDmg("BWC", enemy, myHero)) or 0)
+			local blackfiretorchdmg = ((blackfiretorchready and getDmg("BLACKFIRE", enemy, myHero)) or 0)
+			local tiamatdmg = ((tiamatready and getDmg("TIAMAT", enemy, myHero)) or 0)
+			local brkdmg = ((brkready and getDmg("RUINEDKING", enemy, myHero)) or 0)
+			local hydradmg = ((hydraready and getDmg("HYDRA", enemy, myHero)) or 0)
 			itemsDmg = deathfiregraspDmg + hextechDmg + bilgewaterDmg + blackfiretorchdmg + tiamatdmg + brkdmg + hydradmg
-            if qDmg + wDmg + rDmg > enemy.health then
-                killstring[enemy.networkID] = "Q+W+R Kill"
-			elseif qDmg + wDmg > enemy.health then
-                killstring[enemy.networkID] = "Q+W Kill"
-			elseif qDmg + rDmg > enemy.health then
-                killstring[enemy.networkID] = "Q+R Kill"
-            elseif wDmg + rDmg > enemy.health then
-                killstring[enemy.networkID] = "W+R Kill"
-            elseif qDmg > enemy.health then
-                killstring[enemy.networkID] = "Q Kill"
-			elseif wDmg > enemy.health then
-                killstring[enemy.networkID] = "W Kill"	
-			elseif rDmg > enemy.health then
-                killstring[enemy.networkID] = "R Kill"	
-			elseif qDmg + wDmg + rDmg + itemsDmg > enemy.health then
-                killstring[enemy.networkID] = "Q+W+R+Items Kill"
-			elseif qDmg + wDmg + itemsDmg > enemy.health then
-                killstring[enemy.networkID] = "Q+W+Items Kill"
-			elseif qDmg + rDmg + itemsDmg > enemy.health then
-                killstring[enemy.networkID] = "Q+R+Items Kill"
-            elseif wDmg + rDmg + itemsDmg > enemy.health then
-                killstring[enemy.networkID] = "W+R+Items Kill"
-            elseif qDmg + itemsDmg > enemy.health then
-                killstring[enemy.networkID] = "Q+Items Kill"
-			elseif wDmg + itemsDmg > enemy.health then
-                killstring[enemy.networkID] = "W+Items Kill"	
-			elseif rDmg + itemsDmg > enemy.health then
-				killstring[enemy.networkID] = "R+Items Kill"
-			elseif itemsDmg > enemy.health then
-				killstring[enemy.networkID] = "Items Kill"									
-            else
-                killstring[enemy.networkID] = "Harass Him!!!"
+            if enemy.health > (qDmg + wDmg + rDmg) then
+				killstring[enemy.networkID] = "Harass Him!!!"
+			elseif enemy.health < qDmg then
+				killstring[enemy.networkID] = "Q Kill!"
+			elseif enemy.health < wDmg then
+				killstring[enemy.networkID] = "W Kill!"
+            elseif enemy.health < rDmg then
+				killstring[enemy.networkID] = "R Kill!"
+            elseif enemy.health < (qDmg + wDmg) then
+                killstring[enemy.networkID] = "Q+W Kill!"
+			elseif enemy.health < (qDmg + rDmg) then
+                killstring[enemy.networkID] = "Q+R Kill!"	
+			elseif enemy.health < (wDmg + rDmg) then
+                killstring[enemy.networkID] = "W+R Kill!"	
+			elseif enemy.health < (qDmg + wDmg + rDmg) then
+                killstring[enemy.networkID] = "Q+W+R Kill!"	
+			elseif enemy.health < (qDmg + itemsDmg) then
+				killstring[enemy.networkID] = "Q+Items Kill!"
+			elseif enemy.health < (wDmg + itemsDmg) then
+				killstring[enemy.networkID] = "W+Items Kill!"
+            elseif enemy.health < (rDmg + itemsDmg) then
+				killstring[enemy.networkID] = "R+Items Kill!"
+            elseif enemy.health < (qDmg + wDmg + itemsDmg) then
+                killstring[enemy.networkID] = "Q+W+Items Kill!"
+			elseif enemy.health < (qDmg + rDmg + itemsDmg) then
+                killstring[enemy.networkID] = "Q+R+Items Kill!"	
+			elseif enemy.health < (wDmg + rDmg + itemsDmg) then
+                killstring[enemy.networkID] = "W+R+Items Kill!"	
+			elseif enemy.health < (qDmg + wDmg + rDmg + itemsDmg) then
+                killstring[enemy.networkID] = "Q+W+R+Items Kill!"	
             end
         end
     end
