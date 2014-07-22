@@ -1,6 +1,6 @@
 --[[
 	MORGANA MASTER KOKOSIK1221
-
+uu
 	Changelog:
  
 	0.1 - First Relase
@@ -28,7 +28,7 @@
 
 if myHero.charName ~= "Morgana" then return end
 
-local version = 1.5
+local version = 1.6
 local AUTOUPDATE = true
 local SCRIPT_NAME = "MorganaMaster"
 local prodstatus = false
@@ -332,9 +332,10 @@ function Menu()
 	MenuMorg.harrasConfig:addParam("WH", "Harras Use W", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.harrasConfig:addParam("HWS", "Only On Stunned Enemy", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
+	MenuMorg.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	--[[--- Mana Manager --]]--
 	MenuMorg:addSubMenu("Mana Config" , "mpConfig")
-	MenuMorg.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE,20,0,100)
+	MenuMorg.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
 	MenuMorg.mpConfig:addParam("mptocw", "Min Mana To Cast W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
 	MenuMorg.mpConfig:addParam("mptocr", "Min Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
 	MenuMorg.mpConfig:addParam("mptohq", "Min Mana To Harras Q", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
@@ -367,7 +368,7 @@ function Menu()
         if hero.team ~= player.team then
             if Champions[hero.charName] ~= nil then
                 for index, skillshot in pairs(Champions[hero.charName].qwer) do
-                    MenuMorg.exConfig.SO:addParam(skillshot.spellName, hero.charName .. " - " .. skillshot.name, SCRIPT_PARAM_ONOFF, true)
+                    MenuMorg.exConfig.SO:addParam(skillshot.spellName, hero.charName .. " - " .. skillshot.spellName, SCRIPT_PARAM_ONOFF, true)
                 end
             end
         end
@@ -388,6 +389,11 @@ function Menu()
 	--[[--- Prediction --]]--
 	MenuMorg:addSubMenu("Prediction Settings", "prConfig")
 	MenuMorg.prConfig:addParam("pro", "Use", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
+	--dsf--
+	MenuMorg.comboConfig:permaShow("CEnabled")
+	MenuMorg.harrasConfig:permaShow("HEnabled")
+	MenuMorg.harrasConfig:permaShow("HTEnabled")
+	MenuMorg.exConfig:permaShow("AZ")
 end
 
 function LoadLibs()
@@ -432,12 +438,14 @@ function Variables()
 	brkrange = 450
 	hydrarange = 275
 	hextechrange = 600
+	EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	killstring = {}
 end
 
 function cancast()
 	--Q--
-	if myHero.mana/myHero.maxMana * 100 > MenuMorg.mpConfig.mptocq then
+	if ((myHero.mana/myHero.maxMana)*100) >= MenuMorg.mpConfig.mptocq then
 		ccq = true
 	else
 		ccq = false
@@ -478,6 +486,9 @@ end
 
 function Check()
 	DmgCalc()
+	cancast()
+	EnemyMinions:update()
+	JungleMinions:update()
 	zhonyaslot = GetInventorySlotItem(3157)
 	woogletslot = GetInventorySlotItem(3090)
 	hextechslot = GetInventorySlotItem(3146)
@@ -527,26 +538,19 @@ function EnemyCount(point, range)
 end
 
 function OnLoad()
-	LoadLibs()
 	Variables()
+	LoadLibs()
 	Menu()
-	EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	Variables()
 end
 
 function OnTick()
-	
-	
-	Cel = STS:GetTarget(1300)
+	Cel = STS:GetTarget(skills.skillQ.range)
 	Check()
-	
-	cancast()
-	
-	
 	if Cel ~= nil and MenuMorg.comboConfig.CEnabled then
 		Combo()
 	end
-	if Cel ~= nil and MenuMorg.harrasConfig.HEnabled then
+	if Cel ~= nil and MenuMorg.harrasConfig.HEnabled or MenuMorg.harrasConfig.HTEnabled then
 		Harrass()
 	end
 	if MenuMorg.farm.FEnabled or MenuMorg.farm.LCEnabled then
@@ -601,22 +605,13 @@ end
 
 function CastQC()
 	if QReady and MenuMorg.comboConfig.USEQ and Cel.canMove and ccq then
-		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(Cel, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
-		local enemyCountQ = EnemyCount(myHero, skills.skillQ.range)
-		if CastPosition and HitChance >= 2 and enemyCountQ >= 1 then
-			CastSpell(_Q, CastPosition.x, CastPosition.z)
-			return
-		end
+		CastQ(Cel)
 	end
 end
 
 function CastWC()
-	if WReady and MenuMorg.comboConfig.USEW and ccw then
-		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(Cel, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-		if CastPosition and not Cel.canMove and HitChance >= 2 then
-			CastSpell(_W, CastPosition.x, CastPosition.z)
-			return
-		end
+	if WReady and MenuMorg.comboConfig.USEW and not Cel.canMove and ccw then
+		CastW(Cel)
 	end
 end
 
@@ -646,11 +641,7 @@ end
 
 function CastQH()
 	if QReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
-		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(Cel, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
-		if CastPosition and HitChance >= 2 then
-			CastSpell(_Q, CastPosition.x, CastPosition.z)
-			return
-		end
+		CastQ(Cel)
 	end
 end
 
@@ -658,19 +649,11 @@ function CastWH()
 	if WReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chw then
 		if MenuMorg.harrasConfig.HWS then
 			if not Cel.canMove then
-				local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(Cel, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-				if CastPosition and HitChance >= 2 then
-					CastSpell(_W, CastPosition.x, CastPosition.z)
-					return
-				end
+				CastW(Cel)
 			end
 		end
 		if not MenuMorg.harrasConfig.HWS then
-			local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(Cel, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-			if CastPosition and HitChance >= 2 then
-				CastSpell(_W, CastPosition.x, CastPosition.z)
-				return
-			end
+			CastW(Cel)
 		end
 	end
 end
@@ -689,11 +672,7 @@ end
 function CastQF()
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
-			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(minion, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
-			if CastPosition and HitChance >= 2 then
-				CastSpell(_Q, CastPosition.x, CastPosition.z)
-				return
-			end
+			CastQ(minion)
 		end
 	end
 end
@@ -701,11 +680,7 @@ end
 function CastWF()
 	for i, minion in pairs(EnemyMinions.objects) do
 		if WReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillW.range and cfw then
-			local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(minion, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-			if CastPosition and HitChance >= 2 then
-				CastSpell(_W, CastPosition.x, CastPosition.z)
-				return
-			end
+			CastW(minion)
 		end
 	end
 end
@@ -724,11 +699,7 @@ end
 function CastQJF()
 	for i, minion in pairs(JungleMinions.objects) do
 		if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
-			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(minion, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
-			if CastPosition and HitChance >= 2 then
-				CastSpell(_Q, CastPosition.x, CastPosition.z)
-				return
-			end
+			CastQ(minion)
 		end
 	end
 end
@@ -736,11 +707,7 @@ end
 function CastWJF()
 	for i, minion in pairs(JungleMinions.objects) do
 		if WReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillW.range and cfw then
-			local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(minion, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-			if CastPosition and HitChance >= 2 then
-				CastSpell(_W, CastPosition.x, CastPosition.z)
-				return
-			end
+			CastW(minion)
 		end
 	end
 end
@@ -748,81 +715,6 @@ end
 
 --KILL STEAL--
 function KillSteall()
-	if MenuMorg.ksConfig.IKS then
-		if IReady then
-			for i = 1, heroManager.iCount do
-			local Enemy = heroManager:getHero(i)
-				iDmg = getDmg("IGNITE", myHero, Enemy)
-				if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
-					if IReady and iDmg > Enemy.health then
-						CastSpell(IgniteKey, Enemy)
-					end
-				end
-			end
-		end
-	end
-	if MenuMorg.ksConfig.QKS then
-		players = heroManager.iCount
-		for i = 1, players, 1 do
-			target = heroManager:getHero(i)
-			qDmg = getDmg("Q", myHero, target)
-			if target ~= nil and target.team ~= player.team and not target.dead and GetDistance(target) < skills.skillQ.range and target.visible then
-				if QReady and qDmg > target.health then
-					local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(target, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
-					if CastPosition and HitChance >= 2 then
-						CastSpell(_Q, CastPosition.x, CastPosition.z)
-						return
-					end
-				end
-			end
-		end	
-	end
-	if MenuMorg.ksConfig.WKS then
-		players = heroManager.iCount
-		for i = 1, players, 1 do
-			target = heroManager:getHero(i)
-			eDmg = getDmg("W", myHero, target)
-			if target ~= nil and target.team ~= player.team and not target.dead and GetDistance(target) < skills.skillW.range and target.visible then
-				if WReady and wDmg > target.health then
-					CastSpell(_W)
-				end
-			end
-		end
-	end
-	if MenuMorg.ksConfig.RKS then
-		players = heroManager.iCount
-		for i = 1, players, 1 do
-			target = heroManager:getHero(i)
-			rDmg = getDmg("R", myHero, target)
-			local enemyCount = EnemyCount(myHero, skills.skillR.range)
-			if target ~= nil and target.team ~= player.team and not target.dead and GetDistance(target) < skills.skillR.range and target.visible then
-				if RReady and rDmg > target.health and enemyCount >= 1 then
-					CastSpell(_R)
-				end
-			end
-		end
-	end
-	if MenuMorg.ksConfig.ITKS then
-		for i = 1, heroManager.iCount do
-			local Enemy = heroManager:getHero(i)
-			local health = Enemy.health
-			deathfiregraspDmg = ((deathfiregraspready and getDmg("DFG", Enemy, myHero)) or 0)
-			hextechDmg = ((hextechready and getDmg("HXG", Enemy, myHero)) or 0)
-			bilgewaterDmg = ((bilgewaterready and getDmg("BWC", Enemy, myHero)) or 0)
-			blackfiretorchdmg = ((blackfiretorchready and getDmg("BLACKFIRE", Enemy, myHero)) or 0)
-			tiamatdmg = ((tiamatready and getDmg("TIAMAT", Enemy, myHero)) or 0)
-			brkdmg = ((brkready and getDmg("RUINEDKING", Enemy, myHero)) or 0)
-			hydradmg = ((hydraready and getDmg("HYDRA", Enemy, myHero)) or 0)
-			itemsDmg = deathfiregraspDmg + hextechDmg + bilgewaterDmg + blackfiretorchdmg + tiamatdmg + brkdmg + hydradmg
-			if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
-				if health < itemsDmg then
-					UseItems(Enemy)
-				end
-			end
-		end
-	end
-end
-function KillSteall2()
 	for i = 1, heroManager.iCount do
 		local Enemy = heroManager:getHero(i)
 		local health = Enemy.health
@@ -856,33 +748,17 @@ function KillSteall2()
 		end
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health <= qDmg and QReady and (distance < skills.skillQ.range) then
-				local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(Enemy, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
-				if CastPosition and HitChance >= 2 then
-					CastSpell(_Q, CastPosition.x, CastPosition.z)
-					return
-				end
+				CastQ(Enemy)
 			elseif health < wDmg and WReady and (distance < skills.skillW.range) then
-				local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(Enemy, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-				if CastPosition and HitChance >= 2 then
-					CastSpell(_W, CastPosition.x, CastPosition.z)
-					return
-				end
+				CastW(Enemy)
 			elseif health < rDmg and RReady and (distance < skills.skillR.range) then
 				CastSpell(_R)
 			elseif health < (qDmg + wDmg) and QReady and WReady and (distance < skills.skillW.range) then
-				local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(Enemy, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-				if CastPosition and HitChance >= 2 then
-					CastSpell(_W, CastPosition.x, CastPosition.z)
-					return
-				end
+				CastW(Enemy)
 			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) then
 				CastSpell(_R)
 			elseif health < (wDmg + rDmg) and WReady and RReady and (distance < skills.skillW.range) then
-				local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(Enemy, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-				if CastPosition and HitChance >= 2 then
-					CastSpell(_W, CastPosition.x, CastPosition.z)
-					return
-				end
+				CastW(Enemy)
 			elseif health < (qDmg + wDmg + rDmg) and QReady and WReady and RReady and (distance < skills.skillR.range) then
 				CastSpell(_R)
 			elseif health < (qDmg + wDmg + rDmg + itemsDmg) then
@@ -901,9 +777,46 @@ end
 
 --DRAWING--
 function OnDraw()
-
-
-
+	if MenuMorg.drawConfig.DQL and ValidTarget(Cel, skills.skillQ.range) then
+		QMark = Cel
+		DrawLine3D(myHero.x, myHero.y, myHero.z, QMark.x, QMark.y, QMark.z, skills.skillQ.width, ARGB(150,40,4,4))
+	end
+	if MenuMorg.drawConfig.DD then	
+		for _,enemy in pairs(GetEnemyHeroes()) do
+            if ValidTarget(enemy) and killstring[enemy.networkID] ~= nil then
+                local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
+                DrawText(killstring[enemy.networkID], 20, pos.x - 35, pos.y - 10, 0xFFFFFF00)
+            end
+        end
+	end
+	
+	if MenuMorg.drawConfig.DLC then
+		if MenuMorg.drawConfig.DQR and QReady then
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 90, 1, RGB(180,13,182)) 
+		end
+		if MenuMorg.drawConfig.DWR and WReady then			
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillW.range - 80, 1, RGB(17,159,22)) 
+		end
+		if MenuMorg.drawConfig.DER and EReady then			
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range - 70, 1, RGB(189,11,11)) 
+		end
+		if MenuMorg.drawConfig.DRR then			
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillR.range - 20, 1, RGB(200,170,15)) 
+		end
+	else
+		if MenuMorg.drawConfig.DQR and QReady then			
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, ARGB(255,0,0,255))
+		end
+		if MenuMorg.drawConfig.DWR and WReady then			
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, ARGB(255,100,0,255))
+		end
+		if MenuMorg.drawConfig.DER and EReady then			
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(255,255,0,0))
+		end
+		if MenuMorg.drawConfig.DRR then			
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(255,0,255,0))
+		end
+	end
 end
 --END DRAWING--
 
@@ -1027,9 +940,74 @@ function DmgCalc()
 			elseif itemsDmg > enemy.health then
 				killstring[enemy.networkID] = "Items Kill"									
             else
-                
-				PrintFloatText(enemy, 0, "Nuke Him")
+                killstring[enemy.networkID] = "Harass Him!!!"
             end
         end
     end
 end
+
+function CastQ(unit)
+	if MenuMorg.prConfig.pro == 1 then
+		local Position = FreePredictionQ:GetPrediction(unit)
+		if Position ~= nil then				
+			CastSpell(_Q, Position.x, Position.z)
+			return
+		end
+	end
+	if MenuMorg.prConfig.pro == 2 and VIP_USER then
+		local Position = VipPredictionQ:GetPrediction(unit)
+		if Position ~= nil then
+			CastSpell(_Q, Position.x, Position.z)
+			return		
+		end
+	end
+	if MenuMorg.prConfig.pro == 3 then
+		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
+		if CastPosition and HitChance >= 2 then
+			CastSpell(_Q, CastPosition.x, CastPosition.z)
+			return
+		end
+	end
+	if MenuMorg.prConfig.pro == 4 and VIP_USER and prodstatus then
+		local Position = ProdictionQ:GetPrediction(unit)
+		if Position ~= nil then
+			CastSpell(_Q, Position.x, Position.z)
+			return		
+		end
+	end
+end
+
+function CastW(unit)
+	if MenuMorg.prConfig.pro == 1 then
+		local Position = FreePredictionW:GetPrediction(unit)
+		if Position ~= nil then				
+			CastSpell(_W, Position.x, Position.z)
+			return
+		end
+	end
+	if MenuMorg.prConfig.pro == 2 and VIP_USER then
+		local Position = VipPredictionW:GetPrediction(unit)
+		if Position ~= nil then
+			CastSpell(_W, Position.x, Position.z)
+			return		
+		end
+	end
+	if MenuMorg.prConfig.pro == 3 then
+		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
+		if CastPosition and HitChance >= 2 then
+			CastSpell(_W, CastPosition.x, CastPosition.z)
+			return
+		end
+	end
+	if MenuMorg.prConfig.pro == 4 and VIP_USER and prodstatus then
+		local Position = ProdictionW:GetPrediction(unit)
+		if Position ~= nil then
+			CastSpell(_W, Position.x, Position.z)
+			return		
+		end
+	end
+end
+
+
+
+
