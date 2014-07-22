@@ -1,6 +1,6 @@
 --[[
 	MORGANA MASTER KOKOSIK1221
-zz
+
 	Changelog:
  
 	0.1 - First Relase
@@ -28,7 +28,7 @@ zz
 
 if myHero.charName ~= "Morgana" then return end
 
-local version = 1.6
+local version = 1.5
 local AUTOUPDATE = true
 local SCRIPT_NAME = "MorganaMaster"
 local prodstatus = false
