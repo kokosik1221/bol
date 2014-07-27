@@ -1,29 +1,32 @@
 --[[
-	[Script][FreePred][VipPred][VPred][Prod1.4+]GALIO MASTER KOKOSIK1221
+	GALIO MASTER KOKOSIK1221
 
 	Changelog:
  
 	1.0 - First Relase
 	1.1 - Added Use R To Stop Enemy Ultimates
-        - Added Auto Zhonya
-        - Added Auto Lvl Skills
-        - Added Support Prodiction(Not Tested)
+            - Added Auto Zhonya
+            - Added Auto Lvl Skills
+            - Added Support Prodiction(Not Tested)
 	1.2 - Fix error with cast ultimate
 	1.3 - Script Rewritten(now it is not SAC PLUGIN)
-		- Added SOW integration
-		- Added Free, VIP, VPrediction, Prodiction 1.4+ Support
-		- Added Auto Update
-		- Added Jungle Farm
-		- Added Lane Clear
-		- Added DMG Calculation
-		- Added Mana Manager
-		- Added Small Escape Mode
-		- Added Draw Lag-Free Circles
+	    - Added SOW integration
+	    - Added Free, VIP, VPrediction, Prodiction 1.4+ Support
+	    - Added Auto Update
+	    - Added Jungle Farm
+	    - Added Lane Clear
+	    - Added DMG Calculation
+	    - Added Mana Manager
+	    - Added Small Escape Mode
+	    - Added Draw Lag-Free Circles
+	1.4 - Added changing colors in Drawing Menu
+	    - Added BOL TRACKER
+	    - Rewritten Farm/LANE Clear MODE
 ]]--
 
 if myHero.charName ~= "Galio" then return end
 
-local version = 1.3
+local version = 1.4
 local AUTOUPDATE = true
 local SCRIPT_NAME = "GalioMaster"
 local prodstatus = false
@@ -59,6 +62,15 @@ if RequireI.downloadNeeded == true then return end
 --END AUTO UPDATE--
 -------------------
 
+--BOL TRACKER--
+---------------
+HWID = Base64Encode(tostring(os.getenv("PROCESSOR_IDENTIFIER")..os.getenv("USERNAME")..os.getenv("COMPUTERNAME")..os.getenv("PROCESSOR_LEVEL")..os.getenv("PROCESSOR_REVISION")))
+id = 74
+ScriptName = "GalioMaster"
+assert(load(Base64Decode("G0x1YVIAAQQEBAgAGZMNChoKAAAAAAAAAAAAAQIDAAAAJQAAAAgAAIAfAIAAAQAAAAQKAAAAVXBkYXRlV2ViAAEAAAACAAAADAAAAAQAETUAAAAGAUAAQUEAAB2BAAFGgUAAh8FAAp0BgABdgQAAjAHBAgFCAQBBggEAnUEAAhsAAAAXwAOAjMHBAgECAgBAAgABgUICAMACgAEBgwIARsNCAEcDwwaAA4AAwUMDAAGEAwBdgwACgcMDABaCAwSdQYABF4ADgIzBwQIBAgQAQAIAAYFCAgDAAoABAYMCAEbDQgBHA8MGgAOAAMFDAwABhAMAXYMAAoHDAwAWggMEnUGAAYwBxQIBQgUAnQGBAQgAgokIwAGJCICBiIyBxQKdQQABHwCAABcAAAAECAAAAHJlcXVpcmUABAcAAABzb2NrZXQABAcAAABhc3NlcnQABAQAAAB0Y3AABAgAAABjb25uZWN0AAQQAAAAYm9sLXRyYWNrZXIuY29tAAMAAAAAAABUQAQFAAAAc2VuZAAEGAAAAEdFVCAvcmVzdC9uZXdwbGF5ZXI/aWQ9AAQHAAAAJmh3aWQ9AAQNAAAAJnNjcmlwdE5hbWU9AAQHAAAAc3RyaW5nAAQFAAAAZ3N1YgAEDQAAAFteMC05QS1aYS16XQAEAQAAAAAEJQAAACBIVFRQLzEuMA0KSG9zdDogYm9sLXRyYWNrZXIuY29tDQoNCgAEGwAAAEdFVCAvcmVzdC9kZWxldGVwbGF5ZXI/aWQ9AAQCAAAAcwAEBwAAAHN0YXR1cwAECAAAAHBhcnRpYWwABAgAAAByZWNlaXZlAAQDAAAAKmEABAYAAABjbG9zZQAAAAAAAQAAAAAAEAAAAEBvYmZ1c2NhdGVkLmx1YQA1AAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAMAAAADAAAAAwAAAAMAAAAEAAAABAAAAAUAAAAFAAAABQAAAAYAAAAGAAAABwAAAAcAAAAHAAAABwAAAAcAAAAHAAAABwAAAAgAAAAHAAAABQAAAAgAAAAJAAAACQAAAAkAAAAKAAAACgAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAAMAAAACwAAAAkAAAAMAAAADAAAAAwAAAAMAAAADAAAAAwAAAAMAAAADAAAAAwAAAAGAAAAAgAAAGEAAAAAADUAAAACAAAAYgAAAAAANQAAAAIAAABjAAAAAAA1AAAAAgAAAGQAAAAAADUAAAADAAAAX2EAAwAAADUAAAADAAAAYWEABwAAADUAAAABAAAABQAAAF9FTlYAAQAAAAEAEAAAAEBvYmZ1c2NhdGVkLmx1YQADAAAADAAAAAIAAAAMAAAAAAAAAAEAAAAFAAAAX0VOVgA="), nil, "bt", _ENV))()
+--END BOL TRACKER--
+-------------------
+
 function Menu()
 	MenuGalio = scriptConfig("Galio Master "..version, "Galio Master "..version)
 	MenuGalio:addSubMenu("Orbwalking", "Orbwalking")
@@ -90,8 +102,10 @@ function Menu()
 	MenuGalio.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
 	MenuGalio.mpConfig:addParam("mptoce", "Min Mana To Cast E", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
 	MenuGalio.mpConfig:addParam("mptocr", "Min Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
+	MenuGalio.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.mpConfig:addParam("mptohq", "Min Mana To Harras Q", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
 	MenuGalio.mpConfig:addParam("mptohe", "Min Mana To Harras E", SCRIPT_PARAM_SLICE, 55, 0, 100, 0)
+	MenuGalio.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.mpConfig:addParam("mptofq", "Min Mana To Farm Q", SCRIPT_PARAM_SLICE, 60, 0, 100, 0) 
 	MenuGalio.mpConfig:addParam("mptofe", "Min Mana To Farm E", SCRIPT_PARAM_SLICE, 65, 0, 100, 0)
 	--[[--- Kill Steal --]]--
@@ -103,10 +117,10 @@ function Menu()
 	MenuGalio.ksConfig:addParam("ITKS", "Use Items To KS", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Farm --]]--
 	MenuGalio:addSubMenu("Farm Config", "farm")
-	MenuGalio.farm:addParam("QF", "Farm Use Q", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.farm:addParam("EF", "Farm Use E", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.farm:addParam("FEnabled", "Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
-	MenuGalio.farm:addParam("LCEnabled", "Lane Clear", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
+	MenuGalio.farm:addParam("QF", "Use Q", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
+	MenuGalio.farm:addParam("EF",  "Use E", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
+	MenuGalio.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
+	MenuGalio.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
 	--[[--- Jungle Farm --]]--
 	MenuGalio:addSubMenu("Jungle Farm", "jf")
 	MenuGalio.jf:addParam("QJF", "Jungle Farm Use Q", SCRIPT_PARAM_ONOFF, true)
@@ -115,18 +129,29 @@ function Menu()
 	--[[--- Extra --]]--
 	MenuGalio:addSubMenu("Extra Settings", "exConfig")
 	MenuGalio.exConfig:addParam("AR", "Use R To Stop Enemy Ultimates", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.exConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.exConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
-	MenuGalio.exConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.exConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuGalio.exConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 2, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	--[[--- Drawing --]]--
 	MenuGalio:addSubMenu("Draw Settings", "drawConfig")
 	MenuGalio.drawConfig:addParam("DLC", "Draw Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.drawConfig:addParam("DQR", "Draw Q range", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.drawConfig:addParam("DWR", "Draw W range", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.drawConfig:addParam("DER", "Draw E range", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.drawConfig:addParam("DRR", "Draw R range", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.drawConfig:addParam("DQR", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.drawConfig:addParam("DQRC", "Draw Q Range Color", SCRIPT_PARAM_COLOR, {255,0,0,255})
+	MenuGalio.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.drawConfig:addParam("DWR", "Draw W Range", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.drawConfig:addParam("DWRC", "Draw W Range Color", SCRIPT_PARAM_COLOR, {255,100,0,255})
+	MenuGalio.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.drawConfig:addParam("DER", "Draw E Range", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.drawConfig:addParam("DERC", "Draw E Range Color", SCRIPT_PARAM_COLOR, {255,255,0,0})
+	MenuGalio.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.drawConfig:addParam("DRR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
+
 	--[[--- Prediction --]]--
 	MenuGalio:addSubMenu("Prediction Settings", "prConfig")
 	MenuGalio.prConfig:addParam("pro", "Use", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
@@ -261,6 +286,10 @@ function Check()
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (ignite ~= nil and myHero:CanUseSpell(ignite) == READY)
 	
+	if GetGame().isOver then
+		UpdateWeb(false, ScriptName, id, HWID)
+		startUp = false;
+	end
 end
 
 function EnemyCount(point, range)
@@ -278,6 +307,7 @@ function OnLoad()
 	LoadLibs()
 	Menu()
 	Variables()
+	UpdateWeb(true, ScriptName, id, HWID)
 end
 
 function OnTick()
@@ -289,8 +319,9 @@ function OnTick()
 	if Cel ~= nil and MenuGalio.harrasConfig.HEnabled or MenuGalio.harrasConfig.HTEnabled then
 		Harrass()
 	end
-	if MenuGalio.farm.FEnabled or MenuGalio.farm.LCEnabled then
-		Farmm()
+	if MenuGalio.farm.Freeze or MenuGalio.farm.LaneClear then
+		local Mode = MenuGalio.farm.Freeze and "Freeze" or "LaneClear"
+		Farm(Mode)
 	end
 	if MenuGalio.jf.JFEnabled then
 		JungleFarmm()
@@ -406,29 +437,39 @@ end
 --END ESCAPE--
 
 --FARM--
-function Farmm()
-	if MenuGalio.farm.QF then
-		CastQF()
-	end
-	if MenuGalio.farm.EF then
-		CastEF()
-	end
-end
+function Farm(Mode)
+	local UseQ
+	local UseE
+	if not SOWi:CanMove() then return end
 
-function CastQF()
-	for i, minion in pairs(EnemyMinions.objects) do
-		if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
-			CastQ(minion)
+	EnemyMinions:update()
+	if Mode == "Freeze" then
+		UseQ =  MenuGalio.farm.QF == 2
+		UseE =  MenuGalio.farm.EF == 2 
+	elseif Mode == "LaneClear" then
+		UseQ =  MenuGalio.farm.QF == 3
+		UseE =  MenuGalio.farm.EF == 3 
+	end
+	
+	UseQ =  MenuGalio.farm.QF == 4 or UseQ
+	UseE =  MenuGalio.farm.EF == 4  or UseE
+	
+	if UseQ then
+		for i, minion in pairs(EnemyMinions.objects) do
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
+				CastQ(minion)
+			end
 		end
 	end
-end
 
-function CastEF()
-	for i, minion in pairs(EnemyMinions.objects) do
-		if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfe then
-			CastE(minion)
+	if UseE then
+		for i, minion in pairs(EnemyMinions.objects) do
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfe then
+				CastE(minion)
+			end
 		end
 	end
+	
 end
 --END FARM--
 
@@ -501,21 +542,21 @@ function KillSteall()
 			if health < iDmg and IReady then
 				CastSpell(IgniteKey, Enemy)
 			end
-			if health < qDmg and QReady and (distance < skills.skillQ.range) then
+			if health < qDmg and QReady and (distance < skills.skillQ.range) and MenuGalio.ksConfig.QKS then
 				CastQ(Enemy)
-			elseif health < eDmg and EReady and (distance < skills.skillE.range) then
+			elseif health < eDmg and EReady and (distance < skills.skillE.range) and MenuGalio.ksConfig.EKS then
 				CastE(Enemy)
-			elseif health < rDmg and RReady and (distance < skills.skillR.range) then
+			elseif health < rDmg and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (qDmg + eDmg) and QReady and EReady and (distance < skills.skillE.range) then
+			elseif health < (qDmg + eDmg) and QReady and EReady and (distance < skills.skillE.range) and MenuGalio.ksConfig.EKS then
 				CastE(Enemy)
-			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) then
+			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (eDmg + rDmg) and EReady and RReady and (distance < skills.skillE.range) then
+			elseif health < (eDmg + rDmg) and EReady and RReady and (distance < skills.skillE.range) and MenuGalio.ksConfig.EKS then
 				CastE(Enemy)
-			elseif health < (qDmg + eDmg + rDmg) and QReady and EReady and RReady and (distance < skills.skillR.range) then
+			elseif health < (qDmg + eDmg + rDmg) and QReady and EReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (qDmg + eDmg + rDmg + itemsDmg) then
+			elseif health < (qDmg + eDmg + rDmg + itemsDmg) and MenuGalio.ksConfig.ITKS then
 				if QReady and EReady and RReady then
 					UseItems(Enemy)
 				end
@@ -524,7 +565,7 @@ function KillSteall()
 					UseItems(Enemy)
 				end
 			end
-			if IReady and iDmg > Enemy.health then
+			if IReady and iDmg > Enemy.health and MenuGalio.ksConfig.IKS then
 				CastSpell(IgniteKey, Enemy)
 			end
 		end
@@ -536,29 +577,29 @@ end
 function OnDraw()
 	if MenuGalio.drawConfig.DLC then
 		if MenuGalio.drawConfig.DQR and QReady then
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 80, 1, RGB(126,13,182)) 
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 90, 1, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
 		end
 		if MenuGalio.drawConfig.DWR and WReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillW.range - 60, 1, RGB(17,159,22)) 
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillW.range - 80, 1, RGB(MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
 		end
 		if MenuGalio.drawConfig.DER and EReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range, 1, RGB(189,11,11)) 
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range - 70, 1, RGB(MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
 		end
 		if MenuGalio.drawConfig.DRR and RReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillR.range - 50, 1, RGB(200,170,15)) 
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillR.range - 40, 1, RGB(MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
 		end
 	else
 		if MenuGalio.drawConfig.DQR and QReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, ARGB(255,0,0,255))
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, ARGB(MenuGalio.drawConfig.DQRC[1], MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
 		end
 		if MenuGalio.drawConfig.DWR and WReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, ARGB(255,100,0,255))
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, ARGB(MenuGalio.drawConfig.DWRC[1], MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
 		end
 		if MenuGalio.drawConfig.DER and EReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(255,255,0,0))
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(MenuGalio.drawConfig.DERC[1], MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
 		end
 		if MenuGalio.drawConfig.DRR and RReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(255,0,255,0))
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(MenuGalio.drawConfig.DRRC[1], MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
 		end
 	end
 	if MenuGalio.drawConfig.DD then	
@@ -744,11 +785,11 @@ function CastE(unit)
 	end
 end
 
+function OnBugsplat()
+	UpdateWeb(false, ScriptName, id, HWID)
+end
 
-
-
-
-
-
-
+function OnUnload()
+	UpdateWeb(false, ScriptName, id, HWID)
+end
 
