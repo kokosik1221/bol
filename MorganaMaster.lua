@@ -829,6 +829,9 @@ function KillSteall()
 				if QReady and WReady then
 					UseItems(Enemy)
 				end
+		end
+					if IReady and iDmg > Enemy.health and MenuMorg.ksConfig.IKS then
+				CastSpell(IgniteKey, Enemy)
 			end
 		end
 	end
