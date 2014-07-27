@@ -3,17 +3,17 @@
 
 	Changelog:
  
-	0.1 - First Relase
-	1.1 - add drawing options
-        - improved collisions
-	1.2 - fixed combo
-        - add new option in harras
-	1.3 - add mana manager
-        - improved Cast Q
-        - add auto zhonya
-        - add auto lvl spells
-        - add auto "E"
-	1.4 - small fix
+	1.0 - First Relase
+	1.1 - Added drawing options
+        - Improved collisions
+	1.2 - Fixed combo
+        - Added new option in harras
+	1.3 - Added mana manager
+        - Improved Cast Q
+        - Added auto zhonya
+        - Added auto lvl spells
+        - Added auto "E"
+	1.4 - Small fix
 	1.5 - Script Rewritten(now it is not SAC PLUGIN)
 		- Added SOW integration
 		- Added Free, VIP, VPrediction, Prodiction 1.4+ Support
@@ -23,6 +23,9 @@
 		- Added DMG Calculation
 		- Added Draw Lag-Free Circles
 		- New Special Menu For Auto Shield
+	1.6 - Added changing colors in Drawing Menu
+		- Added BOL TRACKER
+		- Rewritten Farm/Lane Clear Mode
 		
 ]]--
 
@@ -63,6 +66,15 @@ if RequireI.downloadNeeded == true then return end
 
 --END AUTO UPDATE--
 -------------------
+
+--BOL TRACKER--
+---------------
+HWID = Base64Encode(tostring(os.getenv("PROCESSOR_IDENTIFIER")..os.getenv("USERNAME")..os.getenv("COMPUTERNAME")..os.getenv("PROCESSOR_LEVEL")..os.getenv("PROCESSOR_REVISION")))
+id = 74
+ScriptName = "MorganaMaster"
+assert(load(Base64Decode("G0x1YVIAAQQEBAgAGZMNChoKAAAAAAAAAAAAAQIDAAAAJQAAAAgAAIAfAIAAAQAAAAQKAAAAVXBkYXRlV2ViAAEAAAACAAAADAAAAAQAETUAAAAGAUAAQUEAAB2BAAFGgUAAh8FAAp0BgABdgQAAjAHBAgFCAQBBggEAnUEAAhsAAAAXwAOAjMHBAgECAgBAAgABgUICAMACgAEBgwIARsNCAEcDwwaAA4AAwUMDAAGEAwBdgwACgcMDABaCAwSdQYABF4ADgIzBwQIBAgQAQAIAAYFCAgDAAoABAYMCAEbDQgBHA8MGgAOAAMFDAwABhAMAXYMAAoHDAwAWggMEnUGAAYwBxQIBQgUAnQGBAQgAgokIwAGJCICBiIyBxQKdQQABHwCAABcAAAAECAAAAHJlcXVpcmUABAcAAABzb2NrZXQABAcAAABhc3NlcnQABAQAAAB0Y3AABAgAAABjb25uZWN0AAQQAAAAYm9sLXRyYWNrZXIuY29tAAMAAAAAAABUQAQFAAAAc2VuZAAEGAAAAEdFVCAvcmVzdC9uZXdwbGF5ZXI/aWQ9AAQHAAAAJmh3aWQ9AAQNAAAAJnNjcmlwdE5hbWU9AAQHAAAAc3RyaW5nAAQFAAAAZ3N1YgAEDQAAAFteMC05QS1aYS16XQAEAQAAAAAEJQAAACBIVFRQLzEuMA0KSG9zdDogYm9sLXRyYWNrZXIuY29tDQoNCgAEGwAAAEdFVCAvcmVzdC9kZWxldGVwbGF5ZXI/aWQ9AAQCAAAAcwAEBwAAAHN0YXR1cwAECAAAAHBhcnRpYWwABAgAAAByZWNlaXZlAAQDAAAAKmEABAYAAABjbG9zZQAAAAAAAQAAAAAAEAAAAEBvYmZ1c2NhdGVkLmx1YQA1AAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAMAAAADAAAAAwAAAAMAAAAEAAAABAAAAAUAAAAFAAAABQAAAAYAAAAGAAAABwAAAAcAAAAHAAAABwAAAAcAAAAHAAAABwAAAAgAAAAHAAAABQAAAAgAAAAJAAAACQAAAAkAAAAKAAAACgAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAAMAAAACwAAAAkAAAAMAAAADAAAAAwAAAAMAAAADAAAAAwAAAAMAAAADAAAAAwAAAAGAAAAAgAAAGEAAAAAADUAAAACAAAAYgAAAAAANQAAAAIAAABjAAAAAAA1AAAAAgAAAGQAAAAAADUAAAADAAAAX2EAAwAAADUAAAADAAAAYWEABwAAADUAAAABAAAABQAAAF9FTlYAAQAAAAEAEAAAAEBvYmZ1c2NhdGVkLmx1YQADAAAADAAAAAIAAAAMAAAAAAAAAAEAAAAFAAAAX0VOVgA="), nil, "bt", _ENV))()
+--END BOL TRACKER--
+---------------
 
 Champions = {
     ["Lux"] = {charName = "Lux", qwer = {
@@ -337,9 +349,11 @@ function Menu()
 	MenuMorg:addSubMenu("Mana Config" , "mpConfig")
 	MenuMorg.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
 	MenuMorg.mpConfig:addParam("mptocw", "Min Mana To Cast W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptocr", "Min Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptocr", "Min Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuMorg.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.mpConfig:addParam("mptohq", "Min Mana To Harras Q", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
 	MenuMorg.mpConfig:addParam("mptohw", "Min Mana To Harras W", SCRIPT_PARAM_SLICE, 55, 0, 100, 0)
+	MenuMorg.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.mpConfig:addParam("mptofq", "Min Mana To Farm Q", SCRIPT_PARAM_SLICE, 60, 0, 100, 0) 
 	MenuMorg.mpConfig:addParam("mptofw", "Min Mana To Farm W", SCRIPT_PARAM_SLICE, 65, 0, 100, 0)
 	--[[--- Kill Steal --]]--
@@ -351,10 +365,11 @@ function Menu()
 	MenuMorg.ksConfig:addParam("ITKS", "Use Items To KS", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Farm --]]--
 	MenuMorg:addSubMenu("Farm Config", "farm")
-	MenuMorg.farm:addParam("QF", "Farm Use Q", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.farm:addParam("WF", "Farm Use W", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.farm:addParam("FEnabled", "Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
-	MenuMorg.farm:addParam("LCEnabled", "Lane Clear", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
+	MenuMorg.farm:addParam("QF", "Use Q", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
+	MenuMorg.farm:addParam("WF",  "Use W", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
+	MenuMorg.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
+	MenuMorg.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
+		
 	--[[--- Jungle Farm --]]--
 	MenuMorg:addSubMenu("Jungle Farm", "jf")
 	MenuMorg.jf:addParam("QJF", "Jungle Farm Use Q", SCRIPT_PARAM_ONOFF, true)
@@ -373,19 +388,31 @@ function Menu()
             end
         end
     end
+	MenuMorg.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.exConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.exConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuMorg.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.exConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.exConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	--[[--- Drawing --]]--
 	MenuMorg:addSubMenu("Draw Settings", "drawConfig")
 	MenuMorg.drawConfig:addParam("DLC", "Draw Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.drawConfig:addParam("DQL", "Draw Q Collision Line", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.drawConfig:addParam("DQR", "Draw Q range", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.drawConfig:addParam("DWR", "Draw W range", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.drawConfig:addParam("DER", "Draw E range", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.drawConfig:addParam("DRR", "Draw R range", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.drawConfig:addParam("DQL", "Draw Q Collision Line", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DQLC", "Draw Q Collision Color", SCRIPT_PARAM_COLOR, {150,40,4,4})
+	MenuMorg.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.drawConfig:addParam("DQR", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DQRC", "Draw Q Range Color", SCRIPT_PARAM_COLOR, {255,0,0,255})
+	MenuMorg.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.drawConfig:addParam("DWR", "Draw W Range", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DWRC", "Draw W Range Color", SCRIPT_PARAM_COLOR, {255,100,0,255})
+	MenuMorg.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.drawConfig:addParam("DER", "Draw E Range", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DERC", "Draw E Range Color", SCRIPT_PARAM_COLOR, {255,255,0,0})
+	MenuMorg.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.drawConfig:addParam("DRR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
 	--[[--- Prediction --]]--
 	MenuMorg:addSubMenu("Prediction Settings", "prConfig")
 	MenuMorg.prConfig:addParam("pro", "Use", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
@@ -525,6 +552,10 @@ function Check()
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (ignite ~= nil and myHero:CanUseSpell(ignite) == READY)
 	
+	if GetGame().isOver then
+		UpdateWeb(false, ScriptName, id, HWID)
+		startUp = false;
+	end
 end
 
 function EnemyCount(point, range)
@@ -542,6 +573,7 @@ function OnLoad()
 	LoadLibs()
 	Menu()
 	Variables()
+	UpdateWeb(true, ScriptName, id, HWID)
 end
 
 function OnTick()
@@ -553,8 +585,9 @@ function OnTick()
 	if Cel ~= nil and MenuMorg.harrasConfig.HEnabled or MenuMorg.harrasConfig.HTEnabled then
 		Harrass()
 	end
-	if MenuMorg.farm.FEnabled or MenuMorg.farm.LCEnabled then
-		Farmm()
+	if MenuMorg.farm.Freeze or MenuMorg.farm.LaneClear then
+		local Mode = MenuMorg.farm.Freeze and "Freeze" or "LaneClear"
+		Farm(Mode)
 	end
 	if MenuMorg.jf.JFEnabled then
 		JungleFarmm()
@@ -660,29 +693,56 @@ end
 --END HARRAS--
 
 --FARM--
-function Farmm()
-	if MenuMorg.farm.QF then
-		CastQF()
-	end
-	if MenuMorg.farm.WF then
-		CastWF()
-	end
-end
+function Farm(Mode)
+	local UseQ
+	local UseW
+	if not SOWi:CanMove() then return end
 
-function CastQF()
-	for i, minion in pairs(EnemyMinions.objects) do
-		if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
-			CastQ(minion)
+	EnemyMinions:update()
+	if Mode == "Freeze" then
+		UseQ =  MenuMorg.farm.QF == 2
+		UseW =  MenuMorg.farm.WF == 2 
+	elseif Mode == "LaneClear" then
+		UseQ =  MenuMorg.farm.QF == 3
+		UseW =  MenuMorg.farm.WF == 3 
+	end
+	
+	UseQ =  MenuMorg.farm.QF == 4 or UseQ
+	UseW =  MenuMorg.farm.WF == 4  or UseW
+	
+	if UseQ then
+		for i, minion in pairs(EnemyMinions.objects) do
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
+				CastQ(minion)
+			end
 		end
 	end
-end
 
-function CastWF()
-	for i, minion in pairs(EnemyMinions.objects) do
-		if WReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillW.range and cfw then
-			CastW(minion)
+	if UseW then
+		for i, minion in pairs(EnemyMinions.objects) do
+			if WReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillW.range and cfw then
+				CastW(minion)
+			end
 		end
 	end
+	
+end
+
+function BestWFarmPos(range, radius, objects)
+    local Pos 
+    local BHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BHit then
+            BHit = hit
+            Pos = Vector(object)
+            if BHit == #objects then
+               break
+            end
+         end
+    end
+
+    return Pos, BHit
 end
 --END FARM--
 
@@ -747,21 +807,21 @@ function KillSteall()
 			itemsDmg = 0
 		end
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health <= qDmg and QReady and (distance < skills.skillQ.range) then
+			if health <= qDmg and QReady and (distance < skills.skillQ.range) and MenuMorg.ksConfig.QKS then
 				CastQ(Enemy)
-			elseif health < wDmg and WReady and (distance < skills.skillW.range) then
+			elseif health < wDmg and WReady and (distance < skills.skillW.range) and MenuMorg.ksConfig.WKS then
 				CastW(Enemy)
-			elseif health < rDmg and RReady and (distance < skills.skillR.range) then
+			elseif health < rDmg and RReady and (distance < skills.skillR.range) and MenuMorg.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (qDmg + wDmg) and QReady and WReady and (distance < skills.skillW.range) then
+			elseif health < (qDmg + wDmg) and QReady and WReady and (distance < skills.skillW.range) and MenuMorg.ksConfig.WKS then
 				CastW(Enemy)
-			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) then
+			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) and MenuMorg.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (wDmg + rDmg) and WReady and RReady and (distance < skills.skillW.range) then
+			elseif health < (wDmg + rDmg) and WReady and RReady and (distance < skills.skillW.range) and MenuMorg.ksConfig.WKS then
 				CastW(Enemy)
-			elseif health < (qDmg + wDmg + rDmg) and QReady and WReady and RReady and (distance < skills.skillR.range) then
+			elseif health < (qDmg + wDmg + rDmg) and QReady and WReady and RReady and (distance < skills.skillR.range) and MenuMorg.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (qDmg + wDmg + rDmg + itemsDmg) then
+			elseif health < (qDmg + wDmg + rDmg + itemsDmg) and MenuMorg.ksConfig.ITKS then
 				if QReady and WReady and RReady then
 					UseItems(Enemy)
 				end
@@ -779,7 +839,7 @@ end
 function OnDraw()
 	if MenuMorg.drawConfig.DQL and ValidTarget(Cel, skills.skillQ.range) then
 		QMark = Cel
-		DrawLine3D(myHero.x, myHero.y, myHero.z, QMark.x, QMark.y, QMark.z, skills.skillQ.width, ARGB(150,40,4,4))
+		DrawLine3D(myHero.x, myHero.y, myHero.z, QMark.x, QMark.y, QMark.z, skills.skillQ.width, ARGB(MenuMorg.drawConfig.DQLC[1], MenuMorg.drawConfig.DQLC[2], MenuMorg.drawConfig.DQLC[3], MenuMorg.drawConfig.DQLC[4]))
 	end
 	if MenuMorg.drawConfig.DD then	
 		for _,enemy in pairs(GetEnemyHeroes()) do
@@ -791,29 +851,29 @@ function OnDraw()
 	end
 	if MenuMorg.drawConfig.DLC then
 		if MenuMorg.drawConfig.DQR and QReady then
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 90, 1, RGB(180,13,182)) 
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 90, 1, RGB(MenuMorg.drawConfig.DQRC[2], MenuMorg.drawConfig.DQRC[3], MenuMorg.drawConfig.DQRC[4]))
 		end
 		if MenuMorg.drawConfig.DWR and WReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillW.range - 80, 1, RGB(17,159,22)) 
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillW.range - 80, 1, RGB(MenuMorg.drawConfig.DWRC[2], MenuMorg.drawConfig.DWRC[3], MenuMorg.drawConfig.DWRC[4]))
 		end
 		if MenuMorg.drawConfig.DER and EReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range - 70, 1, RGB(189,11,11)) 
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range - 70, 1, RGB(MenuMorg.drawConfig.DERC[2], MenuMorg.drawConfig.DERC[3], MenuMorg.drawConfig.DERC[4]))
 		end
 		if MenuMorg.drawConfig.DRR then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillR.range - 20, 1, RGB(200,170,15)) 
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillR.range - 20, 1, RGB(MenuMorg.drawConfig.DRRC[2], MenuMorg.drawConfig.DRRC[3], MenuMorg.drawConfig.DRRC[4]))
 		end
 	else
 		if MenuMorg.drawConfig.DQR and QReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, ARGB(255,0,0,255))
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, ARGB(MenuMorg.drawConfig.DQRC[1], MenuMorg.drawConfig.DQRC[2], MenuMorg.drawConfig.DQRC[3], MenuMorg.drawConfig.DQRC[4]))
 		end
 		if MenuMorg.drawConfig.DWR and WReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, ARGB(255,100,0,255))
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, ARGB(MenuMorg.drawConfig.DWRC[1], MenuMorg.drawConfig.DWRC[2], MenuMorg.drawConfig.DWRC[3], MenuMorg.drawConfig.DWRC[4]))
 		end
 		if MenuMorg.drawConfig.DER and EReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(255,255,0,0))
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(MenuMorg.drawConfig.DERC[1], MenuMorg.drawConfig.DERC[2], MenuMorg.drawConfig.DERC[3], MenuMorg.drawConfig.DERC[4]))
 		end
 		if MenuMorg.drawConfig.DRR then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(255,0,255,0))
+			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(MenuMorg.drawConfig.DRRC[1], MenuMorg.drawConfig.DRRC[2], MenuMorg.drawConfig.DRRC[3], MenuMorg.drawConfig.DRRC[4]))
 		end
 	end
 end
@@ -1006,6 +1066,12 @@ function CastW(unit)
 	end
 end
 
+function OnBugsplat()
+	UpdateWeb(false, ScriptName, id, HWID)
+end
 
+function OnUnload()
+	UpdateWeb(false, ScriptName, id, HWID)
+end
 
 
