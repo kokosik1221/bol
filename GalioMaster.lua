@@ -22,11 +22,13 @@
 	1.4 - Added changing colors in Drawing Menu
 	    - Added BOL TRACKER
 	    - Rewritten Farm/LANE Clear MODE
+	1.5 - Update BOL-TRACKER Code
+	
 ]]--
 
 if myHero.charName ~= "Galio" then return end
 
-local version = 1.4
+local version = 1.5
 local AUTOUPDATE = true
 local SCRIPT_NAME = "GalioMaster"
 local prodstatus = false
