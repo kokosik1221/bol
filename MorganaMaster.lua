@@ -35,7 +35,8 @@
 		- Added Cast Spell With Packets (VIP)
 		- Added New Option In Auto Zhonya (Check enemies in Range)
 		- Added New Drawing Option (Draw Stunned Enemy)
-		
+	1.9 - Small Fix
+	
 ]]--
 
 if myHero.charName ~= "Morgana" then return end
@@ -45,7 +46,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 1.8
+local version = 1.9
 local SCRIPT_NAME = "MorganaMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -606,9 +607,6 @@ end
 
 function OnTick()
 	Cel = STS:GetTarget(skills.skillQ.range)
-	CelQ = STS:GetTarget(skills.skillQ.range)
-	CelW = STS:GetTarget(skills.skillW.range)
-	CelR = STS:GetTarget(skills.skillR.range)
 	Check()
 	if Cel ~= nil and MenuMorg.comboConfig.CEnabled then
 		Combo()
@@ -668,14 +666,14 @@ function Combo()
 end
 
 function CastQC()
-	if QReady and MenuMorg.comboConfig.USEQ and Cel.canMove and GetDistance(CelQ) < skills.skillQ.range and ccq then
-		CastQ(CelQ)
+	if QReady and MenuMorg.comboConfig.USEQ and Cel.canMove and GetDistance(Cel) < skills.skillQ.range and ccq then
+		CastQ(Cel)
 	end
 end
 
 function CastWC()
-	if WReady and MenuMorg.comboConfig.USEW and not Cel.canMove and GetDistance(CelW) < skills.skillW.range and ccw then
-		CastW(CelW)
+	if WReady and MenuMorg.comboConfig.USEW and not Cel.canMove and GetDistance(Cel) < skills.skillW.range and ccw then
+		CastW(Cel)
 	end
 end
 
@@ -687,7 +685,7 @@ end
 
 function CastRC()
 	local enemyCount = EnemyCount(myHero, skills.skillR.range)
-	if RReady and GetDistance(CelR) < skills.skillR.range and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR and ccr then
+	if RReady and GetDistance(Cel) < skills.skillR.range and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR and ccr then
 		CastSpell(_R)
 	end
 end
@@ -704,20 +702,20 @@ function Harrass()
 end
 
 function CastQH()
-	if QReady and GetDistance(CelQ) < skills.skillQ.range and CelQ ~= nil and CelQ.team ~= player.team and not CelQ.dead and chq then
-		CastQ(CelQ)
+	if QReady and GetDistance(Cel) < skills.skillQ.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
+		CastQ(Cel)
 	end
 end
 
 function CastWH()
-	if WReady and GetDistance(CelW) < skills.skillW.range and CelW ~= nil and CelW.team ~= player.team and not CelW.dead and chw then
+	if WReady and GetDistance(Cel) < skills.skillW.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chw then
 		if MenuMorg.harrasConfig.HWS then
 			if not Cel.canMove then
-				CastW(CelW)
+				CastW(Cel)
 			end
 		end
 		if not MenuMorg.harrasConfig.HWS then
-			CastW(CelW)
+			CastW(Cel)
 		end
 	end
 end
