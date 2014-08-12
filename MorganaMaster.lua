@@ -27,19 +27,29 @@
 		- Added BOL TRACKER
 		- Rewritten Farm/Lane Clear Mode
 	1.7 - Update BOL-TRACKER Code
+	1.8 - Improve Farm With "W"
+		- Fixed KS With Ignite
+		- Improve Cast With Prodiction.lua
+		- Added Check Collision 
+		- Added Skin Changer (VIP)
+		- Added Cast Spell With Packets (VIP)
+		- Added New Option In Auto Zhonya (Check enemies in Range)
+		- Added New Drawing Option (Draw Stunned Enemy)
 		
 ]]--
 
 if myHero.charName ~= "Morgana" then return end
 
-local version = 1.7
 local AUTOUPDATE = true
-local SCRIPT_NAME = "MorganaMaster"
-local prodstatus = false
+
+
 
 --AUTO UPDATE--
+local version = 1.8
+local SCRIPT_NAME = "MorganaMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
+local prodstatus = false
 
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
@@ -48,10 +58,6 @@ else
 	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
 end
 
-if VIP_USER and FileExist(LIB_PATH.."Prodiction.lua") then
-	require("Prodiction")
-	prodstatus = true
-end
 if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
 
 if AUTOUPDATE then
@@ -61,6 +67,10 @@ end
 local RequireI = Require("SourceLib")
 RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
 RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
+if VIP_USER then
+	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
+	prodstatus = true
+end
 RequireI:Check()
 
 if RequireI.downloadNeeded == true then return end
@@ -76,7 +86,7 @@ ScriptName = "MorganaMaster"
 assert(load(Base64Decode("G0x1YVIAAQQEBAgAGZMNChoKAAAAAAAAAAAAAQIDAAAAJQAAAAgAAIAfAIAAAQAAAAQKAAAAVXBkYXRlV2ViAAEAAAACAAAADAAAAAQAETUAAAAGAUAAQUEAAB2BAAFGgUAAh8FAAp0BgABdgQAAjAHBAgFCAQBBggEAnUEAAhsAAAAXwAOAjMHBAgECAgBAAgABgUICAMACgAEBgwIARsNCAEcDwwaAA4AAwUMDAAGEAwBdgwACgcMDABaCAwSdQYABF4ADgIzBwQIBAgQAQAIAAYFCAgDAAoABAYMCAEbDQgBHA8MGgAOAAMFDAwABhAMAXYMAAoHDAwAWggMEnUGAAYwBxQIBQgUAnQGBAQgAgokIwAGJCICBiIyBxQKdQQABHwCAABcAAAAECAAAAHJlcXVpcmUABAcAAABzb2NrZXQABAcAAABhc3NlcnQABAQAAAB0Y3AABAgAAABjb25uZWN0AAQQAAAAYm9sLXRyYWNrZXIuY29tAAMAAAAAAABUQAQFAAAAc2VuZAAEGAAAAEdFVCAvcmVzdC9uZXdwbGF5ZXI/aWQ9AAQHAAAAJmh3aWQ9AAQNAAAAJnNjcmlwdE5hbWU9AAQHAAAAc3RyaW5nAAQFAAAAZ3N1YgAEDQAAAFteMC05QS1aYS16XQAEAQAAAAAEJQAAACBIVFRQLzEuMA0KSG9zdDogYm9sLXRyYWNrZXIuY29tDQoNCgAEGwAAAEdFVCAvcmVzdC9kZWxldGVwbGF5ZXI/aWQ9AAQCAAAAcwAEBwAAAHN0YXR1cwAECAAAAHBhcnRpYWwABAgAAAByZWNlaXZlAAQDAAAAKmEABAYAAABjbG9zZQAAAAAAAQAAAAAAEAAAAEBvYmZ1c2NhdGVkLmx1YQA1AAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAMAAAADAAAAAwAAAAMAAAAEAAAABAAAAAUAAAAFAAAABQAAAAYAAAAGAAAABwAAAAcAAAAHAAAABwAAAAcAAAAHAAAABwAAAAgAAAAHAAAABQAAAAgAAAAJAAAACQAAAAkAAAAKAAAACgAAAAsAAAALAAAACwAAAAsAAAALAAAACwAAAAsAAAAMAAAACwAAAAkAAAAMAAAADAAAAAwAAAAMAAAADAAAAAwAAAAMAAAADAAAAAwAAAAGAAAAAgAAAGEAAAAAADUAAAACAAAAYgAAAAAANQAAAAIAAABjAAAAAAA1AAAAAgAAAGQAAAAAADUAAAADAAAAX2EAAwAAADUAAAADAAAAYWEABwAAADUAAAABAAAABQAAAF9FTlYAAQAAAAEAEAAAAEBvYmZ1c2NhdGVkLmx1YQADAAAADAAAAAIAAAAMAAAAAAAAAAEAAAAFAAAAX0VOVgA="), nil, "bt", _ENV))()
 
 --END BOL TRACKER--
----------------
+-------------------
 
 Champions = {
     ["Lux"] = {charName = "Lux", qwer = {
@@ -344,20 +354,20 @@ function Menu()
 	MenuMorg:addSubMenu("Harras Settings", "harrasConfig")
     MenuMorg.harrasConfig:addParam("QH", "Harras Use Q", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.harrasConfig:addParam("WH", "Harras Use W", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.harrasConfig:addParam("HWS", "Only On Stunned Enemy", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.harrasConfig:addParam("HWS", "Use 'W' Only On Stunned Enemy", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuMorg.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	--[[--- Mana Manager --]]--
 	MenuMorg:addSubMenu("Mana Config" , "mpConfig")
-	MenuMorg.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptocw", "Min Mana To Cast W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptocr", "Min Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuMorg.mpConfig:addParam("mptocq", "Min. Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptocw", "Min. Mana To Cast W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptocr", "Min. Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuMorg.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuMorg.mpConfig:addParam("mptohq", "Min Mana To Harras Q", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptohw", "Min Mana To Harras W", SCRIPT_PARAM_SLICE, 55, 0, 100, 0)
+	MenuMorg.mpConfig:addParam("mptohq", "Min. Mana To Harras Q", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptohw", "Min. Mana To Harras W", SCRIPT_PARAM_SLICE, 55, 0, 100, 0)
 	MenuMorg.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuMorg.mpConfig:addParam("mptofq", "Min Mana To Farm Q", SCRIPT_PARAM_SLICE, 60, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptofw", "Min Mana To Farm W", SCRIPT_PARAM_SLICE, 65, 0, 100, 0)
+	MenuMorg.mpConfig:addParam("mptofq", "Min. Mana To Farm Q", SCRIPT_PARAM_SLICE, 60, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptofw", "Min. Mana To Farm W", SCRIPT_PARAM_SLICE, 65, 0, 100, 0)
 	--[[--- Kill Steal --]]--
 	MenuMorg:addSubMenu("KS Settings", "ksConfig")
 	MenuMorg.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
@@ -367,11 +377,10 @@ function Menu()
 	MenuMorg.ksConfig:addParam("ITKS", "Use Items To KS", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Farm --]]--
 	MenuMorg:addSubMenu("Farm Config", "farm")
-	MenuMorg.farm:addParam("QF", "Use Q", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
+	MenuMorg.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
 	MenuMorg.farm:addParam("WF",  "Use W", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuMorg.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
 	MenuMorg.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
-		
 	--[[--- Jungle Farm --]]--
 	MenuMorg:addSubMenu("Jungle Farm", "jf")
 	MenuMorg.jf:addParam("QJF", "Jungle Farm Use Q", SCRIPT_PARAM_ONOFF, true)
@@ -379,27 +388,32 @@ function Menu()
 	MenuMorg.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
 	--[[--- Extra --]]--
 	MenuMorg:addSubMenu("Extra Settings", "exConfig")
-	MenuMorg.exConfig:addSubMenu("Shield Options", "SO")
+	MenuMorg.exConfig:addSubMenu("Enemy Skills", "ES")
 	for i = 1, heroManager.iCount,1 do
         local hero = heroManager:getHero(i)
         if hero.team ~= player.team then
             if Champions[hero.charName] ~= nil then
                 for index, skillshot in pairs(Champions[hero.charName].qwer) do
-                    MenuMorg.exConfig.SO:addParam(skillshot.spellName, hero.charName .. " - " .. skillshot.spellName, SCRIPT_PARAM_ONOFF, true)
+                    MenuMorg.exConfig.ES:addParam(skillshot.spellName, hero.charName .. " - " .. skillshot.spellName, SCRIPT_PARAM_ONOFF, true)
                 end
             end
         end
     end
+	MenuMorg.exConfig:addParam("UAS", "Use Auto Shield", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.exConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.exConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuMorg.exConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuMorg.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.exConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.exConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	--[[--- Drawing --]]--
 	MenuMorg:addSubMenu("Draw Settings", "drawConfig")
-	MenuMorg.drawConfig:addParam("DLC", "Draw Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.drawConfig:addParam("DSE", "Draw Stunned Enemy", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.drawConfig:addParam("DSEC", "Draw Stunned Enemy Color", SCRIPT_PARAM_COLOR, {255,0,240,0})
 	MenuMorg.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.drawConfig:addParam("DQL", "Draw Q Collision Line", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.drawConfig:addParam("DQLC", "Draw Q Collision Color", SCRIPT_PARAM_COLOR, {150,40,4,4})
@@ -415,10 +429,21 @@ function Menu()
 	MenuMorg.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.drawConfig:addParam("DRR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
-	--[[--- Prediction --]]--
-	MenuMorg:addSubMenu("Prediction Settings", "prConfig")
-	MenuMorg.prConfig:addParam("pro", "Use", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
-	--dsf--
+	--[[--- Misc --]]--
+	MenuMorg:addSubMenu("Misc Settings", "prConfig")
+	MenuMorg.prConfig:addParam("pc", "Use Packets To Cast Spells", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
+	MenuMorg.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
+	MenuMorg.prConfig:addParam("viphit", "VIP Prediction HitChance", SCRIPT_PARAM_SLICE,0.7,0.1,1,2)
+	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.prConfig:addParam("skin", "Use custom skin", SCRIPT_PARAM_ONOFF, false)
+	MenuMorg.prConfig:addParam("skin1", "Skin changer", SCRIPT_PARAM_SLICE, 1, 1, 6)
+	if MenuMorg.prConfig.skin and VIP_USER then
+		GenModelPacket("Morgana", MenuMorg.prConfig.skin1)
+		lastSkin = MenuMorg.prConfig.skin1
+	end
+	--[[-- PermShow --]]--
 	MenuMorg.comboConfig:permaShow("CEnabled")
 	MenuMorg.harrasConfig:permaShow("HEnabled")
 	MenuMorg.harrasConfig:permaShow("HTEnabled")
@@ -427,14 +452,10 @@ end
 
 function LoadLibs()
 	if VIP_USER then
-		Prod = ProdictManager.GetInstance()
-	    ProdictionQ = Prod:AddProdictionObject(_Q, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width) 
-		ProdictionW = Prod:AddProdictionObject(_W, skills.skillW.range, skills.skillW.speed, skills.skillW.delay, skills.skillW.width)
-		
 		VipPredictionQ = TargetPredictionVIP(skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width, myHero)
 		VipPredictionW = TargetPredictionVIP(skills.skillW.range, skills.skillW.speed, skills.skillW.delay, skills.skillW.width, myHero)
 	end
-	VP = VPrediction(true)
+	VP = VPrediction()
 	SOWi = SOW(VP)
 	STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC) 
 	FreePredictionQ = TargetPrediction(skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
@@ -444,8 +465,8 @@ end
 function Variables()
 	skills = 
 	{
-	skillQ = {range = 1300, speed = 1200, delay = 0.25, width = 60},
-	skillW = {range = 900, speed = 1200, delay = 0.15, width = 105},
+	skillQ = {range = 1175, speed = 1200, delay = 0.250, width = 60},
+	skillW = {range = 900, speed = 1200, delay = 0.150, width = 105},
 	skillE = {range = 750},
 	skillR = {range = 600},
 	}
@@ -470,6 +491,7 @@ function Variables()
 	EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	killstring = {}
+	lastSkin = 0
 end
 
 function cancast()
@@ -552,11 +574,15 @@ function Check()
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (ignite ~= nil and myHero:CanUseSpell(ignite) == READY)
+	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	
 	if GetGame().isOver then
 		UpdateWeb(false, ScriptName, id, HWID)
 		startUp = false;
+	end
+	if MenuMorg.prConfig.skin and VIP_USER and skinChanged() then
+		GenModelPacket("Morgana", MenuMorg.prConfig.skin1)
+		lastSkin = MenuMorg.prConfig.skin1
 	end
 end
 
@@ -580,6 +606,9 @@ end
 
 function OnTick()
 	Cel = STS:GetTarget(skills.skillQ.range)
+	CelQ = STS:GetTarget(skills.skillQ.range)
+	CelW = STS:GetTarget(skills.skillW.range)
+	CelR = STS:GetTarget(skills.skillR.range)
 	Check()
 	if Cel ~= nil and MenuMorg.comboConfig.CEnabled then
 		Combo()
@@ -639,14 +668,14 @@ function Combo()
 end
 
 function CastQC()
-	if QReady and MenuMorg.comboConfig.USEQ and Cel.canMove and ccq then
-		CastQ(Cel)
+	if QReady and MenuMorg.comboConfig.USEQ and Cel.canMove and GetDistance(CelQ) < skills.skillQ.range and ccq then
+		CastQ(CelQ)
 	end
 end
 
 function CastWC()
-	if WReady and MenuMorg.comboConfig.USEW and not Cel.canMove and ccw then
-		CastW(Cel)
+	if WReady and MenuMorg.comboConfig.USEW and not Cel.canMove and GetDistance(CelW) < skills.skillW.range and ccw then
+		CastW(CelW)
 	end
 end
 
@@ -658,7 +687,7 @@ end
 
 function CastRC()
 	local enemyCount = EnemyCount(myHero, skills.skillR.range)
-	if RReady and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR and ccr then
+	if RReady and GetDistance(CelR) < skills.skillR.range and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR and ccr then
 		CastSpell(_R)
 	end
 end
@@ -675,20 +704,20 @@ function Harrass()
 end
 
 function CastQH()
-	if QReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
-		CastQ(Cel)
+	if QReady and GetDistance(CelQ) < skills.skillQ.range and CelQ ~= nil and CelQ.team ~= player.team and not CelQ.dead and chq then
+		CastQ(CelQ)
 	end
 end
 
 function CastWH()
-	if WReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chw then
+	if WReady and GetDistance(CelW) < skills.skillW.range and CelW ~= nil and CelW.team ~= player.team and not CelW.dead and chw then
 		if MenuMorg.harrasConfig.HWS then
 			if not Cel.canMove then
-				CastW(Cel)
+				CastW(CelW)
 			end
 		end
 		if not MenuMorg.harrasConfig.HWS then
-			CastW(Cel)
+			CastW(CelW)
 		end
 	end
 end
@@ -723,7 +752,10 @@ function Farm(Mode)
 	if UseW then
 		for i, minion in pairs(EnemyMinions.objects) do
 			if WReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillW.range and cfw then
-				CastW(minion)
+				local Pos, Hit = BestWFarmPos(skills.skillW.range, skills.skillW.width, EnemyMinions.objects)
+				if Pos ~= nil then
+					CastSpell(_W, Pos.x, Pos.z)
+				end
 			end
 		end
 	end
@@ -743,7 +775,6 @@ function BestWFarmPos(range, radius, objects)
             end
          end
     end
-
     return Pos, BHit
 end
 --END FARM--
@@ -769,7 +800,10 @@ end
 function CastWJF()
 	for i, minion in pairs(JungleMinions.objects) do
 		if WReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillW.range and cfw then
-			CastW(minion)
+			local Pos, Hit = BestWFarmPos(skills.skillW.range, skills.skillW.width, JungleMinions.objects)
+			if Pos ~= nil then
+				CastSpell(_W, Pos.x, Pos.z)
+			end
 		end
 	end
 end
@@ -795,6 +829,11 @@ function KillSteall()
 			rDmg = getDmg("R", Enemy, myHero)
 		else 
 			rDmg = 0
+		end
+		if MenuMorg.ksConfig.IKS then
+			iDmg = getDmg("IGNITE", Enemy, myHero)
+		else 
+			iDmg = 0
 		end
 		if MenuMorg.ksConfig.ITKS then
 			deathfiregraspDmg = ((deathfiregraspready and getDmg("DFG", Enemy, myHero)) or 0)
@@ -831,8 +870,8 @@ function KillSteall()
 				if QReady and WReady then
 					UseItems(Enemy)
 				end
-		end
-					if IReady and iDmg > Enemy.health and MenuMorg.ksConfig.IKS then
+			end
+			if IReady and health <= iDmg and MenuMorg.ksConfig.IKS then
 				CastSpell(IgniteKey, Enemy)
 			end
 		end
@@ -842,7 +881,18 @@ end
 
 --DRAWING--
 function OnDraw()
-	if MenuMorg.drawConfig.DQL and ValidTarget(Cel, skills.skillQ.range) then
+	if MenuMorg.drawConfig.DSE then
+		for i = 1, heroManager.iCount do
+		local Enemy = heroManager:getHero(i)
+			if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.canMove and not Enemy.dead and Enemy.visible then
+				if MenuMorg.drawConfig.DLC then
+					DrawCircle3D(Enemy.x, Enemy.y, Enemy.z, 100, 1, RGB(MenuMorg.drawConfig.DSEC[2], MenuMorg.drawConfig.DSEC[3], MenuMorg.drawConfig.DSEC[4]))
+				end
+				DrawCircle(Enemy.x, Enemy.y, Enemy.z, 100, ARGB(MenuMorg.drawConfig.DSEC[1], MenuMorg.drawConfig.DSEC[2], MenuMorg.drawConfig.DSEC[3], MenuMorg.drawConfig.DSEC[4]))
+			end
+		end
+	end
+	if MenuMorg.drawConfig.DQL and ValidTarget(Cel, skills.skillQ.range) and not GetMinionCollision(myHero, Cel, skills.skillQ.width) then
 		QMark = Cel
 		DrawLine3D(myHero.x, myHero.y, myHero.z, QMark.x, QMark.y, QMark.z, skills.skillQ.width, ARGB(MenuMorg.drawConfig.DQLC[1], MenuMorg.drawConfig.DQLC[2], MenuMorg.drawConfig.DQLC[3], MenuMorg.drawConfig.DQLC[4]))
 	end
@@ -886,7 +936,8 @@ end
 
 --EXTRA--
 function autozh()
-	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuMorg.exConfig.AZHP then
+	local count = EnemyCount(myHero, MenuMorg.exConfig.AZMR)
+	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuMorg.exConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
 end
@@ -938,25 +989,27 @@ end
 --END EXTRA--
 
 function OnProcessSpell(object,spellProc)
-	if object.team ~= player.team and string.find(spellProc.name, "Basic") == nil then
-		if Champions[object.charName] ~= nil then
-            skillshot = Champions[object.charName].qwer[spellProc.name]
-            if skillshot ~= nil then
-				range = skillshot.range
-				if not spellProc.startPos then
-                    spellProc.startPos.x = object.x
-                    spellProc.startPos.z = object.z                        
-                end     
-				if GetDistance(spellProc.startPos) <= range then		
-					if GetDistance(spellProc.endPos) <= skills.skillE.range then
-						if EReady and MenuMorg.exConfig.SO[spellProc.name] then
-							CastSpell(_E)
+	if MenuMorg.exConfig.UAS then
+		if object.team ~= player.team and string.find(spellProc.name, "Basic") == nil then
+			if Champions[object.charName] ~= nil then
+				skillshot = Champions[object.charName].qwer[spellProc.name]
+				if skillshot ~= nil then
+					range = skillshot.range
+					if not spellProc.startPos then
+						spellProc.startPos.x = object.x
+						spellProc.startPos.z = object.z                        
+					end     
+					if GetDistance(spellProc.startPos) <= range then		
+						if GetDistance(spellProc.endPos) <= skills.skillE.range then
+							if EReady and MenuMorg.exConfig.ES[spellProc.name] then
+								CastSpell(_E)
+							end
 						end
 					end
 				end
-            end
-		end
-	end	
+			end
+		end	
+	end
 end
 
 function DmgCalc()
@@ -1009,32 +1062,41 @@ function DmgCalc()
     end
 end
 
+function SpellCast(spellSlot,castPosition)
+	if VIP_USER and MenuMorg.prConfig.pc then
+		Packet("S_CAST", {spellId = spellSlot, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
+	else
+		CastSpell(spellSlot,castPosition.x,castPosition.z)
+	end
+end
+
 function CastQ(unit)
 	if MenuMorg.prConfig.pro == 1 then
 		local Position = FreePredictionQ:GetPrediction(unit)
-		if Position ~= nil then				
-			CastSpell(_Q, Position.x, Position.z)
+		if Position ~= nil and not GetMinionCollision(myHero, unit, skills.skillQ.width) then				
+			SpellCast(_Q, Position)
 			return
 		end
 	end
 	if MenuMorg.prConfig.pro == 2 and VIP_USER then
 		local Position = VipPredictionQ:GetPrediction(unit)
-		if Position ~= nil then
-			CastSpell(_Q, Position.x, Position.z)
+		local HitChance = VipPredictionQ:GetHitChance(unit)
+		if Position ~= nil and HitChance > MenuMorg.prConfig.viphit then
+			SpellCast(_Q, Position)
 			return		
 		end
 	end
 	if MenuMorg.prConfig.pro == 3 then
 		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
-		if CastPosition and HitChance >= 2 then
-			CastSpell(_Q, CastPosition.x, CastPosition.z)
+		if CastPosition and HitChance >= MenuMorg.prConfig.vphit - 1 then
+			SpellCast(_Q, CastPosition)
 			return
 		end
 	end
 	if MenuMorg.prConfig.pro == 4 and VIP_USER and prodstatus then
-		local Position = ProdictionQ:GetPrediction(unit)
-		if Position ~= nil then
-			CastSpell(_Q, Position.x, Position.z)
+		local Position, info = Prodiction.GetPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
+		if Position ~= nil and info.hitchance >= 2 and not info.mCollision() then
+			SpellCast(_Q, Position)
 			return		
 		end
 	end
@@ -1044,28 +1106,29 @@ function CastW(unit)
 	if MenuMorg.prConfig.pro == 1 then
 		local Position = FreePredictionW:GetPrediction(unit)
 		if Position ~= nil then				
-			CastSpell(_W, Position.x, Position.z)
+			SpellCast(_W, Position)
 			return
 		end
 	end
 	if MenuMorg.prConfig.pro == 2 and VIP_USER then
 		local Position = VipPredictionW:GetPrediction(unit)
-		if Position ~= nil then
-			CastSpell(_W, Position.x, Position.z)
+		local HitChance = VipPredictionW:GetHitChance(unit)
+		if Position ~= nil and HitChance > MenuMorg.prConfig.viphit then
+			SpellCast(_W, Position)
 			return		
 		end
 	end
 	if MenuMorg.prConfig.pro == 3 then
 		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, skills.skillW.delay, skills.skillW.width, skills.skillW.range, skills.skillW.speed, myHero, false)
-		if CastPosition and HitChance >= 2 then
-			CastSpell(_W, CastPosition.x, CastPosition.z)
+		if CastPosition and HitChance >= MenuMorg.prConfig.vphit - 1 then
+			SpellCast(_W, CastPosition)
 			return
 		end
 	end
 	if MenuMorg.prConfig.pro == 4 and VIP_USER and prodstatus then
-		local Position = ProdictionW:GetPrediction(unit)
-		if Position ~= nil then
-			CastSpell(_W, Position.x, Position.z)
+		local Position, info = Prodiction.GetPrediction(unit, skills.skillW.range, skills.skillW.speed, skills.skillW.delay, skills.skillW.width)
+		if Position ~= nil and info.hitchance >= 2 then
+			SpellCast(_W, Position)
 			return		
 		end
 	end
@@ -1079,4 +1142,31 @@ function OnUnload()
 	UpdateWeb(false, ScriptName, id, HWID)
 end
 
+function skinChanged()
+	return MenuMorg.prConfig.skin1 ~= lastSkin
+end
 
+-- Change skin function, made by Shalzuth
+function GenModelPacket(champ, skinId)
+	p = CLoLPacket(0x97)
+	p:EncodeF(myHero.networkID)
+	p.pos = 1
+	t1 = p:Decode1()
+	t2 = p:Decode1()
+	t3 = p:Decode1()
+	t4 = p:Decode1()
+	p:Encode1(t1)
+	p:Encode1(t2)
+	p:Encode1(t3)
+	p:Encode1(bit32.band(t4,0xB))
+	p:Encode1(1)--hardcode 1 bitfield
+	p:Encode4(skinId)
+	for i = 1, #champ do
+		p:Encode1(string.byte(champ:sub(i,i)))
+	end
+	for i = #champ + 1, 64 do
+		p:Encode1(0)
+	end
+	p:Hide()
+	RecvPacket(p)
+end
