@@ -23,19 +23,27 @@
 	    - Added BOL TRACKER
 	    - Rewritten Farm/LANE Clear MODE
 	1.5 - Update BOL-TRACKER Code
-	
+	1.6 - Improve Farm With "Q" "E"
+		- Improve Cast With Prodiction
+		- Added Skin Changer (VIP)
+		- Added Cast Spell With Packets (VIP)
+		- Added New Option In Auto Zhonya (Check enemies in Range)
+		- Fix Cast Ultimate (Now cast FULL ULTIMATE)
+		- Fixed KS With Ignite
+		- New Option To Cast "W"
+		
 ]]--
 
 if myHero.charName ~= "Galio" then return end
 
-local version = 1.5
+local version = 1.6
 local AUTOUPDATE = true
 local SCRIPT_NAME = "GalioMaster"
-local prodstatus = false
 
 --AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
+local prodstatus = false
 
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
@@ -44,10 +52,6 @@ else
 	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
 end
 
-if VIP_USER and FileExist(LIB_PATH.."Prodiction.lua") then
-	require("Prodiction")
-	prodstatus = true
-end
 if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
 
 if AUTOUPDATE then
@@ -57,6 +61,10 @@ end
 local RequireI = Require("SourceLib")
 RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
 RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
+if VIP_USER then
+	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
+	prodstatus = true
+end
 RequireI:Check()
 
 if RequireI.downloadNeeded == true then return end
@@ -83,6 +91,7 @@ function Menu()
 	MenuGalio:addSubMenu("Combo Settings", "comboConfig")
     MenuGalio.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
     MenuGalio.comboConfig:addParam("USEW", "Use W in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.comboConfig:addParam("USEWDMG", "Use 'W' Only If Come DMG", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.comboConfig:addParam("USEE", "Use E in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.comboConfig:addParam("USER", "Use R in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.comboConfig:addParam("ENEMYTOR", "Min Enemies to Cast R: ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
@@ -101,7 +110,8 @@ function Menu()
 	MenuGalio.esConfig:addParam("ESEnabled", "Escape", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("J"))
 	--[[--- Mana Manager --]]--
 	MenuGalio:addSubMenu("Mana Config" , "mpConfig")
-	MenuGalio.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
+	MenuGalio.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuGalio.mpConfig:addParam("mptocw", "Min Mana To Cast W", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)	
 	MenuGalio.mpConfig:addParam("mptoce", "Min Mana To Cast E", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
 	MenuGalio.mpConfig:addParam("mptocr", "Min Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
 	MenuGalio.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -134,6 +144,7 @@ function Menu()
 	MenuGalio.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.exConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.exConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuGalio.exConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuGalio.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.exConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuGalio.exConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 2, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
@@ -153,18 +164,24 @@ function Menu()
 	MenuGalio.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.drawConfig:addParam("DRR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
-
-	--[[--- Prediction --]]--
-	MenuGalio:addSubMenu("Prediction Settings", "prConfig")
-	MenuGalio.prConfig:addParam("pro", "Use", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
+	--[[--- Misc --]]--
+	MenuGalio:addSubMenu("Misc Settings", "prConfig")
+	MenuGalio.prConfig:addParam("pc", "Use Packets To Cast Spells", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
+	MenuGalio.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
+	MenuGalio.prConfig:addParam("viphit", "VIP Prediction HitChance", SCRIPT_PARAM_SLICE,0.7,0.1,1,2)
+	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.prConfig:addParam("skin", "Use custom skin", SCRIPT_PARAM_ONOFF, false)
+	MenuGalio.prConfig:addParam("skin1", "Skin changer", SCRIPT_PARAM_SLICE, 1, 1, 4)
+	if MenuGalio.prConfig.skin and VIP_USER then
+		GenModelPacket("Galio", MenuGalio.prConfig.skin1)
+		lastSkin = MenuGalio.prConfig.skin1
+	end
 end
 
 function LoadLibs()
 	if VIP_USER then
-		Prod = ProdictManager.GetInstance()
-	    ProdictionQ = Prod:AddProdictionObject(_Q, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width) 
-		ProdictionE = Prod:AddProdictionObject(_E, skills.skillE.range, skills.skillE.speed, skills.skillE.delay, skills.skillE.width)
-		
 		VipPredictionQ = TargetPredictionVIP(skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width, myHero)
 		VipPredictionE = TargetPredictionVIP(skills.skillE.range, skills.skillE.speed, skills.skillE.delay, skills.skillE.width, myHero)
 	end
@@ -204,6 +221,10 @@ function Variables()
 	EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	killstring = {}
+	lastSkin = 0
+	lasttickchecked = 0
+	lasthealthchecked = 0
+	local idolbuff = false
 end
 
 function cancast()
@@ -222,6 +243,12 @@ function cancast()
 		cfq = true
 	else
 		cfq = false
+	end
+	--W--
+	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptocw then
+		ccw = true
+	else
+		ccw = false
 	end
 	--E--
 	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptoce then
@@ -286,12 +313,21 @@ function Check()
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (ignite ~= nil and myHero:CanUseSpell(ignite) == READY)
+	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	
 	if GetGame().isOver then
 		UpdateWeb(false, ScriptName, id, HWID)
 		startUp = false;
 	end
+	if MenuGalio.prConfig.skin and VIP_USER and skinChanged() then
+		GenModelPacket("Galio", MenuGalio.prConfig.skin1)
+		lastSkin = MenuGalio.prConfig.skin1
+	end
+	if lasttickchecked <= GetTickCount() - 500 then
+		lasthealthchecked = myHero.health
+		lasttickchecked = GetTickCount()
+	end
+	
 end
 
 function EnemyCount(point, range)
@@ -312,9 +348,21 @@ function OnLoad()
 	UpdateWeb(true, ScriptName, id, HWID)
 end
 
+function cu()
+	if ulti == true or haveult() then
+		SOWi.Menu.Enabled = false
+	end
+	if not haveult() then 
+		ulti = false
+		SOWi.Menu.Enabled = true
+	end
+end
+
 function OnTick()
+	cu()
 	Cel = STS:GetTarget(skills.skillE.range)
 	Check()
+	
 	if Cel ~= nil and MenuGalio.comboConfig.CEnabled then
 		Combo()
 	end
@@ -338,6 +386,10 @@ function OnTick()
 		escape()
 	end
 	KillSteall()
+	
+	if MenuGalio.comboConfig.gg then
+		SOWi:DisableAttacks()
+	end
 end
 
 function UseItems(int)
@@ -382,8 +434,14 @@ function CastQC()
 end
 
 function CastWC()
-	if WReady and MenuGalio.comboConfig.USEW and GetDistance(Cel) <= skills.skillW.range then
-		CastSpell(_W)
+	if WReady and MenuGalio.comboConfig.USEW and GetDistance(Cel) <= skills.skillW.range and ccw then
+		if MenuGalio.comboConfig.USEWDMG then
+			if lasthealthchecked > myHero.health then
+				CastSpell(_W)
+			end
+		else
+			CastSpell(_W)
+		end
 	end
 end
 
@@ -395,8 +453,9 @@ end
 
 function CastRC()
 	local enemyCount = EnemyCount(myHero, skills.skillR.range)
-	if RReady and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR and ccr then
+	if RReady and GetDistance(Cel) < skills.skillR.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR and ccr then
 		CastSpell(_R)
+		ulti = true
 	end
 end
 --END COMBO--
@@ -459,7 +518,10 @@ function Farm(Mode)
 	if UseQ then
 		for i, minion in pairs(EnemyMinions.objects) do
 			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
-				CastQ(minion)
+				local Pos, Hit = BestQFarmPos(skills.skillQ.range, skills.skillQ.width, EnemyMinions.objects)
+				if Pos ~= nil then
+					CastSpell(_Q, Pos.x, Pos.z)
+				end
 			end
 		end
 	end
@@ -467,11 +529,31 @@ function Farm(Mode)
 	if UseE then
 		for i, minion in pairs(EnemyMinions.objects) do
 			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfe then
-				CastE(minion)
+				local Pos, Hit = BestQFarmPos(skills.skillE.range, skills.skillE.width, EnemyMinions.objects)
+				if Pos ~= nil then
+					CastSpell(_E, Pos.x, Pos.z)
+				end
 			end
 		end
 	end
 	
+end
+
+function BestQFarmPos(range, radius, objects)
+    local Pos 
+    local BHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BHit then
+            BHit = hit
+            Pos = Vector(object)
+            if BHit == #objects then
+               break
+            end
+         end
+    end
+
+    return Pos, BHit
 end
 --END FARM--
 
@@ -541,9 +623,6 @@ function KillSteall()
 			itemsDmg = 0
 		end
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health < iDmg and IReady then
-				CastSpell(IgniteKey, Enemy)
-			end
 			if health < qDmg and QReady and (distance < skills.skillQ.range) and MenuGalio.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif health < eDmg and EReady and (distance < skills.skillE.range) and MenuGalio.ksConfig.EKS then
@@ -567,7 +646,7 @@ function KillSteall()
 					UseItems(Enemy)
 				end
 			end
-			if IReady and iDmg > Enemy.health and MenuGalio.ksConfig.IKS then
+			if IReady and iDmg > health and MenuGalio.ksConfig.IKS then
 				CastSpell(IgniteKey, Enemy)
 			end
 		end
@@ -617,7 +696,8 @@ end
 
 --EXTRA--
 function autozh()
-	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuGalio.exConfig.AZHP then
+	local count = EnemyCount(myHero, MenuGalio.exConfig.AZMR)
+	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuGalio.exConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
 end
@@ -725,32 +805,42 @@ function DmgCalc()
     end
 end
 
+function SpellCast(spellSlot,castPosition)
+	if VIP_USER and MenuGalio.prConfig.pc then
+		Packet("S_CAST", {spellId = spellSlot, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
+	else
+		CastSpell(spellSlot,castPosition.x,castPosition.z)
+	end
+end
+
 function CastQ(unit)
 	if MenuGalio.prConfig.pro == 1 then
 		local Position = FreePredictionQ:GetPrediction(unit)
-		if Position ~= nil then				
-			CastSpell(_Q, Position.x, Position.z)
+		if Position ~= nil and not GetMinionCollision(myHero, unit, skills.skillQ.width) then				
+			SpellCast(_Q, Position)
 			return
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER then
 		local Position = VipPredictionQ:GetPrediction(unit)
-		if Position ~= nil then
-			CastSpell(_Q, Position.x, Position.z)
+		local HitChance = VipPredictionQ:GetHitChance(unit)
+		local Col = VipPredictionQ:GetCollision(unit)
+		if Position ~= nil and HitChance > MenuGalio.prConfig.viphit and not Col then
+			SpellCast(_Q, Position)
 			return		
 		end
 	end
 	if MenuGalio.prConfig.pro == 3 then
 		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, false)
-		if CastPosition and HitChance >= 2 then
-			CastSpell(_Q, CastPosition.x, CastPosition.z)
+		if CastPosition and HitChance >= MenuGalio.prConfig.vphit - 1 then
+			SpellCast(_Q, CastPosition)
 			return
 		end
 	end
 	if MenuGalio.prConfig.pro == 4 and VIP_USER and prodstatus then
-		local Position = ProdictionQ:GetPrediction(unit)
-		if Position ~= nil then
-			CastSpell(_Q, Position.x, Position.z)
+		local Position, info = Prodiction.GetPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
+		if Position ~= nil and info.hitchance >= 2 then
+			SpellCast(_Q, Position)
 			return		
 		end
 	end
@@ -760,28 +850,29 @@ function CastE(unit)
 	if MenuGalio.prConfig.pro == 1 then
 		local Position = FreePredictionE:GetPrediction(unit)
 		if Position ~= nil then				
-			CastSpell(_E, Position.x, Position.z)
+			SpellCast(_E, Position)
 			return
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER then
 		local Position = VipPredictionE:GetPrediction(unit)
-		if Position ~= nil then
-			CastSpell(_E, Position.x, Position.z)
+		local HitChance = VipPredictionE:GetHitChance(unit)
+		if Position ~= nil and HitChance > MenuGalio.prConfig.viphit then
+			SpellCast(_E, Position)
 			return		
 		end
 	end
 	if MenuGalio.prConfig.pro == 3 then
 		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillE.delay, skills.skillE.width, skills.skillE.range, skills.skillE.speed, myHero, false)
-		if CastPosition and HitChance >= 2 then
-			CastSpell(_E, CastPosition.x, CastPosition.z)
+		if CastPosition and HitChance >= MenuGalio.prConfig.vphit - 1 then
+			SpellCast(_E, CastPosition)
 			return
 		end
 	end
 	if MenuGalio.prConfig.pro == 4 and VIP_USER and prodstatus then
-		local Position = ProdictionE:GetPrediction(unit)
-		if Position ~= nil then
-			CastSpell(_E, Position.x, Position.z)
+		local Position, info = Prodiction.GetPrediction(unit, skills.skillE.range, skills.skillE.speed, skills.skillE.delay, skills.skillE.width)
+		if Position ~= nil and info.hitchance >= 2 then
+			SpellCast(_E, Position)
 			return		
 		end
 	end
@@ -793,5 +884,34 @@ end
 
 function OnUnload()
 	UpdateWeb(false, ScriptName, id, HWID)
+end
+
+-- Change skin function, made by Shalzuth
+function GenModelPacket(champ, skinId)
+	p = CLoLPacket(0x97)
+	p:EncodeF(myHero.networkID)
+	p.pos = 1
+	t1 = p:Decode1()
+	t2 = p:Decode1()
+	t3 = p:Decode1()
+	t4 = p:Decode1()
+	p:Encode1(t1)
+	p:Encode1(t2)
+	p:Encode1(t3)
+	p:Encode1(bit32.band(t4,0xB))
+	p:Encode1(1)--hardcode 1 bitfield
+	p:Encode4(skinId)
+	for i = 1, #champ do
+		p:Encode1(string.byte(champ:sub(i,i)))
+	end
+	for i = #champ + 1, 64 do
+		p:Encode1(0)
+	end
+	p:Hide()
+	RecvPacket(p)
+end
+
+function haveult()
+	return HasBuff(myHero, "GalioIdolOfDurand")
 end
 
