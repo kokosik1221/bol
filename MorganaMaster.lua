@@ -36,8 +36,8 @@
 		- Added New Option In Auto Zhonya (Check enemies in Range)
 		- Added New Drawing Option (Draw Stunned Enemy)
 	1.9 - Small Fix
-	1.9.1 - Fixed Many Errors
-	      - Added Check Collision With VPrediction
+	2.0 - Fixed Many Errors
+	    - Added Check Collision With VPrediction
 	
 ]]--
 
@@ -48,7 +48,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 1.9.1
+local version = 2.0
 local SCRIPT_NAME = "MorganaMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
