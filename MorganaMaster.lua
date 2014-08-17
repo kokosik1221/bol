@@ -36,6 +36,8 @@
 		- Added New Option In Auto Zhonya (Check enemies in Range)
 		- Added New Drawing Option (Draw Stunned Enemy)
 	1.9 - Small Fix
+	1.9.1 - Fixed Many Errors
+	      - Added Check Collision With VPrediction
 	
 ]]--
 
@@ -46,7 +48,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 1.9
+local version = 1.9.1
 local SCRIPT_NAME = "MorganaMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -335,7 +337,7 @@ Champions = {
         ["VayneCondemn"] = {spellName = "VayneCondemn", range = 550}
     }},
 }
-
+		
 
 function Menu()
 	MenuMorg = scriptConfig("Morgana Master "..version, "Morgana Master "..version)
@@ -359,7 +361,7 @@ function Menu()
 	MenuMorg.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuMorg.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	--[[--- Mana Manager --]]--
-	MenuMorg:addSubMenu("Mana Config" , "mpConfig")
+	MenuMorg:addSubMenu("Mana Settings" , "mpConfig")
 	MenuMorg.mpConfig:addParam("mptocq", "Min. Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
 	MenuMorg.mpConfig:addParam("mptocw", "Min. Mana To Cast W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
 	MenuMorg.mpConfig:addParam("mptocr", "Min. Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
@@ -377,7 +379,7 @@ function Menu()
 	MenuMorg.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.ksConfig:addParam("ITKS", "Use Items To KS", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Farm --]]--
-	MenuMorg:addSubMenu("Farm Config", "farm")
+	MenuMorg:addSubMenu("Farm Settings", "farm")
 	MenuMorg.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
 	MenuMorg.farm:addParam("WF",  "Use W", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuMorg.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
@@ -388,7 +390,7 @@ function Menu()
 	MenuMorg.jf:addParam("WJF", "Jungle Farm Use W", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
 	--[[--- Extra --]]--
-	MenuMorg:addSubMenu("Extra Settings", "exConfig")
+	MenuMorg:addSubMenu("Shield Settings", "exConfig")
 	MenuMorg.exConfig:addSubMenu("Enemy Skills", "ES")
 	for i = 1, heroManager.iCount,1 do
         local hero = heroManager:getHero(i)
@@ -402,12 +404,6 @@ function Menu()
     end
 	MenuMorg.exConfig:addParam("UAS", "Use Auto Shield", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuMorg.exConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.exConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
-	MenuMorg.exConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
-	MenuMorg.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuMorg.exConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.exConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	--[[--- Drawing --]]--
 	MenuMorg:addSubMenu("Draw Settings", "drawConfig")
 	MenuMorg.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
@@ -432,14 +428,22 @@ function Menu()
 	MenuMorg.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
 	--[[--- Misc --]]--
 	MenuMorg:addSubMenu("Misc Settings", "prConfig")
-	MenuMorg.prConfig:addParam("pc", "Use Packets To Cast Spells", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
 	MenuMorg.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuMorg.prConfig:addParam("viphit", "VIP Prediction HitChance", SCRIPT_PARAM_SLICE,0.7,0.1,1,2)
 	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.prConfig:addParam("skin", "Use custom skin", SCRIPT_PARAM_ONOFF, false)
-	MenuMorg.prConfig:addParam("skin1", "Skin changer", SCRIPT_PARAM_SLICE, 1, 1, 6)
+	MenuMorg.prConfig:addParam("skin1", "Skin changer(VIP)", SCRIPT_PARAM_SLICE, 1, 1, 6)
+	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuMorg.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
+	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuMorg.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
+	MenuMorg.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	
 	if MenuMorg.prConfig.skin and VIP_USER then
 		GenModelPacket("Morgana", MenuMorg.prConfig.skin1)
 		lastSkin = MenuMorg.prConfig.skin1
@@ -448,7 +452,7 @@ function Menu()
 	MenuMorg.comboConfig:permaShow("CEnabled")
 	MenuMorg.harrasConfig:permaShow("HEnabled")
 	MenuMorg.harrasConfig:permaShow("HTEnabled")
-	MenuMorg.exConfig:permaShow("AZ")
+	MenuMorg.prConfig:permaShow("AZ")
 end
 
 function LoadLibs()
@@ -456,7 +460,7 @@ function LoadLibs()
 		VipPredictionQ = TargetPredictionVIP(skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width, myHero)
 		VipPredictionW = TargetPredictionVIP(skills.skillW.range, skills.skillW.speed, skills.skillW.delay, skills.skillW.width, myHero)
 	end
-	VP = VPrediction()
+	VP = VPrediction(true)
 	SOWi = SOW(VP)
 	STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC) 
 	FreePredictionQ = TargetPrediction(skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
@@ -607,11 +611,12 @@ end
 
 function OnTick()
 	Cel = STS:GetTarget(skills.skillQ.range)
+	CelH = STS:GetTarget(skills.skillQ.range)
 	Check()
 	if Cel ~= nil and MenuMorg.comboConfig.CEnabled then
 		Combo()
 	end
-	if Cel ~= nil and MenuMorg.harrasConfig.HEnabled or MenuMorg.harrasConfig.HTEnabled then
+	if CelH ~= nil and MenuMorg.harrasConfig.HEnabled or MenuMorg.harrasConfig.HTEnabled then
 		Harrass()
 	end
 	if MenuMorg.farm.Freeze or MenuMorg.farm.LaneClear then
@@ -621,10 +626,10 @@ function OnTick()
 	if MenuMorg.jf.JFEnabled then
 		JungleFarmm()
 	end
-	if MenuMorg.exConfig.AZ then
+	if MenuMorg.prConfig.AZ then
 		autozh()
 	end
-	if MenuMorg.exConfig.ALS then
+	if MenuMorg.prConfig.ALS then
 		autolvl()
 	end
 	KillSteall()
@@ -702,20 +707,20 @@ function Harrass()
 end
 
 function CastQH()
-	if QReady and GetDistance(Cel) < skills.skillQ.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
-		CastQ(Cel)
+	if QReady and GetDistance(CelH) < skills.skillQ.range and CelH ~= nil and CelH.team ~= player.team and not CelH.dead and chq then
+		CastQ(CelH)
 	end
 end
 
 function CastWH()
-	if WReady and GetDistance(Cel) < skills.skillW.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chw then
+	if WReady and GetDistance(CelH) < skills.skillW.range and CelH ~= nil and CelH.team ~= player.team and not CelH.dead and chw then
 		if MenuMorg.harrasConfig.HWS then
-			if not Cel.canMove then
-				CastW(Cel)
+			if not CelH.canMove then
+				CastW(CelH)
 			end
 		end
 		if not MenuMorg.harrasConfig.HWS then
-			CastW(Cel)
+			CastW(CelH)
 		end
 	end
 end
@@ -934,49 +939,49 @@ end
 
 --EXTRA--
 function autozh()
-	local count = EnemyCount(myHero, MenuMorg.exConfig.AZMR)
-	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuMorg.exConfig.AZHP and count == 0 then
+	local count = EnemyCount(myHero, MenuMorg.prConfig.AZMR)
+	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuMorg.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
 end
 
 function autolvl()
-	if not MenuMorg.exConfig.ALS then return end
+	if not MenuMorg.prConfig.ALS then return end
 
 	
 	if myHero.level > abilitylvl then
 		abilitylvl = abilitylvl + 1
-		if MenuMorg.exConfig.AL == 1 then			
+		if MenuMorg.prConfig.AL == 1 then			
 			LevelSpell(_R)
 			LevelSpell(_Q)
 			LevelSpell(_W)
 			LevelSpell(_E)
 		end
-		if MenuMorg.exConfig.AL == 2 then	
+		if MenuMorg.prConfig.AL == 2 then	
 			LevelSpell(_R)
 			LevelSpell(_Q)
 			LevelSpell(_E)
 			LevelSpell(_W)
 		end
-		if MenuMorg.exConfig.AL == 3 then	
+		if MenuMorg.prConfig.AL == 3 then	
 			LevelSpell(_R)
 			LevelSpell(_W)
 			LevelSpell(_Q)
 			LevelSpell(_E)
 		end
-		if MenuMorg.exConfig.AL == 4 then	
+		if MenuMorg.prConfig.AL == 4 then	
 			LevelSpell(_R)
 			LevelSpell(_W)
 			LevelSpell(_E)
 			LevelSpell(_Q)
 		end
-		if MenuMorg.exConfig.AL == 5 then	
+		if MenuMorg.prConfig.AL == 5 then	
 			LevelSpell(_R)
 			LevelSpell(_E)
 			LevelSpell(_Q)
 			LevelSpell(_W)
 		end
-		if MenuMorg.exConfig.AL == 6 then	
+		if MenuMorg.prConfig.AL == 6 then	
 			LevelSpell(_R)
 			LevelSpell(_E)
 			LevelSpell(_W)
@@ -1079,21 +1084,23 @@ function CastQ(unit)
 	if MenuMorg.prConfig.pro == 2 and VIP_USER then
 		local Position = VipPredictionQ:GetPrediction(unit)
 		local HitChance = VipPredictionQ:GetHitChance(unit)
-		if Position ~= nil and HitChance > MenuMorg.prConfig.viphit then
+		local Col = VipPredictionQ:GetCollision(unit)
+		if Position ~= nil and HitChance > MenuMorg.prConfig.viphit and not Col then
 			SpellCast(_Q, Position)
 			return		
 		end
 	end
 	if MenuMorg.prConfig.pro == 3 then
 		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
-		if CastPosition and HitChance >= MenuMorg.prConfig.vphit - 1 then
+		local col = VP:CheckMinionCollision(myHero, unit, skills.skillQ.delay, skills.skillQ.width, GetDistance(myHero, unit), skills.skillQ.speed, myHero, false)
+		if CastPosition and HitChance >= MenuMorg.prConfig.vphit - 1 and not col then
 			SpellCast(_Q, CastPosition)
 			return
 		end
 	end
 	if MenuMorg.prConfig.pro == 4 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
-		if Position ~= nil and info.hitchance >= 2 and not info.mCollision() then
+		if Position ~= nil and info.hitchance > 2 and not info.mCollision() then
 			SpellCast(_Q, Position)
 			return		
 		end
@@ -1125,7 +1132,7 @@ function CastW(unit)
 	end
 	if MenuMorg.prConfig.pro == 4 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillW.range, skills.skillW.speed, skills.skillW.delay, skills.skillW.width)
-		if Position ~= nil and info.hitchance >= 2 then
+		if Position ~= nil then
 			SpellCast(_W, Position)
 			return		
 		end
