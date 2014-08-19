@@ -3,47 +3,50 @@
 
 	Changelog:
  
-	1.0 - First Relase
-	1.1 - Added Use R To Stop Enemy Ultimates
-            - Added Auto Zhonya
-            - Added Auto Lvl Skills
-            - Added Support Prodiction(Not Tested)
-	1.2 - Fix error with cast ultimate
-	1.3 - Script Rewritten(now it is not SAC PLUGIN)
-	    - Added SOW integration
-	    - Added Free, VIP, VPrediction, Prodiction 1.4+ Support
-	    - Added Auto Update
-	    - Added Jungle Farm
-	    - Added Lane Clear
-	    - Added DMG Calculation
-	    - Added Mana Manager
-	    - Added Small Escape Mode
-	    - Added Draw Lag-Free Circles
-	1.4 - Added changing colors in Drawing Menu
-	    - Added BOL TRACKER
-	    - Rewritten Farm/LANE Clear MODE
-	1.5 - Update BOL-TRACKER Code
-	1.6 - Improve Farm With "Q" "E"
-		- Improve Cast With Prodiction
-		- Added Skin Changer (VIP)
-		- Added Cast Spell With Packets (VIP)
-		- Added New Option In Auto Zhonya (Check enemies in Range)
-		- Fix Cast Ultimate (Now cast FULL ULTIMATE)
-		- Fixed KS With Ignite
-		- New Option To Cast "W"
+	1.0  - First Relase
+	1.1  - Added Use R To Stop Enemy Ultimates
+             - Added Auto Zhonya
+             - Added Auto Lvl Skills
+             - Added Support Prodiction(Not Tested)
+	1.2  - Fix error with cast ultimate
+	1.3  - Script Rewritten(now it is not SAC PLUGIN)
+	     - Added SOW integration
+	     - Added Free, VIP, VPrediction, Prodiction 1.4+ Support
+	     - Added Auto Update
+	     - Added Jungle Farm
+	     - Added Lane Clear
+	     - Added DMG Calculation
+	     - Added Mana Manager
+	     - Added Small Escape Mode
+	     - Added Draw Lag-Free Circles
+	1.4  - Added changing colors in Drawing Menu
+	     - Added BOL TRACKER
+	     - Rewritten Farm/LANE Clear MODE
+	1.5  - Update BOL-TRACKER Code
+	1.6  - Improve Farm With "Q" "E"
+	     - Improve Cast With Prodiction
+	     - Added Skin Changer (VIP)
+	     - Added Cast Spell With Packets (VIP)
+	     - Added New Option In Auto Zhonya (Check enemies in Range)
+       	     - Fix Cast Ultimate (Now cast FULL ULTIMATE)
+	     - Fixed KS With Ignite
+	     - New Option To Cast "W"
+	1.61 - Fix Change Skin
+	     - Fix Cast Ultimate
 		
 ]]--
 
 if myHero.charName ~= "Galio" then return end
 
-local version = 1.6
 local AUTOUPDATE = true
-local SCRIPT_NAME = "GalioMaster"
+
 
 --AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
+local SCRIPT_NAME = "GalioMaster"
+local version = 1.61
 
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
@@ -141,13 +144,6 @@ function Menu()
 	--[[--- Extra --]]--
 	MenuGalio:addSubMenu("Extra Settings", "exConfig")
 	MenuGalio.exConfig:addParam("AR", "Use R To Stop Enemy Ultimates", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGalio.exConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.exConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
-	MenuGalio.exConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
-	MenuGalio.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGalio.exConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuGalio.exConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 2, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	--[[--- Drawing --]]--
 	MenuGalio:addSubMenu("Draw Settings", "drawConfig")
 	MenuGalio.drawConfig:addParam("DLC", "Draw Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
@@ -166,14 +162,21 @@ function Menu()
 	MenuGalio.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
 	--[[--- Misc --]]--
 	MenuGalio:addSubMenu("Misc Settings", "prConfig")
-	MenuGalio.prConfig:addParam("pc", "Use Packets To Cast Spells", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 3, {"FREEPrediction","VIPPrediction","VPrediction","Prodiction"}) 
 	MenuGalio.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuGalio.prConfig:addParam("viphit", "VIP Prediction HitChance", SCRIPT_PARAM_SLICE,0.7,0.1,1,2)
 	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.prConfig:addParam("skin", "Use custom skin", SCRIPT_PARAM_ONOFF, false)
-	MenuGalio.prConfig:addParam("skin1", "Skin changer", SCRIPT_PARAM_SLICE, 1, 1, 4)
+	MenuGalio.prConfig:addParam("skin1", "Skin changer(VIP)", SCRIPT_PARAM_SLICE, 1, 1, 5)
+	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuGalio.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
+	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
+	MenuGalio.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	if MenuGalio.prConfig.skin and VIP_USER then
 		GenModelPacket("Galio", MenuGalio.prConfig.skin1)
 		lastSkin = MenuGalio.prConfig.skin1
@@ -348,21 +351,12 @@ function OnLoad()
 	UpdateWeb(true, ScriptName, id, HWID)
 end
 
-function cu()
-	if ulti == true or haveult() then
-		SOWi.Menu.Enabled = false
-	end
+function OnTick()
 	if not haveult() then 
-		ulti = false
 		SOWi.Menu.Enabled = true
 	end
-end
-
-function OnTick()
-	cu()
 	Cel = STS:GetTarget(skills.skillE.range)
 	Check()
-	
 	if Cel ~= nil and MenuGalio.comboConfig.CEnabled then
 		Combo()
 	end
@@ -379,7 +373,7 @@ function OnTick()
 	if MenuGalio.exConfig.AZ then
 		autozh()
 	end
-	if MenuGalio.exConfig.ALS then
+	if MenuGalio.prConfig.ALS then
 		autolvl()
 	end
 	if MenuGalio.esConfig.ESEnabled then
@@ -387,9 +381,6 @@ function OnTick()
 	end
 	KillSteall()
 	
-	if MenuGalio.comboConfig.gg then
-		SOWi:DisableAttacks()
-	end
 end
 
 function UseItems(int)
@@ -454,8 +445,8 @@ end
 function CastRC()
 	local enemyCount = EnemyCount(myHero, skills.skillR.range)
 	if RReady and GetDistance(Cel) < skills.skillR.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR and ccr then
+		SOWi.Menu.Enabled = false
 		CastSpell(_R)
-		ulti = true
 	end
 end
 --END COMBO--
@@ -696,49 +687,49 @@ end
 
 --EXTRA--
 function autozh()
-	local count = EnemyCount(myHero, MenuGalio.exConfig.AZMR)
-	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuGalio.exConfig.AZHP and count == 0 then
+	local count = EnemyCount(myHero, MenuGalio.prConfig.AZMR)
+	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuGalio.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
 end
 
 function autolvl()
-	if not MenuGalio.exConfig.ALS then return end
+	if not MenuGalio.prConfig.ALS then return end
 
 	
 	if myHero.level > abilitylvl then
 		abilitylvl = abilitylvl + 1
-		if MenuGalio.exConfig.AL == 1 then			
+		if MenuGalio.prConfig.AL == 1 then			
 			LevelSpell(_R)
 			LevelSpell(_Q)
 			LevelSpell(_W)
 			LevelSpell(_E)
 		end
-		if MenuGalio.exConfig.AL == 2 then	
+		if MenuGalio.prConfig.AL == 2 then	
 			LevelSpell(_R)
 			LevelSpell(_Q)
 			LevelSpell(_E)
 			LevelSpell(_W)
 		end
-		if MenuGalio.exConfig.AL == 3 then	
+		if MenuGalio.prConfig.AL == 3 then	
 			LevelSpell(_R)
 			LevelSpell(_W)
 			LevelSpell(_Q)
 			LevelSpell(_E)
 		end
-		if MenuGalio.exConfig.AL == 4 then	
+		if MenuGalio.prConfig.AL == 4 then	
 			LevelSpell(_R)
 			LevelSpell(_W)
 			LevelSpell(_E)
 			LevelSpell(_Q)
 		end
-		if MenuGalio.exConfig.AL == 5 then	
+		if MenuGalio.prConfig.AL == 5 then	
 			LevelSpell(_R)
 			LevelSpell(_E)
 			LevelSpell(_Q)
 			LevelSpell(_W)
 		end
-		if MenuGalio.exConfig.AL == 6 then	
+		if MenuGalio.prConfig.AL == 6 then	
 			LevelSpell(_R)
 			LevelSpell(_E)
 			LevelSpell(_W)
@@ -884,6 +875,10 @@ end
 
 function OnUnload()
 	UpdateWeb(false, ScriptName, id, HWID)
+end
+
+function skinChanged()
+	return MenuGalio.prConfig.skin1 ~= lastSkin
 end
 
 -- Change skin function, made by Shalzuth
