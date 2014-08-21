@@ -9,7 +9,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 0.1
+local version = 0.2
 local SCRIPT_NAME = "BrandMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -100,8 +100,11 @@ function OnTick()
 	if MenuBrand.prConfig.ALS then
 		autolvl()
 	end
-	if Cel ~= nil and MenuBrand.exConfig.AW then
+	if MenuBrand.exConfig.AW then
 		AutoW()
+	end
+	if MenuBrand.exConfig.AQ then
+		AutoQ()
 	end
 	KillSteall()
 end
@@ -174,7 +177,8 @@ function Menu()
 	MenuBrand.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
 	--[[--- Extra --]]--
 	MenuBrand:addSubMenu("[Brand Master]: Extra Settings", "exConfig")
-	MenuBrand.exConfig:addParam("AW", "Auto W On Stunned Enemy", SCRIPT_PARAM_ONOFF, true)
+	MenuBrand.exConfig:addParam("AQ", "Auto Q On Stunned Enemy", SCRIPT_PARAM_ONOFF, false)
+	MenuBrand.exConfig:addParam("AW", "Auto W On Stunned Enemy", SCRIPT_PARAM_ONOFF, false)
 	--[[--- Drawing --]]--
 	MenuBrand:addSubMenu("[Brand Master]: Draw Settings", "drawConfig")
 	MenuBrand.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
@@ -491,10 +495,28 @@ function JungleFarmm()
 end
 --END JUNGLE FARM--
 
+function AutoQ()
+	players = heroManager.iCount
+    for i = 1, players, 1 do
+        targetq = heroManager:getHero(i)
+        if targetq ~= nil and targetq.team ~= player.team and targetq.visible and not targetq.dead then
+            if ValidTarget(targetq, skills.skillQ.range) and WReady and not targetq.CanMove then
+                CastQ(targetq)
+            end
+        end
+    end
+end
+
 function AutoW()
-	if WReady and GetDistance(Cel) < skills.skillW.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and not Cel.CanMove then
-		CastW(Cel)
-	end
+	players = heroManager.iCount
+    for i = 1, players, 1 do
+        target = heroManager:getHero(i)
+        if target ~= nil and target.team ~= player.team and target.visible and not target.dead then
+            if ValidTarget(target, skills.skillW.range) and WReady and not target.CanMove then
+                CastW(target)
+            end
+        end
+    end
 end
 
 function autozh()
@@ -587,7 +609,7 @@ function OnDraw()
 		if MenuBrand.drawConfig.DER and EReady then			
 			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(MenuBrand.drawConfig.DERC[1], MenuBrand.drawConfig.DERC[2], MenuBrand.drawConfig.DERC[3], MenuBrand.drawConfig.DERC[4]))
 		end
-		if MenuBrand.drawConfig.DRR then			
+		if MenuBrand.drawConfig.DRR and RReady then			
 			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(MenuBrand.drawConfig.DRRC[1], MenuBrand.drawConfig.DRRC[2], MenuBrand.drawConfig.DRRC[3], MenuBrand.drawConfig.DRRC[4]))
 		end
 	end
