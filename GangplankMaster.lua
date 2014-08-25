@@ -114,8 +114,7 @@ function OnTick()
 end
 
 function Menu()
-	VP = VPrediction()
-	SOWi = SOW(VP)
+	SOWi = SOW()
 	STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC) 
 	MenuGP = scriptConfig("Gangplank Master "..version, "Gangplank Master "..version)
 	MenuGP:addSubMenu("Orbwalking", "Orbwalking")
