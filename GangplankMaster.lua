@@ -48,8 +48,8 @@ assert(load(Base64Decode("G0x1YVIAAQQEBAgAGZMNChoKAAAAAAAAAAAAAQIDAAAAJQAAAAgAAI
 local skills = {
 	skillQ = {range = 625},
 	skillW = {range = 0},
-	skillE = {range = 1400},
-	skillR = {range = 99000, speed = math.huge, delay = 0.25, width = 1150},
+	skillE = {range = 1300},
+	skillR = {range = 99000},
 }
 local QReady, WReady, EReady, RReady, IReady, tiamatready, hydraready, brkready, randuinready, yomuready, bilgewaterready, Recall = false, false, false, false, false, false, false, false, false, false, false, false
 local abilitylvl, brkrange, hydrarange, yomurange, lastskin, randuinrange, tiamatrange, bilgewaterrange = 0, 450, 275, 275, 0, 275, 275, 450
@@ -89,6 +89,7 @@ end
 
 function OnTick()
 	Cel = STS:GetTarget(skills.skillQ.range)
+	CelR = STS:GetTarget(skills.skillR.range)
 	Check()
 	if Cel ~= nil and MenuGP.comboConfig.CEnabled then
 		Combo()
@@ -130,8 +131,9 @@ function Menu()
 	--[[--- Combo --]]--
 	MenuGP:addSubMenu("[Gangplank Master]: Combo Settings", "comboConfig")
 	MenuGP.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
-	MenuGP.comboConfig:addParam("USEW", "Use W in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.comboConfig:addParam("USEW", "Use W in Combo", SCRIPT_PARAM_ONOFF, false)
 	MenuGP.comboConfig:addParam("USEE", "Use E in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.comboConfig:addParam("EC", "Min Team Count To Cast E", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
 	MenuGP.comboConfig:addParam("USER", "Use R in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
@@ -144,10 +146,10 @@ function Menu()
 	MenuGP:addSubMenu("[Gangplank Master]: Mana Settings" , "mpConfig")
 	MenuGP.mpConfig:addParam("mptocq", "Min. Mana To Cast Q", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
 	MenuGP.mpConfig:addParam("mptocw", "Min. Mana To Cast W", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
-	MenuGP.mpConfig:addParam("mptoce", "Min. Mana To Cast E", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
+	MenuGP.mpConfig:addParam("mptoce", "Min. Mana To Cast E", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	MenuGP.mpConfig:addParam("mptocr", "Min. Mana To Cast R", SCRIPT_PARAM_SLICE, 5, 0, 100, 0)
 	MenuGP.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGP.mpConfig:addParam("mptohq", "Min. Mana To Harras Q", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
+	MenuGP.mpConfig:addParam("mptohq", "Min. Mana To Harras Q", SCRIPT_PARAM_SLICE, 30, 0, 100, 0) 
 	MenuGP.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.mpConfig:addParam("mptofq", "Min. Mana To Farm Q", SCRIPT_PARAM_SLICE, 45, 0, 100, 0) 
 	MenuGP.mpConfig:addParam("mptofe", "Min. Mana To Farm E", SCRIPT_PARAM_SLICE, 45, 0, 100, 0)
@@ -161,7 +163,7 @@ function Menu()
 	--[[--- Farm --]]--
 	MenuGP:addSubMenu("[Gangplank Master]: Farm Settings", "farm")
 	MenuGP.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
-	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear", "Both" })
+	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
 	MenuGP.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
 	--[[--- Jungle Farm --]]--
@@ -172,7 +174,7 @@ function Menu()
 	--[[--- Extra --]]--
 	MenuGP:addSubMenu("[Gangplank Master]: Extra Settings", "exConfig")
 	MenuGP.exConfig:addParam("CC", "Anty CC", SCRIPT_PARAM_ONOFF, true)
-	MenuGP.exConfig:addParam("aw", "Auto W", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.exConfig:addParam("aw", "Auto Heal", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.exConfig:addParam("MINHPTOW", "Min % HP To Heal", SCRIPT_PARAM_SLICE, 60, 0, 100, 2)
 	MenuGP.exConfig:addParam("MINMPTOW", "Min % MP To Heal", SCRIPT_PARAM_SLICE, 70, 0, 100, 2)	
 	--[[--- Drawing --]]--
@@ -183,26 +185,17 @@ function Menu()
 	MenuGP.drawConfig:addParam("DQR", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.drawConfig:addParam("DQRC", "Draw Q Range Color", SCRIPT_PARAM_COLOR, {255,0,0,255})
 	MenuGP.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGP.drawConfig:addParam("DWR", "Draw W Range", SCRIPT_PARAM_ONOFF, true)
-	MenuGP.drawConfig:addParam("DWRC", "Draw W Range Color", SCRIPT_PARAM_COLOR, {255,100,0,255})
-	MenuGP.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.drawConfig:addParam("DER", "Draw E Range", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.drawConfig:addParam("DERC", "Draw E Range Color", SCRIPT_PARAM_COLOR, {255,255,0,0})
-	MenuGP.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGP.drawConfig:addParam("DRR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
-	MenuGP.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
 	--[[--- Misc --]]--
 	MenuGP:addSubMenu("[Gangplank Master]: Misc Settings", "prConfig")
 	MenuGP.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuGP.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuGP.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 5, 1, 5)
+	MenuGP.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 7, 1, 7)
 	MenuGP.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuGP.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
-	MenuGP.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGP.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
-	MenuGP.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	if MenuGP.prConfig.skin and VIP_USER then
 		GenModelPacket("Gangplank", MenuGP.prConfig.skin1)
 		lastSkin = MenuGP.prConfig.skin1
@@ -211,7 +204,6 @@ function Menu()
 	MenuGP.comboConfig:permaShow("CEnabled")
 	MenuGP.harrasConfig:permaShow("HEnabled")
 	MenuGP.harrasConfig:permaShow("HTEnabled")
-	MenuGP.prConfig:permaShow("AZ")
 	if myHero:GetSpellData(SUMMONER_1).name:find("SummonerDot") then
 		IgniteKey = SUMMONER_1
 	elseif myHero:GetSpellData(SUMMONER_2).name:find("SummonerDot") then
@@ -302,14 +294,17 @@ function Check()
 	end
 end
 
-function EnemyCount(point, range)
-	local count = 0
-	for _, enemy in pairs(GetEnemyHeroes()) do
-		if enemy and not enemy.dead and GetDistance(point, enemy) <= range then
-			count = count + 1
-		end
-	end            
-	return count
+function CountTeam(point, range)
+    local ChampCount = 0
+    for j = 1, heroManager.iCount, 1 do
+        local enemyhero = heroManager:getHero(j)
+		if myHero.team == enemyhero.team and ValidTarget(enemyhero, skills.skillE.range) then
+            if GetDistance(enemyhero, point) <= range then
+                 ChampCount = ChampCount + 1
+            end
+        end
+    end            
+    return ChampCount
 end
 
 function UseItems(int)
@@ -326,32 +321,50 @@ end
 function Combo()
 	UseItems(Cel)
 	if MenuGP.comboConfig.USEQ then
-		if QReady and MenuGP.comboConfig.USEQ and GetDistance(Cel) < skills.skillQ.range and ccq then
-			CastSpell(_Q, Cel)
+		if QReady and ValidTarget(Cel) and ccq then
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _Q, targetNetworkId = Cel.networkID}):send()
+			else
+				CastSpell(_Q, Cel)
+			end
 		end
 	end
 	if MenuGP.comboConfig.USEW then
 		if WReady and MenuGP.comboConfig.USEW and ccw then
-			CastSpell(_W)
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _W}):send()
+			else
+				CastSpell(_W)
+			end
 		end
 	end
 	if MenuGP.comboConfig.USEE then
-		local enemyCount = EnemyCount(myHero, skills.skillE.range)
-		if EReady and MenuGP.comboConfig.USEE and enemyCount >= MenuGP.comboConfig.mine then
-			CastSpell(_E)
+		local enemyCount = CountTeam(myHero, skills.skillE.range)
+		if EReady and MenuGP.comboConfig.USEE and enemyCount >= MenuGP.comboConfig.EC then
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _E}):send()
+			else
+				CastSpell(_E)
+			end
 		end
 	end
 	if MenuGP.comboConfig.USER then
-		if RReady and GetDistance(Cel) < skills.skillR.range and MenuGP.comboConfig.USER and ccr then
-			CastR(Cel)
+		if RReady and GetDistance(CelR) < skills.skillR.range and MenuGP.comboConfig.USER and ccr then
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _R, targetNetworkId = CelR.networkID}):send()
+			else
+				CastSpell(_R, CelR)
+			end
 		end
 	end
 end
 
 function Harrass()
 	if MenuGP.harrasConfig.QH then
-		if QReady and GetDistance(Cel) < skills.skillQ.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
-			if MenuGP.harrasConfig.QHS then
+		if QReady and GetDistance(Cel) <= skills.skillQ.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _Q, targetNetworkId = Cel.networkID}):send()
+			else
 				CastSpell(_Q, Cel)
 			end
 		end
@@ -378,14 +391,22 @@ function Farm(Mode)
 	if UseQ then
 		for i, minion in pairs(EnemyMinions.objects) do
 			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
-				CastSpell(_Q, minion)
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
+				else
+					CastSpell(_Q, minion)
+				end
 			end
 		end
 	end
 	if UseE then
 		for i, minion in pairs(EnemyMinions.objects) do
 			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfe then
-				CastSpell(_E)
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _E}):send()
+				else
+					CastSpell(_E)
+				end
 			end
 		end
 	end
@@ -395,14 +416,22 @@ function JungleFarmm()
 	if MenuGP.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
 			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
-				CastSpell(_Q, minion)
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
+				else
+					CastSpell(_Q, minion)
+				end
 			end
 		end
 	end
 	if MenuGP.jf.EJF then
 		for i, minion in pairs(JungleMinions.objects) do
 			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfq then
-				CastSpell(_E)
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _E}):send()
+				else
+					CastSpell(_E)
+				end
 			end
 		end
 	end
@@ -411,7 +440,11 @@ end
 function autow()
 	if MenuGP.exConfig.aw and not Recall and WReady then
 		if ((myHero.mana/myHero.maxMana)*100) > MenuGP.exConfig.MINMPTOW and  ((myHero.health/myHero.maxHealth)*100) < MenuGP.exConfig.MINHPTOW then
-			CastSpell(_W)
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _W}):send()
+			else
+				CastSpell(_W)
+			end
 		end
 	end
 end
@@ -420,13 +453,25 @@ function cc()
 	if MenuGP.exConfig.CC and WReady then
 		myPlayer = GetMyHero()
 		if myPlayer.canMove == false then
-			CastSpell(_W)
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _W}):send()
+			else
+				CastSpell(_W)
+			end
 		end
 		if myPlayer.isTaunted == true then
-			CastSpell(_W)
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _W}):send()
+			else
+				CastSpell(_W)
+			end
 		end
 		if myPlayer.isFleeing == true then
-			CastSpell(_W)
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _W}):send()
+			else
+				CastSpell(_W)
+			end
 		end
 	end
 end
@@ -487,29 +532,17 @@ function OnDraw()
 	end
 	if MenuGP.drawConfig.DLC then
 		if MenuGP.drawConfig.DQR and QReady then
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 90, 1, RGB(MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
-		end
-		if MenuGP.drawConfig.DWR and WReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillW.range - 80, 1, RGB(MenuGP.drawConfig.DWRC[2], MenuGP.drawConfig.DWRC[3], MenuGP.drawConfig.DWRC[4]))
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 50, 1, RGB(MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
 		end
 		if MenuGP.drawConfig.DER and EReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range - 60, 1, RGB(MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
-		end
-		if MenuGP.drawConfig.DRR then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillR.range - 10, 1, RGB(MenuGP.drawConfig.DRRC[2], MenuGP.drawConfig.DRRC[3], MenuGP.drawConfig.DRRC[4]))
+			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range - 95, 1, RGB(MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
 		end
 	else
 		if MenuGP.drawConfig.DQR and QReady then			
 			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, ARGB(MenuGP.drawConfig.DQRC[1], MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
 		end
-		if MenuGP.drawConfig.DWR and WReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, ARGB(MenuGP.drawConfig.DWRC[1], MenuGP.drawConfig.DWRC[2], MenuGP.drawConfig.DWRC[3], MenuGP.drawConfig.DWRC[4]))
-		end
 		if MenuGP.drawConfig.DER and EReady then			
 			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(MenuGP.drawConfig.DERC[1], MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
-		end
-		if MenuGP.drawConfig.DRR and RReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(MenuGP.drawConfig.DRRC[1], MenuGP.drawConfig.DRRC[2], MenuGP.drawConfig.DRRC[3], MenuGP.drawConfig.DRRC[4]))
 		end
 	end
 end
@@ -545,17 +578,29 @@ function KillSteall()
 		end
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health <= qDmg and QReady and (distance < skills.skillQ.range) and MenuGP.ksConfig.QKS then
-				CastSpell(_Q, Enemy)
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, targetNetworkId = Enemy.networkID}):send()
+				else
+					CastSpell(_Q, Enemy)
+				end
 			elseif health < rDmg and RReady and (distance < skills.skillR.range) and MenuGP.ksConfig.RKS then
-				CastR(Enemy)
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, targetNetworkId = Enemy.networkID}):send()
+				else
+					CastSpell(_R, Enemy)
+				end
 			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) then
-				CastR(Enemy)
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, targetNetworkId = Enemy.networkID}):send()
+				else
+					CastSpell(_R, Enemy)
+				end
 			elseif health < (qDmg + rDmg + itemsDmg) and MenuGP.ksConfig.ITKS then
 				if QReady and RReady then
 					UseItems(Enemy)
 				end
-			elseif health < (qDmg + wDmg + itemsDmg) and health > (qDmg + wDmg) then
-				if QReady and WReady then
+			elseif health < (qDmg + itemsDmg) and health > (qDmg) then
+				if QReady then
 					UseItems(Enemy)
 				end
 			end
@@ -595,31 +640,6 @@ function DmgCalc()
             end
         end
     end
-end
-
-function SpellCast(spellSlot,castPosition)
-	if VIP_USER and MenuGP.prConfig.pc then
-		Packet("S_CAST", {spellId = spellSlot, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
-	else
-		CastSpell(spellSlot,castPosition.x,castPosition.z)
-	end
-end
-
-function CastR(unit)
-	if MenuGP.prConfig.pro == 1 then
-		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, skills.skillR.delay, skills.skillR.width, skills.skillR.range, skills.skillR.speed, myHero, false)
-		if CastPosition and HitChance >= MenuGP.prConfig.vphit - 1 then
-			SpellCast(_R, CastPosition)
-			return
-		end
-	end
-	if MenuGP.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetPrediction(unit, skills.skillR.range, skills.skillR.speed, skills.skillR.delay, skills.skillR.width)
-		if Position ~= nil then
-			SpellCast(_R, Position)
-			return		
-		end
-	end
 end
 
 -- Change skin function, made by Shalzuth
