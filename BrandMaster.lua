@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: BRAND MASTER 
-    Author: kokosik1221
-	Last Version: 0.3
-	24.08.2014
+    	Author: kokosik1221
+	Last Version: 0.4
+	25.08.2014
 	
 ]]--
 	
@@ -14,7 +14,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 0.3
+local version = 0.4
 local SCRIPT_NAME = "BrandMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -299,7 +299,16 @@ function cancast()
 	end
 end
 
+function caa()
+	if MenuBrand.comboConfig.uaa then
+		SOWi:EnableAttacks()
+	elseif not MenuBrand.comboConfig.uaa then
+		SOWi:DisableAttacks()
+	end
+end
+
 function Check()
+	caa()
 	DmgCalc()
 	cancast()
 	EnemyMinions:update()
@@ -862,7 +871,7 @@ function CastQ(unit)
 	end
 	if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
-		if Position ~= nil and info.hitchance > 2 and not info.mCollision() then
+		if Position ~= nil and info.hitchance >= 2 and not info.mCollision() then
 			SpellCast(_Q, Position)
 			return		
 		end
@@ -879,7 +888,7 @@ function CastW(unit)
 	end
 	if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillW.range, skills.skillW.speed, skills.skillW.delay, skills.skillW.width)
-		if Position ~= nil and info.hitchance >= 2 then
+		if Position ~= nil then
 			SpellCast(_W, Position)
 			return		
 		end
