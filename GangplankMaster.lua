@@ -28,6 +28,7 @@ if AUTOUPDATE then
 	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 local RequireI = Require("SourceLib")
+RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
 RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
 RequireI:Check()
 if RequireI.downloadNeeded == true then return end
@@ -114,7 +115,8 @@ function OnTick()
 end
 
 function Menu()
-	SOWi = SOW()
+	VP = VPrediction()
+	SOWi = SOW(VP)
 	STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC) 
 	MenuGP = scriptConfig("Gangplank Master "..version, "Gangplank Master "..version)
 	MenuGP:addSubMenu("Orbwalking", "Orbwalking")
