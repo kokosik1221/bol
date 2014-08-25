@@ -15,7 +15,6 @@ local AUTOUPDATE = true
 --AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local prodstatus = false
 local SCRIPT_NAME = "GangplankMaster"
 local version = 1.3
 if FileExist(SOURCELIB_PATH) then
@@ -29,12 +28,7 @@ if AUTOUPDATE then
 	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
 RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
-if VIP_USER then
-	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	prodstatus = true
-end
 RequireI:Check()
 if RequireI.downloadNeeded == true then return end
 --END AUTO UPDATE--
