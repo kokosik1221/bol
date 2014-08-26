@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: MORGANA MASTER 
-    Author: kokosik1221
-	Last Version: 2.01
-	23.08.2014
+    	Author: kokosik1221
+	Last Version: 2.02
+	26.08.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 2.01
+local version = 2.02
 local SCRIPT_NAME = "MorganaMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -462,6 +462,7 @@ function OnTick()
 	CelH = STS:GetTarget(skills.skillQ.range)
 	Check()
 	if Cel ~= nil and MenuMorg.comboConfig.CEnabled then
+		caa()
 		Combo()
 	end
 	if CelH ~= nil and MenuMorg.harrasConfig.HEnabled then
@@ -658,7 +659,6 @@ function caa()
 end
 
 function Check()
-	caa()
 	DmgCalc()
 	cancast()
 	EnemyMinions:update()
