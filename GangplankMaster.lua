@@ -2,8 +2,8 @@
 
 	Script Name: GANKGPLANK MASTER 
     Author: kokosik1221
-	Last Version: 1.3
-	25.08.2014
+	Last Version: 1.4
+	29.08.2014
 	
 ]]--
 
@@ -16,7 +16,7 @@ local AUTOUPDATE = true
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local SCRIPT_NAME = "GangplankMaster"
-local version = 1.3
+local version = 1.4
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -111,6 +111,9 @@ function OnTick()
 	if MenuGP.exConfig.aw then
 		autow()
 	end
+	if QReady and MenuGP.farm.LQ then
+		lq()
+	end
 	KillSteall()
 end
 
@@ -157,6 +160,7 @@ function Menu()
 	MenuGP.ksConfig:addParam("ITKS", "Use Items To KS", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Farm --]]--
 	MenuGP:addSubMenu("[Gangplank Master]: Farm Settings", "farm")
+	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
@@ -442,6 +446,16 @@ function autow()
 			end
 		end
 	end
+end
+
+function lq()
+	for i, minion in pairs(EnemyMinions.objects) do
+        local qDmg = getDmg("Q",minion,  GetMyHero()) + getDmg("AD",minion,  GetMyHero())
+		local MinionHealth_ = minion.health
+        if qDmg >= MinionHealth_ then
+            CastSpell(_Q, minion)
+        end
+    end
 end
 
 function cc()
