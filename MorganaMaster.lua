@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: MORGANA MASTER 
-    	Author: kokosik1221
-	Last Version: 2.02
-	26.08.2014
+    Author: kokosik1221
+	Last Version: 2.03
+	01.09.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 2.02
+local version = 2.03
 local SCRIPT_NAME = "MorganaMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -439,7 +439,7 @@ local IgniteKey, zhonyaslot, woogletslot, hextechslot, deathfiregraspslot, black
 local Spells = {_Q,_W,_E,_R}
 local Spells2 = {"Q","W","E","R"}
 local killstring = {}
-		
+
 function OnLoad()
 	Menu()
 	UpdateWeb(true, ScriptName, id, HWID)
@@ -458,17 +458,15 @@ function skinChanged()
 end
 
 function OnTick()
-	Cel = STS:GetTarget(skills.skillQ.range)
-	CelH = STS:GetTarget(skills.skillQ.range)
 	Check()
 	if Cel ~= nil and MenuMorg.comboConfig.CEnabled then
 		caa()
 		Combo()
 	end
-	if CelH ~= nil and MenuMorg.harrasConfig.HEnabled then
+	if Cel ~= nil and MenuMorg.harrasConfig.HEnabled then
 		Harrass()
 	end
-	if CelH ~= nil and MenuMorg.harrasConfig.HTEnabled then
+	if Cel ~= nil and MenuMorg.harrasConfig.HTEnabled then
 		Harrass()
 	end
 	if MenuMorg.farm.Freeze or MenuMorg.farm.LaneClear then
@@ -490,12 +488,13 @@ end
 function Menu()
 	VP = VPrediction(true)
 	SOWi = SOW(VP)
-	STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC) 
 	MenuMorg = scriptConfig("Morgana Master "..version, "Morgana Master "..version)
 	MenuMorg:addSubMenu("Orbwalking", "Orbwalking")
 	SOWi:LoadToMenu(MenuMorg.Orbwalking)
+	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, skills.skillQ.range, DAMAGE_MAGIC)
+	TargetSelector.name = "Morgana"
 	MenuMorg:addSubMenu("Target selector", "STS")
-    STS:AddToMenu(MenuMorg.STS)
+	MenuMorg.STS:addTS(TargetSelector)
 	--[[--- Combo --]]--
 	MenuMorg:addSubMenu("[Morgana Master]: Combo Settings", "comboConfig")
     MenuMorg.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
@@ -514,21 +513,21 @@ function Menu()
 	MenuMorg.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	--[[--- Mana Manager --]]--
 	MenuMorg:addSubMenu("[Morgana Master]: Mana Settings" , "mpConfig")
-	MenuMorg.mpConfig:addParam("mptocq", "Min. Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptocw", "Min. Mana To Cast W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptocr", "Min. Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuMorg.mpConfig:addParam("mptocq", "Min. Mana To Cast Q", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptocw", "Min. Mana To Cast W", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptocr", "Min. Mana To Cast R", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	MenuMorg.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuMorg.mpConfig:addParam("mptohq", "Min. Mana To Harras Q", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptohw", "Min. Mana To Harras W", SCRIPT_PARAM_SLICE, 55, 0, 100, 0)
+	MenuMorg.mpConfig:addParam("mptohq", "Min. Mana To Harras Q", SCRIPT_PARAM_SLICE, 35, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptohw", "Min. Mana To Harras W", SCRIPT_PARAM_SLICE, 30, 0, 100, 0)
 	MenuMorg.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuMorg.mpConfig:addParam("mptofq", "Min. Mana To Farm Q", SCRIPT_PARAM_SLICE, 60, 0, 100, 0) 
-	MenuMorg.mpConfig:addParam("mptofw", "Min. Mana To Farm W", SCRIPT_PARAM_SLICE, 65, 0, 100, 0)
+	MenuMorg.mpConfig:addParam("mptofq", "Min. Mana To Farm Q", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
+	MenuMorg.mpConfig:addParam("mptofw", "Min. Mana To Farm W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0)
 	--[[--- Kill Steal --]]--
 	MenuMorg:addSubMenu("[Morgana Master]: KS Settings", "ksConfig")
 	MenuMorg.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.ksConfig:addParam("QKS", "Use Q To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.ksConfig:addParam("WKS", "Use W To KS", SCRIPT_PARAM_ONOFF, true)
-	MenuMorg.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, false)
 	MenuMorg.ksConfig:addParam("ITKS", "Use Items To KS", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Farm --]]--
 	MenuMorg:addSubMenu("[Morgana Master]: Farm Settings", "farm")
@@ -659,10 +658,11 @@ function caa()
 end
 
 function Check()
+	TargetSelector:update()
+	Cel = TargetSelector.target
+	SOWi:ForceTarget(Cel)
 	DmgCalc()
 	cancast()
-	EnemyMinions:update()
-	JungleMinions:update()
 	zhonyaslot = GetInventorySlotItem(3157)
 	woogletslot = GetInventorySlotItem(3090)
 	hextechslot = GetInventorySlotItem(3146)
@@ -710,12 +710,12 @@ end
 function Combo()
 	UseItems(Cel)
 	if MenuMorg.comboConfig.USEQ then
-		if QReady and MenuMorg.comboConfig.USEQ and Cel.canMove and GetDistance(Cel) < skills.skillQ.range and ccq then
+		if QReady and MenuMorg.comboConfig.USEQ and Cel.canMove and ValidTarget(Cel, skills.skillQ.range) and ccq then
 			CastQ(Cel)
 		end
 	end
 	if MenuMorg.comboConfig.USEW then
-		if WReady and MenuMorg.comboConfig.USEW and not Cel.canMove and GetDistance(Cel) < skills.skillW.range and ccw then
+		if WReady and MenuMorg.comboConfig.USEW and not Cel.canMove and ValidTarget(Cel, skills.skillW.range) and ccw then
 			CastW(Cel)
 		end
 	end
@@ -726,7 +726,7 @@ function Combo()
 	end
 	if MenuMorg.comboConfig.USER then
 		local enemyCount = EnemyCount(myHero, skills.skillR.range)
-		if RReady and GetDistance(Cel) < skills.skillR.range and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR and ccr then
+		if RReady and ValidTarget(Cel, skills.skillR.range) and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR and ccr then
 			CastSpell(_R)
 		end
 	end
@@ -736,19 +736,19 @@ end
 --HARRAS--
 function Harrass()
 	if MenuMorg.harrasConfig.QH then
-		if QReady and GetDistance(CelH) < skills.skillQ.range and CelH ~= nil and CelH.team ~= player.team and not CelH.dead and chq then
-			CastQ(CelH)
+		if QReady and ValidTarget(Cel, skills.skillQ.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
+			CastQ(Cel)
 		end
 	end
 	if MenuMorg.harrasConfig.WH then
-		if WReady and GetDistance(CelH) < skills.skillW.range and CelH ~= nil and CelH.team ~= player.team and not CelH.dead and chw then
+		if WReady and ValidTarget(Cel, skills.skillW.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chw then
 			if MenuMorg.harrasConfig.HWS then
-				if not CelH.canMove then
-					CastW(CelH)
+				if not Cel.canMove then
+					CastW(Cel)
 				end
 			end
 			if not MenuMorg.harrasConfig.HWS then
-				CastW(CelH)
+				CastW(Cel)
 			end
 		end
 	end
@@ -757,11 +757,11 @@ end
 
 --FARM--
 function Farm(Mode)
+	EnemyMinions:update()
 	local UseQ
 	local UseW
 	if not SOWi:CanMove() then return end
 
-	EnemyMinions:update()
 	if Mode == "Freeze" then
 		UseQ =  MenuMorg.farm.QF == 2
 		UseW =  MenuMorg.farm.WF == 2 
@@ -813,6 +813,7 @@ end
 
 --JUNGLE FARM--
 function JungleFarmm()
+	JungleMinions:update()
 	if MenuMorg.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
 			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
@@ -1026,7 +1027,7 @@ function OnProcessSpell(object, spell)
 						spell.endPos.x = spell.endPos.x
 						spell.endPos.z = spell.endPos.z                    
 					end   
-					if EReady and MenuMorg.exConfig.ES[spell.name] and GetDistance(spell.endPos) < 400 then
+					if EReady and MenuMorg.exConfig.ES[spell.name] and GetDistance(spell.endPos) < 300 then
 						CastSpell(_E)
 					end
 				end
@@ -1044,12 +1045,8 @@ function DmgCalc()
 			local rDmg = getDmg("R", enemy, myHero)
 			local deathfiregraspDmg = ((deathfiregraspready and getDmg("DFG", enemy, myHero)) or 0)
 			local hextechDmg = ((hextechready and getDmg("HXG", enemy, myHero)) or 0)
-			local bilgewaterDmg = ((bilgewaterready and getDmg("BWC", enemy, myHero)) or 0)
 			local blackfiretorchdmg = ((blackfiretorchready and getDmg("BLACKFIRE", enemy, myHero)) or 0)
-			local tiamatdmg = ((tiamatready and getDmg("TIAMAT", enemy, myHero)) or 0)
-			local brkdmg = ((brkready and getDmg("RUINEDKING", enemy, myHero)) or 0)
-			local hydradmg = ((hydraready and getDmg("HYDRA", enemy, myHero)) or 0)
-			itemsDmg = deathfiregraspDmg + hextechDmg + bilgewaterDmg + blackfiretorchdmg + tiamatdmg + brkdmg + hydradmg
+			itemsDmg = deathfiregraspDmg + hextechDmg + blackfiretorchdmg
             if enemy.health > (qDmg + wDmg + rDmg) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < qDmg then
@@ -1099,14 +1096,12 @@ function CastQ(unit)
 		local col = VP:CheckMinionCollision(myHero, unit, skills.skillQ.delay, skills.skillQ.width, GetDistance(myHero, unit), skills.skillQ.speed, myHero, false)
 		if CastPosition and HitChance >= MenuMorg.prConfig.vphit - 1 and not col then
 			SpellCast(_Q, CastPosition)
-			return
 		end
 	end
 	if MenuMorg.prConfig.pro == 2 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
-		if Position ~= nil and info.hitchance >= 2 and not info.mCollision() then
+		if Position ~= nil and not info.mCollision() then
 			SpellCast(_Q, Position)
-			return		
 		end
 	end
 end
@@ -1123,7 +1118,7 @@ function CastW(unit)
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillW.range, skills.skillW.speed, skills.skillW.delay, skills.skillW.width)
 		if Position ~= nil then
 			SpellCast(_W, Position)
-			return		
+			return
 		end
 	end
 end
