@@ -2,8 +2,8 @@
 
 	Script Name: BRAND MASTER 
     	Author: kokosik1221
-	Last Version: 0.4
-	25.08.2014
+	Last Version: 0.5
+	07.09.2014
 	
 ]]--
 	
@@ -14,7 +14,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 0.4
+local version = 0.5
 local SCRIPT_NAME = "BrandMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -81,9 +81,9 @@ function Havepasive(target)
 end
 
 function OnTick()
-	Cel = STS:GetTarget(skills.skillQ.range)
 	Check()
 	if Cel ~= nil and MenuBrand.comboConfig.CEnabled then
+		caa()
 		Combo()
 	end
 	if Cel ~= nil and MenuBrand.harrasConfig.HEnabled then
@@ -117,12 +117,13 @@ end
 function Menu()
 	VP = VPrediction()
 	SOWi = SOW(VP)
-	STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC) 
 	MenuBrand = scriptConfig("Brand Master "..version, "Brand Master "..version)
 	MenuBrand:addSubMenu("Orbwalking", "Orbwalking")
 	SOWi:LoadToMenu(MenuBrand.Orbwalking)
+	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, skills.skillQ.range, DAMAGE_MAGIC)
+	TargetSelector.name = "Brand"
 	MenuBrand:addSubMenu("Target selector", "STS")
-    STS:AddToMenu(MenuBrand.STS)
+	MenuBrand.STS:addTS(TargetSelector)
 	--[[--- Combo --]]--
 	MenuBrand:addSubMenu("[Brand Master]: Combo Settings", "comboConfig")
 	MenuBrand.comboConfig:addSubMenu("Q Options", "qConfig")
@@ -135,9 +136,10 @@ function Menu()
 	MenuBrand.comboConfig:addSubMenu("R Options", "rConfig")
 	MenuBrand.comboConfig.rConfig:addParam("USER", "Use R in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuBrand.comboConfig.rConfig:addParam("ENEMYTOR", "Min Enemies to Cast R: ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
-	MenuBrand.comboConfig.rConfig:addParam("Ablazed", "Only Use If Target Is Ablazed Or Killable", SCRIPT_PARAM_ONOFF, true)
+	MenuBrand.comboConfig.rConfig:addParam("Ablazed", "Only Use If Target Is Ablazed", SCRIPT_PARAM_ONOFF, true)
+	MenuBrand.comboConfig.rConfig:addParam("Kilable", "Only Use If Target Is Killable", SCRIPT_PARAM_ONOFF, true)
 	MenuBrand.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
-	MenuBrand.comboConfig:addParam("CT", "Combo Type", SCRIPT_PARAM_LIST, 3, { "Q>W>E>R", "W>Q>E>R", "E>Q>W>R", "E>W>Q>R"})
+	MenuBrand.comboConfig:addParam("CT", "Combo Type", SCRIPT_PARAM_LIST, 2, { "Q>W>E>R", "W>Q>E>R", "E>Q>W>R", "E>W>Q>R"})
 	MenuBrand.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	--[[--- Harras --]]--
 	MenuBrand:addSubMenu("[Brand Master]: Harras Settings", "harrasConfig")
@@ -157,13 +159,13 @@ function Menu()
 	MenuBrand.mpConfig:addParam("mptoce", "Min. Mana To Cast E", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
 	MenuBrand.mpConfig:addParam("mptocr", "Min. Mana To Cast R", SCRIPT_PARAM_SLICE, 5, 0, 100, 0)
 	MenuBrand.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBrand.mpConfig:addParam("mptohq", "Min. Mana To Harras Q", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
-	MenuBrand.mpConfig:addParam("mptohw", "Min. Mana To Harras W", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
-	MenuBrand.mpConfig:addParam("mptohe", "Min. Mana To Harras E", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuBrand.mpConfig:addParam("mptohq", "Min. Mana To Harras Q", SCRIPT_PARAM_SLICE, 35, 0, 100, 0) 
+	MenuBrand.mpConfig:addParam("mptohw", "Min. Mana To Harras W", SCRIPT_PARAM_SLICE, 35, 0, 100, 0)
+	MenuBrand.mpConfig:addParam("mptohe", "Min. Mana To Harras E", SCRIPT_PARAM_SLICE, 35, 0, 100, 0)
 	MenuBrand.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBrand.mpConfig:addParam("mptofq", "Min. Mana To Farm Q", SCRIPT_PARAM_SLICE, 45, 0, 100, 0) 
-	MenuBrand.mpConfig:addParam("mptofw", "Min. Mana To Farm W", SCRIPT_PARAM_SLICE, 45, 0, 100, 0)
-	MenuBrand.mpConfig:addParam("mptofe", "Min. Mana To Farm E", SCRIPT_PARAM_SLICE, 45, 0, 100, 0)
+	MenuBrand.mpConfig:addParam("mptofq", "Min. Mana To Farm Q", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
+	MenuBrand.mpConfig:addParam("mptofw", "Min. Mana To Farm W", SCRIPT_PARAM_SLICE, 25, 0, 100, 0)
+	MenuBrand.mpConfig:addParam("mptofe", "Min. Mana To Farm E", SCRIPT_PARAM_SLICE, 25, 0, 100, 0)
 	--[[--- Kill Steal --]]--
 	MenuBrand:addSubMenu("[Brand Master]: KS Settings", "ksConfig")
 	MenuBrand.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
@@ -233,12 +235,8 @@ function Menu()
 	MenuBrand.harrasConfig:permaShow("HEnabled")
 	MenuBrand.harrasConfig:permaShow("HTEnabled")
 	MenuBrand.prConfig:permaShow("AZ")
-	if myHero:GetSpellData(SUMMONER_1).name:find("SummonerDot") then
-		IgniteKey = SUMMONER_1
-	elseif myHero:GetSpellData(SUMMONER_2).name:find("SummonerDot") then
-		IgniteKey = SUMMONER_2
-	else
-		IgniteKey = nil
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
 end
 
@@ -308,11 +306,11 @@ function caa()
 end
 
 function Check()
-	caa()
+	TargetSelector:update()
+	Cel = TargetSelector.target
+	SOWi:ForceTarget(Cel)
 	DmgCalc()
 	cancast()
-	EnemyMinions:update()
-	JungleMinions:update()
 	zhonyaslot = GetInventorySlotItem(3157)
 	woogletslot = GetInventorySlotItem(3090)
 	hextechslot = GetInventorySlotItem(3146)
@@ -371,7 +369,7 @@ function Combo()
 end
 
 function comboQWER()
-	if GetDistance(Cel) < skills.skillQ.range then
+	if ValidTarget(Cel, skills.skillQ.range) then
 		if QReady and ccq and MenuBrand.comboConfig.qConfig.USEQ then
 			if MenuBrand.comboConfig.qConfig.USEQS then
 				if Havepasive(Cel) then
@@ -392,7 +390,7 @@ function comboQWER()
 end
 
 function comboWQER()
-	if GetDistance(Cel) < skills.skillQ.range then
+	if ValidTarget(Cel, skills.skillW.range) then
 		if WReady and ccw and MenuBrand.comboConfig.wConfig.USEW then
 			CastW(Cel)
 		end
@@ -413,7 +411,7 @@ function comboWQER()
 end
 
 function comboEQWR()
-	if GetDistance(Cel) < skills.skillQ.range then
+	if ValidTarget(Cel, skills.skillE.range) then
 		if EReady and cce and MenuBrand.comboConfig.eConfig.USEE then
 			CastSpell(_E, Cel)
 		end
@@ -434,7 +432,7 @@ function comboEQWR()
 end
 
 function comboEWQR()
-	if GetDistance(Cel) < skills.skillQ.range then
+	if ValidTarget(Cel, skills.skillE.range) then
 		if EReady and cce and MenuBrand.comboConfig.eConfig.USEE then
 			CastSpell(_E, Cel)
 		end
@@ -456,13 +454,17 @@ end
 
 function CastRC()
 	local enemyCount = EnemyCount(myHero, skills.skillR.range)
-	if RReady and GetDistance(Cel) < skills.skillR.range and MenuBrand.comboConfig.rConfig.USER and enemyCount >= MenuBrand.comboConfig.rConfig.ENEMYTOR and ccr then
+	if RReady and ValidTarget(Cel, skills.skillR.range) and MenuBrand.comboConfig.rConfig.USER and enemyCount >= MenuBrand.comboConfig.rConfig.ENEMYTOR and ccr then
 		if MenuBrand.comboConfig.rConfig.Ablazed then
-			local rdmg = getDmg("R", Cel, myHero)
-			if Cel.health < rdmg or Havepasive(Cel) then
+			if Havepasive(Cel) then
 				CastSpell(_R, Cel)
 			end
-		elseif not MenuBrand.comboConfig.rConfig.Ablazed then
+		elseif MenuBrand.comboConfig.rConfig.Kilable then
+			local rdmg = getDmg("R", Cel, myHero)
+			if Cel.health < rdmg then
+				CastSpell(_R, Cel)
+			end
+		elseif not MenuBrand.comboConfig.rConfig.Ablazed or not MenuBrand.comboConfig.rConfig.Kilable then
 			CastSpell(_R, Cel)
 		end
 	end
@@ -472,7 +474,7 @@ end
 --HARRAS--
 function Harrass()
 	if MenuBrand.harrasConfig.QH then
-		if QReady and GetDistance(Cel) < skills.skillQ.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
+		if QReady and ValidTarget(Cel, skills.skillQ.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
 			if MenuBrand.harrasConfig.QHS then
 				if Havepasive(Cel) then
 					CastQ(Cel)
@@ -483,12 +485,12 @@ function Harrass()
 		end
 	end
 	if MenuBrand.harrasConfig.WH then
-		if WReady and GetDistance(Cel) < skills.skillW.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chw then
+		if WReady and ValidTarget(Cel, skills.skillW.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chw then
 			CastW(Cel)
 		end
 	end
 	if MenuBrand.harrasConfig.EH then
-		if EReady and GetDistance(Cel) < skills.skillE.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and che then
+		if EReady and ValidTarget(Cel, skills.skillE.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and che then
 			CastSpell(_E, Cel)
 		end
 	end
@@ -566,6 +568,7 @@ end
 
 --JUNGLE FARM--
 function JungleFarmm()
+	JungleMinions:update()
 	if MenuBrand.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
 			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
@@ -866,14 +869,12 @@ function CastQ(unit)
 		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
 		if CastPosition and HitChance >= MenuBrand.prConfig.vphit - 1 then
 			SpellCast(_Q, CastPosition)
-			return
 		end
 	end
 	if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
-		if Position ~= nil and info.hitchance >= 2 and not info.mCollision() then
-			SpellCast(_Q, Position)
-			return		
+		if Position ~= nil and not info.mCollision() then
+			SpellCast(_Q, Position)	
 		end
 	end
 end
