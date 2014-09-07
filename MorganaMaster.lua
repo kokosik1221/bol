@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: MORGANA MASTER 
-    Author: kokosik1221
-	Last Version: 2.03
-	01.09.2014
+    	Author: kokosik1221
+	Last Version: 2.04
+	07.09.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 2.03
+local version = 2.04
 local SCRIPT_NAME = "MorganaMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -70,7 +70,7 @@ local Shieldspells = {
   ['InfernalGuardian'] = {charName = "Annie", spellSlot = "R", SpellType = "castcel"},
   ['Volley'] = {charName = "Ashe", spellSlot = "W", SpellType = "skillshot"},
   ['EnchantedCrystalArrow'] = {charName = "Ashe", spellSlot = "R", SpellType = "skillshot"},
-  ['RocketGrabMissile'] = {charName = "Blitzcrank", spellSlot = "Q", SpellType = "skillshot"},
+  ['RocketGrab'] = {charName = "Blitzcrank", spellSlot = "Q", SpellType = "skillshot"},
   ['PowerFist'] = {charName = "Blitzcrank", spellSlot = "E", SpellType = "skillshot"},
   ['StaticField'] = {charName = "Blitzcrank", spellSlot = "R", SpellType = "skillshot"},
   ['BrandBlaze'] = {charName = "Brand", spellSlot = "Q", SpellType = "skillshot"},
@@ -139,6 +139,12 @@ local Shieldspells = {
   ['GarenQ'] = {charName = "Garen", spellSlot = "Q", SpellType = "skillshot"},
   ['GarenE'] = {charName = "Garen", spellSlot = "E", SpellType = "skillshot"},
   ['GarenR'] = {charName = "Garen", spellSlot = "R", SpellType = "castcel"},
+  ['GnarQ'] = {charName = "Gnar", spellSlot = "Q", SpellType = "skillshot"},
+  ['GnarBigQ'] = {charName = "Gnar", spellSlot = "Q", SpellType = "skillshot"},
+  ['GnarWStack'] = {charName = "Gnar", spellSlot = "W", SpellType = "castcel"},
+  ['GnarBigW'] = {charName = "Gnar", spellSlot = "W", SpellType = "skillshot"},
+  ['GnarBigE'] = {charName = "Gnar", spellSlot = "E", SpellType = "skillshot"},
+  ['GnarBigR'] = {charName = "Gnar", spellSlot = "R", SpellType = "skillshot"},
   ['GragasBarrelRoll'] = {charName = "Gragas", spellSlot = "Q", SpellType = "skillshot"},
   ['gragasbarrelrolltoggle'] = {charName = "Gragas", spellSlot = "Q", SpellType = "skillshot"},
   ['GragasBodySlam'] = {charName = "Gragas", spellSlot = "E", SpellType = "skillshot"},
@@ -214,7 +220,6 @@ local Shieldspells = {
   ['blindmonkwtwo'] = {charName = "LeeSin", spellSlot = "W", SpellType = "skillshot"},
   ['blindmonketwo'] = {charName = "LeeSin", spellSlot = "E", SpellType = "skillshot"},
   ['LeonaShieldOfDaybreak'] = {charName = "Leona", spellSlot = "Q", SpellType = "skillshot"},
-  ['LeonaSolarBarrier'] = {charName = "Leona", spellSlot = "W", SpellType = "skillshot"},
   ['LeonaZenithBlade'] = {charName = "Leona", spellSlot = "E", SpellType = "skillshot"},
   ['LeonaZenithBladeMissle'] = {charName = "Leona", spellSlot = "E", SpellType = "skillshot"},
   ['LeonaSolarFlare'] = {charName = "Leona", spellSlot = "R", SpellType = "skillshot"},
@@ -229,7 +234,6 @@ local Shieldspells = {
   ['LuluW'] = {charName = "Lulu", spellSlot = "W", SpellType = "castcel"},
   ['LuluE'] = {charName = "Lulu", spellSlot = "E", SpellType = "castcel"},
   ['LuxLightBinding'] = {charName = "Lux", spellSlot = "Q", SpellType = "skillshot"},
-  ['LuxPrismaticWave'] = {charName = "Lux", spellSlot = "W", SpellType = "skillshot"},
   ['LuxLightStrikeKugel'] = {charName = "Lux", spellSlot = "E", SpellType = "skillshot"},
   ['luxlightstriketoggle'] = {charName = "Lux", spellSlot = "E", SpellType = "skillshot"},
   ['LuxMaliceCannon'] = {charName = "Lux", spellSlot = "R", SpellType = "skillshot"},
@@ -551,7 +555,8 @@ function Menu()
 			end 
 		end 
 	end 
-	MenuMorg.exConfig:addParam("UAS", "Use Auto Shield", SCRIPT_PARAM_ONOFF, false)
+	MenuMorg.exConfig:addParam("UAS", "Use Auto Shield", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.exConfig:addParam("UASA", "Use Auto Shield To Ally", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Drawing --]]--
 	MenuMorg:addSubMenu("[Morgana Master]: Draw Settings", "drawConfig")
 	MenuMorg.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
@@ -599,12 +604,8 @@ function Menu()
 	MenuMorg.harrasConfig:permaShow("HEnabled")
 	MenuMorg.harrasConfig:permaShow("HTEnabled")
 	MenuMorg.prConfig:permaShow("AZ")
-	if myHero:GetSpellData(SUMMONER_1).name:find("SummonerDot") then
-		IgniteKey = SUMMONER_1
-	elseif myHero:GetSpellData(SUMMONER_2).name:find("SummonerDot") then
-		IgniteKey = SUMMONER_2
-	else
-		IgniteKey = nil
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
 end
 
@@ -856,7 +857,7 @@ function KillSteall()
 			rDmg = 0
 		end
 		if MenuMorg.ksConfig.IKS then
-			iDmg = getDmg("IGNITE", Enemy, myHero)
+			iDmg = 50 + (20 * myHero.level)
 		else 
 			iDmg = 0
 		end
@@ -896,7 +897,7 @@ function KillSteall()
 					UseItems(Enemy)
 				end
 			end
-			if IReady and health <= iDmg and MenuMorg.ksConfig.IKS and (distance < 600) then
+			if health < iDmg and MenuMorg.ksConfig.IKS and (distance <= 600) and IReady then
 				CastSpell(IgniteKey, Enemy)
 			end
 		end
@@ -1013,22 +1014,45 @@ function autolvl()
 end
 --END EXTRA--
 
+function FindShieldTarget()
+		starget = nil
+		for a = 1, heroManager.iCount do
+			tar = heroManager:GetHero(a)
+			if tar.team == myHero.team and not tar.dead and GetDistance(myHero, tar) <= skills.skillE.range then
+				if starget == nil then
+					starget = tar
+				elseif not starget.dead and (tar.health/tar.maxHealth) < (starget.health/starget.maxHealth) then
+					starget = tar
+				end
+			end
+		end
+	return starget
+end
+
 function OnProcessSpell(object, spell)
+	ShieldTarget = FindShieldTarget()
 	if MenuMorg.exConfig.UAS then
 		if object and object.team ~= myHero.team and object.type == myHero.type and spell then
 			if Shieldspells[spell.name] then 
 				if Shieldspells[spell.name].SpellType == "castcel" then 
-					if EReady and MenuMorg.exConfig.ES[spell.name] and spell.target == myHero then 
-						CastSpell(_E)
+					if MenuMorg.exConfig.UASA then
+						if EReady and MenuMorg.exConfig.ES[spell.name] and spell.target == ShieldTarget then
+							CastSpell(_E, ShieldTarget)
+						end
+					elseif not MenuMorg.exConfig.UASA then
+						if EReady and MenuMorg.exConfig.ES[spell.name] and spell.target == myHero then 
+							CastSpell(_E)
+						end
 					end
-				end
-				if Shieldspells[spell.name].SpellType == "skillshot" then 
-					if not spell.endPos then
-						spell.endPos.x = spell.endPos.x
-						spell.endPos.z = spell.endPos.z                    
-					end   
-					if EReady and MenuMorg.exConfig.ES[spell.name] and GetDistance(spell.endPos) < 300 then
-						CastSpell(_E)
+				elseif Shieldspells[spell.name].SpellType == "skillshot" then 
+					if MenuMorg.exConfig.UASA then
+						if EReady and MenuMorg.exConfig.ES[spell.name] and GetDistance(ShieldTarget, spell.endPos) < 300 then
+							CastSpell(_E, ShieldTarget)
+						end
+					elseif not MenuMorg.exConfig.UASA then
+						if EReady and MenuMorg.exConfig.ES[spell.name] and GetDistance(myHero, spell.endPos) < 300 then
+							CastSpell(_E)
+						end
 					end
 				end
 			end
