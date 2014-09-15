@@ -2,8 +2,8 @@
 
 	Script Name: MORGANA MASTER 
     	Author: kokosik1221
-	Last Version: 2.04
-	07.09.2014
+	Last Version: 2.05
+	15.09.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ local AUTOUPDATE = true
 
 
 --AUTO UPDATE--
-local version = 2.04
+local version = 2.05
 local SCRIPT_NAME = "MorganaMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -461,6 +461,10 @@ function skinChanged()
 	return MenuMorg.prConfig.skin1 ~= lastSkin
 end
 
+function Havepasive(target)
+	return HasBuff(target, buff.type == 11)
+end
+
 function OnTick()
 	Check()
 	if Cel ~= nil and MenuMorg.comboConfig.CEnabled then
@@ -711,12 +715,12 @@ end
 function Combo()
 	UseItems(Cel)
 	if MenuMorg.comboConfig.USEQ then
-		if QReady and MenuMorg.comboConfig.USEQ and Cel.canMove and ValidTarget(Cel, skills.skillQ.range) and ccq then
+		if QReady and MenuMorg.comboConfig.USEQ and ValidTarget(Cel, skills.skillQ.range) and ccq then
 			CastQ(Cel)
 		end
 	end
 	if MenuMorg.comboConfig.USEW then
-		if WReady and MenuMorg.comboConfig.USEW and not Cel.canMove and ValidTarget(Cel, skills.skillW.range) and ccw then
+		if WReady and MenuMorg.comboConfig.USEW and ValidTarget(Cel, skills.skillW.range) and ccw then
 			CastW(Cel)
 		end
 	end
