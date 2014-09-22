@@ -2,8 +2,8 @@
 
 	Script Name: GALIO MASTER 
     Author: kokosik1221
-	Last Version: 1.62
-	23.08.2014
+	Last Version: 1.63
+	22.09.2014
 	
 ]]--
 
@@ -17,7 +17,7 @@ local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.62
+local version = 1.63
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -63,18 +63,6 @@ function OnLoad()
 	UpdateWeb(true, ScriptName, id, HWID)
 end
 
-function OnGainBuff(hero, buff)
-	if hero == myHero and buff.name == "GalioIdolOfDurand" then
-		ultbuff = true
-	end
-end
-
-function OnLoseBuff(hero, buff)
-	if hero == myHero and buff.name == "GalioIdolOfDurand" then
-		ultbuff = false
-	end
-end
-
 function OnBugsplat()
 	UpdateWeb(false, ScriptName, id, HWID)
 end
@@ -87,14 +75,23 @@ function skinChanged()
 	return MenuGalio.prConfig.skin1 ~= lastSkin
 end
 
+function CheckUlt()
+    if TargetHaveBuff("GalioIdolOfDurand", myHero) then
+         ultbuff = true
+		 SOWi.Menu.Enabled = false
+    else
+         ultbuff = false
+		 SOWi.Menu.Enabled = true
+    end
+end
+
 function OnTick()
 	Cel = STS:GetTarget(skills.skillE.range)
 	Check()
-	if Cel ~= nil and MenuGalio.comboConfig.CEnabled then
-		if not ultbuff then 
-			DelayAction(function() SOWi.Menu.Enabled = true end, 2)
-			Combo()
-		end
+	CheckUlt()
+	if Cel ~= nil and MenuGalio.comboConfig.CEnabled and not ultbuff then
+		caa()
+		Combo()
 	end
 	if Cel ~= nil and MenuGalio.harrasConfig.HEnabled then
 		Harrass()
@@ -229,12 +226,8 @@ function Menu()
 	MenuGalio.harrasConfig:permaShow("HEnabled")
 	MenuGalio.harrasConfig:permaShow("HTEnabled")
 	MenuGalio.prConfig:permaShow("AZ")
-	if myHero:GetSpellData(SUMMONER_1).name:find("SummonerDot") then
-		IgniteKey = SUMMONER_1
-	elseif myHero:GetSpellData(SUMMONER_2).name:find("SummonerDot") then
-		IgniteKey = SUMMONER_2
-	else
-		IgniteKey = nil
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
 end
 
@@ -294,7 +287,6 @@ function caa()
 end
 
 function Check()
-	caa()
 	DmgCalc()
 	cancast()
 	EnemyMinions:update()
@@ -372,7 +364,7 @@ function Combo()
 	end
 	if MenuGalio.comboConfig.USER then
 		local enemyCount = EnemyCount(myHero, skills.skillR.range)
-		if RReady and GetDistance(Cel) < skills.skillR.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR and ccr then
+		if not ultbuff and RReady and GetDistance(Cel) < skills.skillR.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR and ccr then
 			SOWi.Menu.Enabled = false
 			CastSpell(_R)
 		end
