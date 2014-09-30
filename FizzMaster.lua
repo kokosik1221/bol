@@ -3,7 +3,7 @@
 	Script Name: FIZZ MASTER 
     Author: kokosik1221
 	Last Version: 0.4
-	30.10.2014
+	30.09.2014
 	
 ]]--
 	
