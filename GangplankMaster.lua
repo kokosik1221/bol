@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: GANKGPLANK MASTER 
-    Author: kokosik1221
-	Last Version: 1.4
-	29.08.2014
+	 Author: kokosik1221
+	Last Version: 1.5
+	09.10.2014
 	
 ]]--
 
@@ -16,7 +16,7 @@ local AUTOUPDATE = true
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local SCRIPT_NAME = "GangplankMaster"
-local version = 1.4
+local version = 1.5
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -46,11 +46,22 @@ local skills = {
 	skillE = {range = 1300},
 	skillR = {range = 99000},
 }
-local QReady, WReady, EReady, RReady, IReady, tiamatready, hydraready, brkready, randuinready, yomuready, bilgewaterready, Recall = false, false, false, false, false, false, false, false, false, false, false, false
-local abilitylvl, brkrange, hydrarange, yomurange, lastskin, randuinrange, tiamatrange, bilgewaterrange = 0, 450, 275, 275, 0, 275, 275, 450
+
+local Items = {
+	BRK = { id = 3153, range = 450, reqTarget = true, slot = nil },
+	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
+	RSH = { id = 3074, range = 350, reqTarget = false, slot = nil },
+	STD = { id = 3131, range = 350, reqTarget = false, slot = nil },
+	TMT = { id = 3077, range = 350, reqTarget = false, slot = nil },
+	YGB = { id = 3142, range = 350, reqTarget = false, slot = nil },
+	RND = { id = 3143, range = 275, reqTarget = false, slot = nil },
+}
+
+local QReady, WReady, EReady, RReady, IReady, Recall = false, false, false, false, false, false
+local abilitylvl, lastskin = 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, tiamatslot, randuinslot, yomuslot, hydraslot, brkslot, bilgewaterslot = nil, nil, nil, nil, nil, nil, nil
+local IgniteKey = nil
 local killstring = {}
 		
 function OnLoad()
@@ -156,11 +167,10 @@ function Menu()
 	MenuGP.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.ksConfig:addParam("QKS", "Use Q To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, true)
-	MenuGP.ksConfig:addParam("ULTHITS", "Ult hit times:", SCRIPT_PARAM_SLICE, 2, 1, 6, 0)
-	MenuGP.ksConfig:addParam("ITKS", "Use Items To KS", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.ksConfig:addParam("ULTHITS", "Ult hit times:", SCRIPT_PARAM_SLICE, 3, 1, 7, 0)
 	--[[--- Farm --]]--
 	MenuGP:addSubMenu("[Gangplank Master]: Farm Settings", "farm")
-	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, false)
 	MenuGP.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
@@ -203,12 +213,8 @@ function Menu()
 	MenuGP.comboConfig:permaShow("CEnabled")
 	MenuGP.harrasConfig:permaShow("HEnabled")
 	MenuGP.harrasConfig:permaShow("HTEnabled")
-	if myHero:GetSpellData(SUMMONER_1).name:find("SummonerDot") then
-		IgniteKey = SUMMONER_1
-	elseif myHero:GetSpellData(SUMMONER_2).name:find("SummonerDot") then
-		IgniteKey = SUMMONER_2
-	else
-		IgniteKey = nil
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
 end
 
@@ -264,20 +270,7 @@ end
 
 function Check()
 	caa()
-	DmgCalc()
 	cancast()
-	EnemyMinions:update()
-	JungleMinions:update()
-	tiamatslot = GetInventorySlotItem(3077)
-	randuinslot = GetInventorySlotItem(3143)
-	yomuslot = GetInventorySlotItem(3142)
-	hydraslot = GetInventorySlotItem(3074)
-	brkslot = GetInventorySlotItem(3153)
-	tiamatready = (tiamatslot ~= nil and myHero:CanUseSpell(tiamatslot) == READY)
-	hydraready = (hydraslot ~= nil and myHero:CanUseSpell(hydraslot) == READY)
-	brkready = (brkslot ~= nil and myHero:CanUseSpell(brkslot) == READY)
-	randuinready = (randuinslot ~= nil and myHero:CanUseSpell(randuinslot) == READY)
-	yomuready = (yomuslot ~= nil and myHero:CanUseSpell(yomuslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
@@ -293,6 +286,17 @@ function Check()
 	end
 end
 
+function EnemyCount(point, range)
+	local count = 0
+	for _, enemy in pairs(GetEnemyHeroes()) do
+		if enemy and not enemy.dead and GetDistance(point, enemy) <= range then
+			count = count + 1
+		end
+	end            
+	return count
+end
+
+
 function CountTeam(point, range)
     local ChampCount = 0
     for j = 1, heroManager.iCount, 1 do
@@ -306,14 +310,20 @@ function CountTeam(point, range)
     return ChampCount
 end
 
-function UseItems(int)
-	if ValidTarget(int) and int ~= nil then
-		if tiamatready and GetDistanceSqr(int) < tiamatrange then CastSpell(tiamatslot, int) end
-		if bilgewaterready and GetDistanceSqr(int) < bilgewaterrange then CastSpell(bilgewaterslot, int) end
-		if yomuready and GetDistanceSqr(int) < yomurange then CastSpell(yomuslot, int) end
-		if randuinready and GetDistanceSqr(int) < randuinrange then CastSpell(randuinslot, int) end
-		if brkready and GetDistanceSqr(int) < brkrange then CastSpell(brkslot, int) end
-		if hydraready and GetDistanceSqr(int) < hydrarange then CastSpell(hydraslot, int) end
+function UseItems(unit)
+	if unit ~= nil then
+		for _, item in pairs(Items) do
+			item.slot = GetInventorySlotItem(item.id)
+			if item.slot ~= nil then
+				if item.reqTarget and GetDistance(unit) < item.range then
+					CastSpell(item.slot, unit)
+				elseif not item.reqTarget then
+					if (GetDistance(unit) - getHitBoxRadius(myHero) - getHitBoxRadius(unit)) < 50 then
+						CastSpell(item.slot)
+					end
+				end
+			end
+		end
 	end
 end
 
@@ -412,6 +422,7 @@ function Farm(Mode)
 end
 
 function JungleFarmm()
+	JungleMinions:update()
 	if MenuGP.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
 			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
@@ -449,6 +460,7 @@ function autow()
 end
 
 function lq()
+	EnemyMinions:update()
 	for i, minion in pairs(EnemyMinions.objects) do
         local qDmg = getDmg("Q",minion,  GetMyHero()) + getDmg("AD",minion,  GetMyHero())
 		local MinionHealth_ = minion.health
@@ -487,8 +499,6 @@ end
 
 function autolvl()
 	if not MenuGP.prConfig.ALS then return end
-
-	
 	if myHero.level > abilitylvl then
 		abilitylvl = abilitylvl + 1
 		if MenuGP.prConfig.AL == 1 then			
@@ -531,6 +541,7 @@ function autolvl()
 end
 
 function OnDraw()
+	DmgCalc()
 	if MenuGP.drawConfig.DD then	
 		for _,enemy in pairs(GetEnemyHeroes()) do
             if ValidTarget(enemy) and killstring[enemy.networkID] ~= nil then
@@ -562,7 +573,7 @@ function KillSteall()
 		local health = Enemy.health
 		local distance = GetDistance(Enemy)
 		if MenuGP.ksConfig.QKS then
-			qDmg = getDmg("Q", Enemy, myHero)
+			qDmg = getDmg("Q", Enemy, myHero) + getDmg("AD", Enemy, GetMyHero())
 		else 
 			qDmg = 0
 		end
@@ -575,15 +586,6 @@ function KillSteall()
 			iDmg = getDmg("IGNITE", Enemy, myHero)
 		else 
 			iDmg = 0
-		end
-		if MenuGP.ksConfig.ITKS then
-			bilgewaterDmg = ((bilgewaterready and getDmg("BWC", Enemy, myHero)) or 0)
-			tiamatdmg = ((tiamatready and getDmg("TIAMAT", Enemy, myHero)) or 0)
-			brkdmg = ((brkready and getDmg("RUINEDKING", Enemy, myHero)) or 0)
-			hydradmg = ((hydraready and getDmg("HYDRA", Enemy, myHero)) or 0)
-			itemsDmg = bilgewaterDmg + tiamatdmg + brkdmg + hydradmg
-		else
-			itemsDmg = 0
 		end
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health <= qDmg and QReady and (distance < skills.skillQ.range) and MenuGP.ksConfig.QKS then
@@ -598,19 +600,16 @@ function KillSteall()
 				else
 					CastSpell(_R, Enemy)
 				end
-			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) then
+			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillQ.range) and MenuGP.ksConfig.QKS and MenuGP.ksConfig.RKS then
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, targetNetworkId = Enemy.networkID}):send()
+				else
+					CastSpell(_Q, Enemy)
+				end
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, targetNetworkId = Enemy.networkID}):send()
 				else
 					CastSpell(_R, Enemy)
-				end
-			elseif health < (qDmg + rDmg + itemsDmg) and MenuGP.ksConfig.ITKS then
-				if QReady and RReady then
-					UseItems(Enemy)
-				end
-			elseif health < (qDmg + itemsDmg) and health > (qDmg) then
-				if QReady then
-					UseItems(Enemy)
 				end
 			end
 			if IReady and health <= iDmg and MenuGP.ksConfig.IKS and distance < 600 then
@@ -624,14 +623,8 @@ function DmgCalc()
 	for i=1, heroManager.iCount do
 		local enemy = heroManager:GetHero(i)
         if not enemy.dead and enemy.visible then
-            local qDmg = getDmg("Q", enemy, myHero)
-			local rDmg = getDmg("R", enemy, myHero)
+            local qDmg = getDmg("Q", enemy, myHero) + getDmg("AD", enemy, GetMyHero())
 			local rDmg = getDmg("R", enemy, myHero) * MenuGP.ksConfig.ULTHITS + (myHero.ap * 0.2)
-			local bilgewaterDmg = ((bilgewaterready and getDmg("BWC", enemy, myHero)) or 0)
-			local tiamatdmg = ((tiamatready and getDmg("TIAMAT", enemy, myHero)) or 0)
-			local brkdmg = ((brkready and getDmg("RUINEDKING", enemy, myHero)) or 0)
-			local hydradmg = ((hydraready and getDmg("HYDRA", enemy, myHero)) or 0)
-			itemsDmg = bilgewaterDmg + tiamatdmg + brkdmg + hydradmg
             if enemy.health > (qDmg + rDmg) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < qDmg then
@@ -640,12 +633,6 @@ function DmgCalc()
 				killstring[enemy.networkID] = "R Kill!"
 			elseif enemy.health < (qDmg + rDmg) then
                 killstring[enemy.networkID] = "Q+R Kill!"	
-			elseif enemy.health < (qDmg + itemsDmg) then
-				killstring[enemy.networkID] = "Q+Items Kill!"
-            elseif enemy.health < (rDmg + itemsDmg) then
-				killstring[enemy.networkID] = "R+Items Kill!"
-			elseif enemy.health < (qDmg + rDmg + itemsDmg) then
-                killstring[enemy.networkID] = "Q+R+Items Kill!"	
             end
         end
     end
