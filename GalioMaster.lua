@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: GALIO MASTER 
-    Author: kokosik1221
-	Last Version: 1.63
-	22.09.2014
+	Author: kokosik1221
+	Last Version: 1.64
+	11.10.2014
 	
 ]]--
 
@@ -17,7 +17,7 @@ local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.63
+local version = 1.64
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -51,11 +51,17 @@ local skills = {
 	skillE = {range = 1180, speed = 1400, delay = 0.25, width = 235},
 	skillR = {range = 560},
 }
-local QReady, WReady, EReady, RReady, IReady, hextechready, deathfiregraspready, blackfiretorchready, woogletready, zhonyaready, ultbuff = false, false, false, false, false, false, false, false, false, false, false
-local abilitylvl, blackfiretorchrange, deathfiregrasprange, hextechrange, lastskin, lasttickchecked, lasthealthchecked = 0, 600, 600, 600, 0, 0, 0
+local Items = {
+	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
+	DFG = { id = 3128, range = 750, reqTarget = true, slot = nil },
+	HGB = { id = 3146, range = 400, reqTarget = true, slot = nil },
+	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
+}
+local QReady, WReady, EReady, RReady, IReady, zhonyaready, ultbuff = false, false, false, false, false, false, false
+local abilitylvl, lastskin, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, zhonyaslot, woogletslot, hextechslot, deathfiregraspslot, blackfiretorchslot = nil, nil, nil, nil, nil, nil
+local IgniteKey, zhonyaslot = nil, nil
 local killstring = {}
 		
 function OnLoad()
@@ -170,8 +176,7 @@ function Menu()
 	MenuGalio.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.ksConfig:addParam("QKS", "Use Q To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.ksConfig:addParam("EKS", "Use E To KS", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, true)
-	MenuGalio.ksConfig:addParam("ITKS", "Use Items To KS", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, false)
 	--[[--- Farm --]]--
 	MenuGalio:addSubMenu("[Galio Master]: Farm Settings", "farm")
 	MenuGalio.farm:addParam("QF", "Use Q", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
@@ -229,6 +234,8 @@ function Menu()
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
+	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
+	_G.DrawCircle = DrawCircle2
 end
 
 function cancast()
@@ -287,19 +294,10 @@ function caa()
 end
 
 function Check()
-	DmgCalc()
 	cancast()
 	EnemyMinions:update()
 	JungleMinions:update()
 	zhonyaslot = GetInventorySlotItem(3157)
-	woogletslot = GetInventorySlotItem(3090)
-	hextechslot = GetInventorySlotItem(3146)
-	deathfiregraspslot = GetInventorySlotItem(3128)
-	blackfiretorchslot = GetInventorySlotItem(3188)
-	hextechready = (hextechslot ~= nil and myHero:CanUseSpell(hextechslot) == READY)
-	deathfiregraspready = (deathfiregraspslot ~= nil and myHero:CanUseSpell(deathfiregraspslot) == READY)
-	blackfiretorchready = (blackfiretorchslot ~= nil and myHero:CanUseSpell(blackfiretorchslot) == READY)
-	woogletready = (woogletslot ~= nil and myHero:CanUseSpell(woogletslot) == READY)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
 	WReady = (myHero:CanUseSpell(_W) == READY)
@@ -318,6 +316,7 @@ function Check()
 		lasthealthchecked = myHero.health
 		lasttickchecked = GetTickCount()
 	end
+	if MenuGalio.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
 
 function EnemyCount(point, range)
@@ -330,12 +329,25 @@ function EnemyCount(point, range)
 	return count
 end
 
-function UseItems(int)
-	if ValidTarget(int) and int ~= nil then
-		if blackfiretorchready and GetDistanceSqr(int) < blackfiretorchrange then CastSpell(blackfiretorchslot, int) end
-		if deathfiregraspready and GetDistanceSqr(int) < deathfiregrasprange then CastSpell(deathfiregraspslot, int) end
-		if hextechready and GetDistanceSqr(int) < hextechrange then CastSpell(hextechslot, int) end
+function UseItems(unit)
+	if unit ~= nil then
+		for _, item in pairs(Items) do
+			item.slot = GetInventorySlotItem(item.id)
+			if item.slot ~= nil then
+				if item.reqTarget and GetDistance(unit) < item.range then
+					CastSpell(item.slot, unit)
+				elseif not item.reqTarget then
+					if (GetDistance(unit) - getHitBoxRadius(myHero) - getHitBoxRadius(unit)) < 50 then
+						CastSpell(item.slot)
+					end
+				end
+			end
+		end
 	end
+end
+
+function getHitBoxRadius(target)
+	return GetDistance(target.minBBox, target.maxBBox)/2
 end
 
 --COMBO--
@@ -507,14 +519,6 @@ if not ultbuff then
 		else 
 			rDmg = 0
 		end
-		if MenuGalio.ksConfig.ITKS then
-			deathfiregraspDmg = ((deathfiregraspready and getDmg("DFG", Enemy, myHero)) or 0)
-			hextechDmg = ((hextechready and getDmg("HXG", Enemy, myHero)) or 0)
-			blackfiretorchdmg = ((blackfiretorchready and getDmg("BLACKFIRE", Enemy, myHero)) or 0)
-			itemsDmg = deathfiregraspDmg + hextechDmg + blackfiretorchdmg
-		else
-			itemsDmg = 0
-		end
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health < qDmg and QReady and (distance < skills.skillQ.range) and MenuGalio.ksConfig.QKS then
 				CastQ(Enemy)
@@ -522,22 +526,19 @@ if not ultbuff then
 				CastE(Enemy)
 			elseif health < rDmg and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (qDmg + eDmg) and QReady and EReady and (distance < skills.skillE.range) and MenuGalio.ksConfig.EKS then
+			elseif health < (qDmg + eDmg) and QReady and EReady and (distance < skills.skillQ.range) and MenuGalio.ksConfig.EKS and MenuGalio.ksConfig.QKS then
+				CastQ(Enemy)
 				CastE(Enemy)
-			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS then
+			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS and MenuGalio.ksConfig.QKS then
+				CastQ(Enemy)
 				CastSpell(_R)
-			elseif health < (eDmg + rDmg) and EReady and RReady and (distance < skills.skillE.range) and MenuGalio.ksConfig.EKS then
+			elseif health < (eDmg + rDmg) and EReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.EKS and MenuGalio.ksConfig.RKS then
 				CastE(Enemy)
-			elseif health < (qDmg + eDmg + rDmg) and QReady and EReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (qDmg + eDmg + rDmg + itemsDmg) and MenuGalio.ksConfig.ITKS then
-				if QReady and EReady and RReady then
-					UseItems(Enemy)
-				end
-			elseif health < (qDmg + eDmg + itemsDmg) and health > (qDmg + eDmg) then
-				if QReady and EReady then
-					UseItems(Enemy)
-				end
+			elseif health < (qDmg + eDmg + rDmg) and QReady and EReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS and MenuGalio.ksConfig.QKS and MenuGalio.ksConfig.EKS then
+				CastQ(Enemy)
+				CastE(Enemy)
+				CastSpell(_R)
 			end
 			if IReady and health <= iDmg and MenuGalio.ksConfig.IKS and (distance < 600) then
 				CastSpell(IgniteKey, Enemy)
@@ -550,32 +551,18 @@ end
 
 --DRAWING--
 function OnDraw()
-	if MenuGalio.drawConfig.DLC then
-		if MenuGalio.drawConfig.DQR and QReady then
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 90, 1, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
-		end
-		if MenuGalio.drawConfig.DWR and WReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillW.range - 80, 1, RGB(MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
-		end
-		if MenuGalio.drawConfig.DER and EReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range - 70, 1, RGB(MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
-		end
-		if MenuGalio.drawConfig.DRR and RReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillR.range - 40, 1, RGB(MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
-		end
-	else
-		if MenuGalio.drawConfig.DQR and QReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, ARGB(MenuGalio.drawConfig.DQRC[1], MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
-		end
-		if MenuGalio.drawConfig.DWR and WReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, ARGB(MenuGalio.drawConfig.DWRC[1], MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
-		end
-		if MenuGalio.drawConfig.DER and EReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(MenuGalio.drawConfig.DERC[1], MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
-		end
-		if MenuGalio.drawConfig.DRR and RReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, ARGB(MenuGalio.drawConfig.DRRC[1], MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
-		end
+	DmgCalc()
+	if MenuGalio.drawConfig.DQR and QReady then
+		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
+	end
+	if MenuGalio.drawConfig.DWR and WReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, RGB(MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
+	end
+	if MenuGalio.drawConfig.DER and EReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, RGB(MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
+	end
+	if MenuGalio.drawConfig.DRR and RReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, RGB(MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
 	end
 	if MenuGalio.drawConfig.DD then	
 		for _,enemy in pairs(GetEnemyHeroes()) do
@@ -652,10 +639,6 @@ function DmgCalc()
             local qDmg = getDmg("Q", enemy, myHero)
             local eDmg = getDmg("E", enemy, myHero)
 			local rDmg = getDmg("R", enemy, myHero)
-			local deathfiregraspDmg = ((deathfiregraspready and getDmg("DFG", Enemy, myHero)) or 0)
-			local hextechDmg = ((hextechready and getDmg("HXG", Enemy, myHero)) or 0)
-			local blackfiretorchdmg = ((blackfiretorchready and getDmg("BLACKFIRE", Enemy, myHero)) or 0)
-			itemsDmg = deathfiregraspDmg + hextechDmg + blackfiretorchdmg 
             if enemy.health > (qDmg + eDmg + rDmg) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < qDmg then
@@ -672,20 +655,6 @@ function DmgCalc()
                 killstring[enemy.networkID] = "E+R Kill!"	
 			elseif enemy.health < (qDmg + eDmg + rDmg) then
                 killstring[enemy.networkID] = "Q+E+R Kill!"	
-			elseif enemy.health < (qDmg + itemsDmg) then
-				killstring[enemy.networkID] = "Q+Items Kill!"
-			elseif enemy.health < (eDmg + itemsDmg) then
-				killstring[enemy.networkID] = "E+Items Kill!"
-            elseif enemy.health < (rDmg + itemsDmg) then
-				killstring[enemy.networkID] = "R+Items Kill!"
-            elseif enemy.health < (qDmg + eDmg + itemsDmg) then
-                killstring[enemy.networkID] = "Q+E+Items Kill!"
-			elseif enemy.health < (qDmg + rDmg + itemsDmg) then
-                killstring[enemy.networkID] = "Q+R+Items Kill!"	
-			elseif enemy.health < (eDmg + rDmg + itemsDmg) then
-                killstring[enemy.networkID] = "E+R+Items Kill!"	
-			elseif enemy.health < (qDmg + eDmg + rDmg + itemsDmg) then
-                killstring[enemy.networkID] = "Q+E+R+Items Kill!"	
             end
         end
     end
@@ -702,7 +671,7 @@ end
 function CastQ(unit)
 	if MenuGalio.prConfig.pro == 1 then
 		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, false)
-		if CastPosition and HitChance >= MenuGalio.prConfig.vphit - 1 then
+		if HitChance >= MenuGalio.prConfig.vphit - 1 then
 			SpellCast(_Q, CastPosition)
 			return
 		end
@@ -719,7 +688,7 @@ end
 function CastE(unit)
 	if MenuGalio.prConfig.pro == 1 then
 		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillE.delay, skills.skillE.width, skills.skillE.range, skills.skillE.speed, myHero, false)
-		if CastPosition and HitChance >= MenuGalio.prConfig.vphit - 1 then
+		if HitChance >= MenuGalio.prConfig.vphit - 1 then
 			SpellCast(_E, CastPosition)
 			return
 		end
@@ -756,4 +725,34 @@ function GenModelPacket(champ, skinId)
 	end
 	p:Hide()
 	RecvPacket(p)
+end
+
+function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
+  radius = radius or 300
+  quality = math.max(8,round(180/math.deg((math.asin((chordlength/(2*radius)))))))
+  quality = 2 * math.pi / quality
+  radius = radius*.92
+  
+  local points = {}
+  for theta = 0, 2 * math.pi + quality, quality do
+    local c = WorldToScreen(D3DXVECTOR3(x + radius * math.cos(theta), y, z - radius * math.sin(theta)))
+    points[#points + 1] = D3DXVECTOR2(c.x, c.y)
+  end
+  
+  DrawLines2(points, width or 1, color or 4294967295)
+end
+
+function round(num) 
+  if num >= 0 then return math.floor(num+.5) else return math.ceil(num-.5) end
+end
+
+function DrawCircle2(x, y, z, radius, color)
+  local vPos1 = Vector(x, y, z)
+  local vPos2 = Vector(cameraPos.x, cameraPos.y, cameraPos.z)
+  local tPos = vPos1 - (vPos1 - vPos2):normalized() * radius
+  local sPos = WorldToScreen(D3DXVECTOR3(tPos.x, tPos.y, tPos.z))
+  
+  if OnScreen({ x = sPos.x, y = sPos.y }, { x = sPos.x, y = sPos.y }) then
+    DrawCircleNextLvl(x, y, z, radius, 1, color, 75) 
+  end
 end
