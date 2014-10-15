@@ -2,8 +2,8 @@
 
 	Script Name: GALIO MASTER 
 	Author: kokosik1221
-	Last Version: 1.64
-	11.10.2014
+	Last Version: 1.65
+	15.10.2014
 	
 ]]--
 
@@ -17,7 +17,7 @@ local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.64
+local version = 1.65
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
