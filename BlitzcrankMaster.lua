@@ -1,8 +1,8 @@
 --[[
 
 	Script Name: Blitzcrank MASTER 
-	Author: kokosik1221
-	Last Version: 0.2
+        Author: kokosik1221
+	Last Version: 0.1
 	30.10.2014
 	
 ]]--
@@ -239,7 +239,9 @@ function GetCustomTarget()
 	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
 		return _G.AutoCarry.Attack_Crosshair.target 
 	end
-	return TargetSelector.target
+	if (not _G.MMA_Target and _G.MMA_Target.type == myHero.type) or (not _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type) then
+		return TargetSelector.target
+	end
 end
 
 function Check()
