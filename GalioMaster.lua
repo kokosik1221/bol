@@ -1,8 +1,8 @@
 --[[
 
 	Script Name: GALIO MASTER 
-    	Author: kokosik1221
-	Last Version: 1.66
+	Author: kokosik1221
+	Last Version: 1.67
 	30.10.2014
 	
 ]]--
@@ -12,11 +12,12 @@ if myHero.charName ~= "Galio" then return end
 local AUTOUPDATE = true
 
 
+--AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.66
+local version = 1.67
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -78,18 +79,18 @@ end
 function OnTick()
 	Check()
 	CheckUlt()
-	if Cel ~= nil and MenuGalio.comboConfig.CEnabled and not ultbuff then
+	if Cel ~= nil and MenuGalio.comboConfig.CEnabled and not ultbuff and ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.comboConfig.manac then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and (MenuGalio.harrasConfig.HEnabled or MenuGalio.harrasConfig.HTEnabled) then
+	if Cel ~= nil and (MenuGalio.harrasConfig.HEnabled or MenuGalio.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.harrasConfig.manah then
 		Harrass()
 	end
-	if MenuGalio.farm.Freeze or MenuGalio.farm.LaneClear then
+	if MenuGalio.farm.Freeze or MenuGalio.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.farm.manaf then
 		local Mode = MenuGalio.farm.Freeze and "Freeze" or "LaneClear"
 		Farm(Mode)
 	end
-	if MenuGalio.jf.JFEnabled then
+	if MenuGalio.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.jf.manajf then
 		JungleFarmm()
 	end
 	if MenuGalio.exConfig.AZ then
