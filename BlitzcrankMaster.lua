@@ -2,7 +2,7 @@
 
 	Script Name: Blitzcrank MASTER 
         Author: kokosik1221
-	Last Version: 0.1
+	Last Version: 0.4
 	30.10.2014
 	
 ]]--
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.2
+local version = 0.4
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -102,13 +102,13 @@ function OnTick()
 	if Cel ~= nil and MenuBlitz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manac then
 		Combo()
 	end
-	if Cel ~= nil and (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manah then
+	if Cel ~= nil and (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.harrasConfig.manah then
 		Harrass()
 	end
-	if MenuBlitz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manaf then
+	if MenuBlitz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.farm.manaf then
 		Farm()
 	end
-	if MenuBlitz.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manajf then
+	if MenuBlitz.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.jf.manajf then
 		JungleFarmm()
 	end
 	if MenuBlitz.prConfig.AZ then
@@ -239,7 +239,7 @@ function GetCustomTarget()
 	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
 		return _G.AutoCarry.Attack_Crosshair.target 
 	end
-	TargetSelector.target
+	return TargetSelector.target
 end
 
 function Check()
