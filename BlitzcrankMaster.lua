@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: Blitzcrank MASTER 
-    Author: kokosik1221
-	Last Version: 0.1
-	29.10.2014
+	Author: kokosik1221
+	Last Version: 0.2
+	30.10.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.1
+local version = 0.2
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -99,16 +99,16 @@ end
 
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuBlitz.comboConfig.CEnabled then
+	if Cel ~= nil and MenuBlitz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manac then
 		Combo()
 	end
-	if Cel ~= nil and (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) then
+	if Cel ~= nil and (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manah then
 		Harrass()
 	end
-	if MenuBlitz.farm.LaneClear then
+	if MenuBlitz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manaf then
 		Farm()
 	end
-	if MenuBlitz.jf.JFEnabled then
+	if MenuBlitz.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manajf then
 		JungleFarmm()
 	end
 	if MenuBlitz.prConfig.AZ then
@@ -145,7 +145,7 @@ function Menu()
 	MenuBlitz.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	MenuBlitz.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Harras Settings", "harrasConfig")
-	MenuBlitz.harrasConfig:addParam("HM", "Harrass Mode:", SCRIPT_PARAM_LIST, 1, {"|Q|", "|Q|E|"}) 
+	MenuBlitz.harrasConfig:addParam("HM", "Harrass Mode:", SCRIPT_PARAM_LIST, 1, {"|Q|", "E", "|Q|E|"}) 
 	MenuBlitz.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuBlitz.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuBlitz.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
@@ -163,14 +163,14 @@ function Menu()
 	MenuBlitz.farm:addParam("EF", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.farm:addParam("LaneClear", "LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
-	MenuBlitz.farm:addParam("manah", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
+	MenuBlitz.farm:addParam("manaf", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Jungle Farm Settings", "jf")
 	MenuBlitz.jf:addParam("QJF", "Use " .. skills.skillQ.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.jf:addParam("EJF", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
-	MenuBlitz.jf:addParam("manah", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
+	MenuBlitz.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
+	MenuBlitz.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Draw Settings", "drawConfig")
 	MenuBlitz.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
@@ -195,7 +195,7 @@ function Menu()
 	MenuBlitz.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuBlitz.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 5, 1, 5)
+	MenuBlitz.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 1, 1, 8)
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
@@ -231,12 +231,22 @@ function EnemyCount(point, range)
 	return count
 end
 
+function GetCustomTarget()
+ 	TargetSelector:update()	
+	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then 
+		return _G.MMA_Target	
+	end
+	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
+		return _G.AutoCarry.Attack_Crosshair.target 
+	end
+	return TargetSelector.target
+end
+
 function Check()
-	TargetSelector:update()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, skills.skillQ.range) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
 		Cel = SelectedTarget
 	else
-		Cel = TargetSelector.target
+		Cel = GetCustomTarget()
 	end
 	SOWi:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
@@ -302,6 +312,9 @@ function Harrass()
 		CastQ(Cel)
 	end
 	if MenuBlitz.harrasConfig.HM == 2 then
+		CastE(Cel)
+	end
+	if MenuBlitz.harrasConfig.HM == 3 then
 		CastQ(Cel)
 		CastE(Cel)
 	end
@@ -390,8 +403,11 @@ function autolvl()
 end
 
 function OnDraw()
-	DmgCalc()
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, skills.skillQ.range + 400) then
+		DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
+	end
 	if MenuBlitz.drawConfig.DD then	
+		DmgCalc()
 		for _,enemy in pairs(GetEnemyHeroes()) do
             if ValidTarget(enemy) and killstring[enemy.networkID] ~= nil then
                 local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
@@ -531,7 +547,7 @@ end
 function OnProcessSpell(object, spell)
 	if MenuBlitz.exConfig.UI then
 		if object and object.team ~= myHero.team and object.type == myHero.type and spell then
-			if Counterspells[spell.name] then 
+			if Counterspells[spell.name] or spell.name == "Meditate" or spell.name == "Teleport" then 
 				CastR(object)
 			end
 		end
