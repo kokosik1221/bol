@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: GALIO MASTER 
-	Author: kokosik1221
-	Last Version: 1.65
-	15.10.2014
+    	Author: kokosik1221
+	Last Version: 1.66
+	30.10.2014
 	
 ]]--
 
@@ -12,12 +12,11 @@ if myHero.charName ~= "Galio" then return end
 local AUTOUPDATE = true
 
 
---AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.65
+local version = 1.66
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -37,7 +36,6 @@ if VIP_USER then
 end
 RequireI:Check()
 if RequireI.downloadNeeded == true then return end
---END AUTO UPDATE--
 
 local skills = {
 	skillQ = {range = 940, speed = 1400, delay = 0.25, width = 235},
@@ -59,6 +57,7 @@ local IgniteKey, zhonyaslot = nil, nil
 local killstring = {}
 		
 function OnLoad()
+	print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	Menu()
 end
 
@@ -77,17 +76,13 @@ function CheckUlt()
 end
 
 function OnTick()
-	Cel = STS:GetTarget(skills.skillE.range)
 	Check()
 	CheckUlt()
 	if Cel ~= nil and MenuGalio.comboConfig.CEnabled and not ultbuff then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and MenuGalio.harrasConfig.HEnabled then
-		Harrass()
-	end
-	if Cel ~= nil and MenuGalio.harrasConfig.HTEnabled then
+	if Cel ~= nil and (MenuGalio.harrasConfig.HEnabled or MenuGalio.harrasConfig.HTEnabled) then
 		Harrass()
 	end
 	if MenuGalio.farm.Freeze or MenuGalio.farm.LaneClear then
@@ -110,15 +105,15 @@ function OnTick()
 end
 
 function Menu()
-	VP = VPrediction(true)
+	VP = VPrediction()
 	SOWi = SOW(VP)
-	STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC) 
 	MenuGalio = scriptConfig("Galio Master "..version, "Galio Master "..version)
 	MenuGalio:addSubMenu("Orbwalking", "Orbwalking")
 	SOWi:LoadToMenu(MenuGalio.Orbwalking)
 	MenuGalio:addSubMenu("Target selector", "STS")
-    STS:AddToMenu(MenuGalio.STS)
-	--[[--- Combo --]]--
+    TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, skills.skillE.range, DAMAGE_MAGIC)
+	TargetSelector.name = "Fizz"
+	MenuGalio.STS:addTS(TargetSelector)
 	MenuGalio:addSubMenu("[Galio Master]: Combo Settings", "comboConfig")
     MenuGalio.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -130,53 +125,39 @@ function Menu()
 	MenuGalio.comboConfig:addParam("USER", "Use R in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.comboConfig:addParam("ENEMYTOR", "Min Enemies to Cast R: ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
 	MenuGalio.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGalio.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
 	MenuGalio.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
-	--[[--- Harras --]]--
+	MenuGalio.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	MenuGalio:addSubMenu("[Galio Master]: Harras Settings", "harrasConfig")
     MenuGalio.harrasConfig:addParam("QH", "Harras Use Q", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.harrasConfig:addParam("EH", "Harras Use E", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuGalio.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
-	--[[--- Escape --]]--
+	MenuGalio.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
 	MenuGalio:addSubMenu("[Galio Master]: Escape Settings", "esConfig")
     MenuGalio.esConfig:addParam("ESE", "Use E", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.esConfig:addParam("ESW", "Use W", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.esConfig:addParam("ESM", "Move To Mouse POS.", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.esConfig:addParam("ESEnabled", "Escape", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("J"))
-	--[[--- Mana Manager --]]--
-	MenuGalio:addSubMenu("[Galio Master]: Mana Settings" , "mpConfig")
-	MenuGalio.mpConfig:addParam("mptocq", "Min Mana To Cast Q", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
-	MenuGalio.mpConfig:addParam("mptocw", "Min Mana To Cast W", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)	
-	MenuGalio.mpConfig:addParam("mptoce", "Min Mana To Cast E", SCRIPT_PARAM_SLICE, 25, 0, 100, 0) 
-	MenuGalio.mpConfig:addParam("mptocr", "Min Mana To Cast R", SCRIPT_PARAM_SLICE, 20, 0, 100, 0) 
-	MenuGalio.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGalio.mpConfig:addParam("mptohq", "Min Mana To Harras Q", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
-	MenuGalio.mpConfig:addParam("mptohe", "Min Mana To Harras E", SCRIPT_PARAM_SLICE, 55, 0, 100, 0)
-	MenuGalio.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGalio.mpConfig:addParam("mptofq", "Min Mana To Farm Q", SCRIPT_PARAM_SLICE, 60, 0, 100, 0) 
-	MenuGalio.mpConfig:addParam("mptofe", "Min Mana To Farm E", SCRIPT_PARAM_SLICE, 65, 0, 100, 0)
-	--[[--- Kill Steal --]]--
 	MenuGalio:addSubMenu("[Galio Master]: KS Settings", "ksConfig")
 	MenuGalio.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.ksConfig:addParam("QKS", "Use Q To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.ksConfig:addParam("EKS", "Use E To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, false)
-	--[[--- Farm --]]--
 	MenuGalio:addSubMenu("[Galio Master]: Farm Settings", "farm")
 	MenuGalio.farm:addParam("QF", "Use Q", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGalio.farm:addParam("EF",  "Use E", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGalio.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
 	MenuGalio.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
-	--[[--- Jungle Farm --]]--
+	MenuGalio.farm:addParam("manaf", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuGalio:addSubMenu("[Galio Master]: Jungle Farm", "jf")
 	MenuGalio.jf:addParam("QJF", "Jungle Farm Use Q", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.jf:addParam("EJF", "Jungle Farm Use E", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
-	--[[--- Extra --]]--
+	MenuGalio.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuGalio:addSubMenu("[Galio Master]: Extra Settings", "exConfig")
 	MenuGalio.exConfig:addParam("AR", "Use R To Stop Enemy Ultimates", SCRIPT_PARAM_ONOFF, true)
-	--[[--- Drawing --]]--
 	MenuGalio:addSubMenu("[Galio Master]: Draw Settings", "drawConfig")
 	MenuGalio.drawConfig:addParam("DLC", "Draw Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
@@ -192,7 +173,6 @@ function Menu()
 	MenuGalio.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.drawConfig:addParam("DRR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
-	--[[--- Misc --]]--
 	MenuGalio:addSubMenu("[Galio Master]: Misc Settings", "prConfig")
 	MenuGalio.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -223,53 +203,6 @@ function Menu()
 	_G.DrawCircle = DrawCircle2
 end
 
-function cancast()
-	--Q--
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptocq then
-		ccq = true
-	else
-		ccq = false
-	end
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptohq then
-		chq = true
-	else
-		chq = false
-	end
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptofq then
-		cfq = true
-	else
-		cfq = false
-	end
-	--W--
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptocw then
-		ccw = true
-	else
-		ccw = false
-	end
-	--E--
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptoce then
-		cce = true
-	else
-		cce = false
-	end
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptohe then
-		che = true
-	else
-		che = false
-	end
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptofe then
-		cfe = true
-	else
-		cfe = false
-	end
-	--R--
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.mpConfig.mptocr then
-		ccr = true
-	else
-		ccr = false
-	end
-end
-
 function caa()
 	if MenuGalio.comboConfig.uaa then
 		SOWi:EnableAttacks()
@@ -278,10 +211,23 @@ function caa()
 	end
 end
 
+function GetCustomTarget()
+ 	TargetSelector:update()	
+	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then 
+		return _G.MMA_Target	
+	end
+	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
+		return _G.AutoCarry.Attack_Crosshair.target 
+	end
+	return TargetSelector.target
+end
+
 function Check()
-	cancast()
-	EnemyMinions:update()
-	JungleMinions:update()
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+		Cel = SelectedTarget
+	else
+		Cel = GetCustomTarget()
+	end
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -331,16 +277,15 @@ function getHitBoxRadius(target)
 	return GetDistance(target.minBBox, target.maxBBox)/2
 end
 
---COMBO--
 function Combo()
 	UseItems(Cel)
 	if MenuGalio.comboConfig.USEQ then
-		if QReady and MenuGalio.comboConfig.USEQ and GetDistance(Cel) < skills.skillQ.range and ccq then
+		if QReady and MenuGalio.comboConfig.USEQ and GetDistance(Cel) < skills.skillQ.range then
 			CastQ(Cel)
 		end
 	end
 	if MenuGalio.comboConfig.USEW then
-		if WReady and MenuGalio.comboConfig.USEW and GetDistance(Cel) <= skills.skillW.range and ccw then
+		if WReady and MenuGalio.comboConfig.USEW and GetDistance(Cel) <= skills.skillW.range then
 			if MenuGalio.comboConfig.USEWDMG then
 				if lasthealthchecked > myHero.health then
 					CastSpell(_W)
@@ -351,36 +296,32 @@ function Combo()
 		end
 	end
 	if MenuGalio.comboConfig.USEE then
-		if EReady and MenuGalio.comboConfig.USEE and GetDistance(Cel) < skills.skillE.range and cce then
+		if EReady and MenuGalio.comboConfig.USEE and GetDistance(Cel) < skills.skillE.range then
 			CastE(Cel)
 		end
 	end
 	if MenuGalio.comboConfig.USER then
 		local enemyCount = EnemyCount(myHero, skills.skillR.range)
-		if not ultbuff and RReady and GetDistance(Cel) < skills.skillR.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR and ccr then
+		if not ultbuff and RReady and GetDistance(Cel) < skills.skillR.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR then
 			SOWi.Menu.Enabled = false
 			CastSpell(_R)
 		end
 	end
 end
---END COMBO--
 
---HARRAS--
 function Harrass()
 	if MenuGalio.harrasConfig.QH then
-		if QReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and GetDistance(Cel) < skills.skillQ.range and Cel.visible and chq then
+		if QReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and GetDistance(Cel) < skills.skillQ.range and Cel.visible then
 			CastQ(Cel)
 		end
 	end
 	if MenuGalio.harrasConfig.EH then
-		if EReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and GetDistance(Cel) < skills.skillE.range and Cel.visible and che then
+		if EReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and GetDistance(Cel) < skills.skillE.range and Cel.visible then
 			CastE(Cel)
 		end
 	end
 end
---END HARRAS--
 
---ESCAPE--
 function escape()
 	if MenuGalio.esConfig.ESE then
 		CastSpell(_E, mousePos.x, mousePos.z)
@@ -392,9 +333,7 @@ function escape()
 		myHero:MoveTo(mousePos.x, mousePos.z)
 	end
 end
---END ESCAPE--
 
---FARM--
 function Farm(Mode)
 	local UseQ
 	local UseE
@@ -414,7 +353,7 @@ function Farm(Mode)
 	
 	if UseQ then
 		for i, minion in pairs(EnemyMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range then
 				local Pos, Hit = BestQFarmPos(skills.skillQ.range, skills.skillQ.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_Q, Pos.x, Pos.z)
@@ -425,7 +364,7 @@ function Farm(Mode)
 
 	if UseE then
 		for i, minion in pairs(EnemyMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfe then
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range then
 				local Pos, Hit = BestQFarmPos(skills.skillE.range, skills.skillE.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_E, Pos.x, Pos.z)
@@ -452,28 +391,24 @@ function BestQFarmPos(range, radius, objects)
 
     return Pos, BHit
 end
---END FARM--
 
---JUNGLE FARM--
 function JungleFarmm()
 	if MenuGalio.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range then
 				CastQ(minion)
 			end
 		end
 	end
 	if MenuGalio.jf.EJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfe then
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range then
 				CastE(minion)
 			end
 		end
 	end
 end
---END JUNGLE FARM--
 
---KILL STEAL--
 function KillSteall()
 if not ultbuff then 
 	for i = 1, heroManager.iCount do
@@ -528,11 +463,8 @@ if not ultbuff then
 	end
 end
 end
---END KILL STEAL--
 
---DRAWING--
 function OnDraw()
-	DmgCalc()
 	if MenuGalio.drawConfig.DQR and QReady then
 		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
 	end
@@ -546,6 +478,7 @@ function OnDraw()
 		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, RGB(MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
 	end
 	if MenuGalio.drawConfig.DD then	
+		DmgCalc()
 		for _,enemy in pairs(GetEnemyHeroes()) do
             if ValidTarget(enemy) and killstring[enemy.networkID] ~= nil then
                 local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
@@ -554,7 +487,6 @@ function OnDraw()
         end
 	end
 end
---END DRAWING--
 
 function autozh()
 	local count = EnemyCount(myHero, MenuGalio.prConfig.AZMR)
@@ -654,14 +586,12 @@ function CastQ(unit)
 		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, false)
 		if HitChance >= MenuGalio.prConfig.vphit - 1 then
 			SpellCast(_Q, CastPosition)
-			return
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
 		if Position ~= nil and info.hitchance >= 2 then
-			SpellCast(_Q, Position)
-			return		
+			SpellCast(_Q, Position)	
 		end
 	end
 end
@@ -671,14 +601,12 @@ function CastE(unit)
 		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillE.delay, skills.skillE.width, skills.skillE.range, skills.skillE.speed, myHero, false)
 		if HitChance >= MenuGalio.prConfig.vphit - 1 then
 			SpellCast(_E, CastPosition)
-			return
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, skills.skillE.range, skills.skillE.speed, skills.skillE.delay, skills.skillE.width)
 		if Position ~= nil and info.hitchance >= 2 then
-			SpellCast(_E, Position)
-			return		
+			SpellCast(_E, Position)	
 		end
 	end
 end
@@ -706,6 +634,34 @@ function GenModelPacket(champ, skinId)
 	end
 	p:Hide()
 	RecvPacket(p)
+end
+
+function OnWndMsg(Msg, Key)
+	if Msg == WM_LBUTTONDOWN then
+		local dist = 0
+		local Selecttarget = nil
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy) then
+				if GetDistance(enemy, mousePos) <= dist or Selecttarget == nil then
+					dist = GetDistance(enemy, mousePos)
+					Selecttarget = enemy
+				end
+			end
+		end
+		if Selecttarget and dist < 300 then
+			if SelectedTarget and Selecttarget.charName == SelectedTarget.charName then
+				SelectedTarget = nil
+				if MenuBlitz.comboConfig.ST then 
+					print("Target unselected: "..Selecttarget.charName) 
+				end
+			else
+				SelectedTarget = Selecttarget
+				if MenuBlitz.comboConfig.ST then 
+					print("New target selected: "..Selecttarget.charName) 
+				end
+			end
+		end
+	end
 end
 
 function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
