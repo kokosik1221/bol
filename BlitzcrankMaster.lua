@@ -239,9 +239,7 @@ function GetCustomTarget()
 	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
 		return _G.AutoCarry.Attack_Crosshair.target 
 	end
-	if (not _G.MMA_Target and _G.MMA_Target.type == myHero.type) or (not _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type) then
-		return TargetSelector.target
-	end
+	TargetSelector.target
 end
 
 function Check()
