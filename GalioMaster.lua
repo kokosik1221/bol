@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: GALIO MASTER 
-	Author: kokosik1221
-	Last Version: 1.67
-	30.10.2014
+    	Author: kokosik1221
+	Last Version: 1.68
+	31.10.2014
 	
 ]]--
 
@@ -12,12 +12,11 @@ if myHero.charName ~= "Galio" then return end
 local AUTOUPDATE = true
 
 
---AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.67
+local version = 1.68
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -50,7 +49,7 @@ local Items = {
 	HGB = { id = 3146, range = 400, reqTarget = true, slot = nil },
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, ultbuff = false, false, false, false, false, false, false
+local QReady, WReady, EReady, RReady, IReady, zhonyaready, ultbuff, sac, mma = false, false, false, false, false, false, false, false, false
 local abilitylvl, lastskin, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -60,6 +59,14 @@ local killstring = {}
 function OnLoad()
 	print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	Menu()
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		mma = true
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		sac = true
+	end
 end
 
 function skinChanged()
@@ -72,7 +79,9 @@ function CheckUlt()
 		 SOWi.Menu.Enabled = false
     else
          ultbuff = false
-		 SOWi.Menu.Enabled = true
+		 if not (sac or mma) then
+			SOWi.Menu.Enabled = true
+		 end
     end
 end
 
@@ -162,6 +171,7 @@ function Menu()
 	MenuGalio:addSubMenu("[Galio Master]: Draw Settings", "drawConfig")
 	MenuGalio.drawConfig:addParam("DLC", "Draw Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
+	MenuGalio.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.drawConfig:addParam("DQR", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("DQRC", "Draw Q Range Color", SCRIPT_PARAM_COLOR, {255,0,0,255})
@@ -214,8 +224,8 @@ end
 
 function GetCustomTarget()
  	TargetSelector:update()	
-	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then 
-		return _G.MMA_Target	
+	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then
+		return _G.MMA_Target
 	end
 	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
 		return _G.AutoCarry.Attack_Crosshair.target 
@@ -229,6 +239,12 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
+	if sac or mma then
+		SOWi.Menu.Enabled = false
+	else
+		SOWi.Menu.Enabled = true
+	end
+	SOWi:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -466,6 +482,11 @@ end
 end
 
 function OnDraw()
+	if MenuGalio.drawConfig.DST and MenuGalio.comboConfig.ST then
+		if SelectedTarget ~= nil and not SelectedTarget.dead then
+			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
+		end
+	end
 	if MenuGalio.drawConfig.DQR and QReady then
 		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
 	end
@@ -652,12 +673,12 @@ function OnWndMsg(Msg, Key)
 		if Selecttarget and dist < 300 then
 			if SelectedTarget and Selecttarget.charName == SelectedTarget.charName then
 				SelectedTarget = nil
-				if MenuBlitz.comboConfig.ST then 
+				if MenuGalio.comboConfig.ST then 
 					print("Target unselected: "..Selecttarget.charName) 
 				end
 			else
 				SelectedTarget = Selecttarget
-				if MenuBlitz.comboConfig.ST then 
+				if MenuGalio.comboConfig.ST then 
 					print("New target selected: "..Selecttarget.charName) 
 				end
 			end
