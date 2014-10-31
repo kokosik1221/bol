@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: Blitzcrank MASTER 
-        Author: kokosik1221
-	Last Version: 0.4
-	30.10.2014
+    	Author: kokosik1221
+	Last Version: 0.5
+	31.10.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.4
+local version = 0.5
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -74,7 +74,7 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
+local QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
 local abilitylvl, lastskin = 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -90,6 +90,14 @@ function OnLoad()
 		Prodict = ProdictManager.GetInstance()
 		ProdictQ = Prodict:AddProdictionObject(_Q, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width, myHero)
         ProdictQCol = Collision(skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
+	end
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		mma = true
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		sac = true
 	end
 end
 
@@ -136,7 +144,7 @@ function Menu()
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("USEW", "Use " .. skills.skillW.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.comboConfig:addParam("USEE", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, false)
+	MenuBlitz.comboConfig:addParam("USEE", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("USER", "Use " .. skills.skillR.name .. "(R)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("Kilable", "Only Use If Target Is Killable", SCRIPT_PARAM_ONOFF, true)
@@ -145,7 +153,7 @@ function Menu()
 	MenuBlitz.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	MenuBlitz.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Harras Settings", "harrasConfig")
-	MenuBlitz.harrasConfig:addParam("HM", "Harrass Mode:", SCRIPT_PARAM_LIST, 1, {"|Q|", "E", "|Q|E|"}) 
+	MenuBlitz.harrasConfig:addParam("HM", "Harrass Mode:", SCRIPT_PARAM_LIST, 1, {"|Q|", "|E|", "|Q|E|"}) 
 	MenuBlitz.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuBlitz.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuBlitz.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
@@ -154,9 +162,9 @@ function Menu()
 	MenuBlitz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.ksConfig:addParam("QKS", "Use " .. skills.skillQ.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.ksConfig:addParam("EKS", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, false)
+	MenuBlitz.ksConfig:addParam("EKS", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.ksConfig:addParam("RKS", "Use " .. skills.skillR.name .. "(R)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ksConfig:addParam("RKS", "Use " .. skills.skillR.name .. "(R)", SCRIPT_PARAM_ONOFF, false)
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: LaneClear Settings", "farm")
 	MenuBlitz.farm:addParam("QF", "Use " .. skills.skillQ.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -174,7 +182,9 @@ function Menu()
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Draw Settings", "drawConfig")
 	MenuBlitz.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuBlitz.drawConfig:addParam("DQL", "Draw Q Collision Line", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DQR", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DQRC", "Draw Q Range Color", SCRIPT_PARAM_COLOR, {255,0,0,255})
 	MenuBlitz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -233,8 +243,8 @@ end
 
 function GetCustomTarget()
  	TargetSelector:update()	
-	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then 
-		return _G.MMA_Target	
+	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then
+		return _G.MMA_Target
 	end
 	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
 		return _G.AutoCarry.Attack_Crosshair.target 
@@ -247,6 +257,11 @@ function Check()
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
+	end
+	if sac or mma then
+		SOWi.Menu.Enabled = false
+	else
+		SOWi.Menu.Enabled = true
 	end
 	SOWi:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
@@ -403,8 +418,13 @@ function autolvl()
 end
 
 function OnDraw()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, skills.skillQ.range + 400) then
-		DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
+	if MenuBlitz.drawConfig.DST and MenuBlitz.comboConfig.ST then
+		if SelectedTarget ~= nil and not SelectedTarget.dead then
+			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
+		end
+	end
+	if MenuBlitz.drawConfig.DQL and ValidTarget(Cel, skills.skillQ.range) then
+		ProdictQCol:DrawCollision(myHero, Cel)
 	end
 	if MenuBlitz.drawConfig.DD then	
 		DmgCalc()
