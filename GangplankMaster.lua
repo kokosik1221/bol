@@ -12,6 +12,7 @@ if myHero.charName ~= "Gangplank" then return end
 local AUTOUPDATE = true
 
 
+--AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local SCRIPT_NAME = "GangplankMaster"
@@ -301,11 +302,11 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USER then
-		if RReady and GetDistance(CelR) < skills.skillR.range and MenuGP.comboConfig.USER then
+		if RReady and GetDistance(Cel) < skills.skillR.range and MenuGP.comboConfig.USER then
 			if VIP_USER and MenuGP.prConfig.pc then
-				Packet("S_CAST", {spellId = _R, targetNetworkId = CelR.networkID}):send()
+				Packet("S_CAST", {spellId = _R, targetNetworkId = Cel.networkID}):send()
 			else
-				CastSpell(_R, CelR)
+				CastSpell(_R, Cel)
 			end
 		end
 	end
