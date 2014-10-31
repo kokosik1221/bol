@@ -2,7 +2,7 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.7
+	Last Version: 1.71
 	31.10.2014
 	
 ]]--
@@ -16,7 +16,7 @@ local AUTOUPDATE = true
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local SCRIPT_NAME = "GangplankMaster"
-local version = 1.7
+local version = 1.71
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -152,12 +152,12 @@ function Menu()
 	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
 	MenuGP.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
-	MenuGP.farm:addParam("manac", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuGP.farm:addParam("manaf", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Jungle Farm Settings", "jf")
 	MenuGP.jf:addParam("QJF", "Jungle Farm Use Q", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.jf:addParam("EJF", "Jungle Farm Use E", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
-	MenuGP.jf:addParam("manac", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuGP.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Extra Settings", "exConfig")
 	MenuGP.exConfig:addParam("CC", "Anty CC", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.exConfig:addParam("aw", "Auto Heal", SCRIPT_PARAM_ONOFF, true)
@@ -404,6 +404,7 @@ function autow()
 end
 
 function lq()
+	EnemyMinions:update()
 	for i, minion in pairs(EnemyMinions.objects) do
         local qDmg = getDmg("Q",minion,  GetMyHero()) + getDmg("AD",minion,  GetMyHero())
 		local MinionHealth_ = minion.health
