@@ -2,7 +2,7 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 1.68
+	Last Version: 1.69
 	31.10.2014
 	
 ]]--
@@ -16,7 +16,7 @@ local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.68
+local version = 1.69
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -241,8 +241,6 @@ function Check()
 	end
 	if sac or mma then
 		SOWi.Menu.Enabled = false
-	else
-		SOWi.Menu.Enabled = true
 	end
 	SOWi:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
