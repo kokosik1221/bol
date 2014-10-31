@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: GANKGPLANK MASTER 
-	Author: kokosik1221
-	Last Version: 1.6
-	15.10.2014
+    	Author: kokosik1221
+	Last Version: 1.7
+	31.10.2014
 	
 ]]--
 
@@ -12,11 +12,10 @@ if myHero.charName ~= "Gangplank" then return end
 local AUTOUPDATE = true
 
 
---AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local SCRIPT_NAME = "GangplankMaster"
-local version = 1.6
+local version = 1.7
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -32,7 +31,6 @@ RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/V
 RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
 RequireI:Check()
 if RequireI.downloadNeeded == true then return end
---END AUTO UPDATE--
 
 local skills = {
 	skillQ = {range = 625},
@@ -51,7 +49,7 @@ local Items = {
 	RND = { id = 3143, range = 275, reqTarget = false, slot = nil },
 }
 
-local QReady, WReady, EReady, RReady, IReady, Recall = false, false, false, false, false, false
+local QReady, WReady, EReady, RReady, IReady, Recall, sac, mma = false, false, false, false, false, false, false, false
 local abilitylvl, lastskin = 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -59,7 +57,16 @@ local IgniteKey = nil
 local killstring = {}
 		
 function OnLoad()
+	print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	Menu()
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		mma = true
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		sac = true
+	end
 end
 
 function OnCreateObj(object)
@@ -79,23 +86,19 @@ function skinChanged()
 end
 
 function OnTick()
-	Cel = STS:GetTarget(skills.skillQ.range)
-	CelR = STS:GetTarget(skills.skillR.range)
 	Check()
-	if Cel ~= nil and MenuGP.comboConfig.CEnabled then
+	if Cel ~= nil and MenuGP.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.comboConfig.manac then
+		caa()
 		Combo()
 	end
-	if Cel ~= nil and MenuGP.harrasConfig.HEnabled then
+	if Cel ~= nil and (MenuGP.harrasConfig.HEnabled or MenuGP.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.harrasConfig.manah then
 		Harrass()
 	end
-	if Cel ~= nil and MenuGP.harrasConfig.HTEnabled then
-		Harrass()
-	end
-	if MenuGP.farm.Freeze or MenuGP.farm.LaneClear then
+	if MenuGP.farm.Freeze or MenuGP.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.farm.manaf then
 		local Mode = MenuGP.farm.Freeze and "Freeze" or "LaneClear"
 		Farm(Mode)
 	end
-	if MenuGP.jf.JFEnabled then
+	if MenuGP.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.jf.manajf then
 		JungleFarmm()
 	end
 	if MenuGP.prConfig.ALS then
@@ -116,13 +119,13 @@ end
 function Menu()
 	VP = VPrediction()
 	SOWi = SOW(VP)
-	STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC) 
 	MenuGP = scriptConfig("Gangplank Master "..version, "Gangplank Master "..version)
 	MenuGP:addSubMenu("Orbwalking", "Orbwalking")
 	SOWi:LoadToMenu(MenuGP.Orbwalking)
 	MenuGP:addSubMenu("Target selector", "STS")
-    STS:AddToMenu(MenuGP.STS)
-	--[[--- Combo --]]--
+    TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, skills.skillQ.range, DAMAGE_PHYSICAL)
+	TargetSelector.name = "Gangplank"
+	MenuGP.STS:addTS(TargetSelector)
 	MenuGP:addSubMenu("[Gangplank Master]: Combo Settings", "comboConfig")
 	MenuGP.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.comboConfig:addParam("USEW", "Use W in Combo", SCRIPT_PARAM_ONOFF, false)
@@ -131,47 +134,34 @@ function Menu()
 	MenuGP.comboConfig:addParam("USER", "Use R in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
-	--[[--- Harras --]]--
+	MenuGP.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Harras Settings", "harrasConfig")
     MenuGP.harrasConfig:addParam("QH", "Harras Use Q", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuGP.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
-	--[[--- Mana Manager --]]--
-	MenuGP:addSubMenu("[Gangplank Master]: Mana Settings" , "mpConfig")
-	MenuGP.mpConfig:addParam("mptocq", "Min. Mana To Cast Q", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
-	MenuGP.mpConfig:addParam("mptocw", "Min. Mana To Cast W", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
-	MenuGP.mpConfig:addParam("mptoce", "Min. Mana To Cast E", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
-	MenuGP.mpConfig:addParam("mptocr", "Min. Mana To Cast R", SCRIPT_PARAM_SLICE, 5, 0, 100, 0)
-	MenuGP.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGP.mpConfig:addParam("mptohq", "Min. Mana To Harras Q", SCRIPT_PARAM_SLICE, 30, 0, 100, 0) 
-	MenuGP.mpConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGP.mpConfig:addParam("mptofq", "Min. Mana To Farm Q", SCRIPT_PARAM_SLICE, 45, 0, 100, 0) 
-	MenuGP.mpConfig:addParam("mptofe", "Min. Mana To Farm E", SCRIPT_PARAM_SLICE, 45, 0, 100, 0)
-	--[[--- Kill Steal --]]--
+	MenuGP.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: KS Settings", "ksConfig")
 	MenuGP.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.ksConfig:addParam("QKS", "Use Q To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, true)
-	MenuGP.ksConfig:addParam("ULTHITS", "Ult hit times:", SCRIPT_PARAM_SLICE, 3, 1, 7, 0)
-	--[[--- Farm --]]--
+	MenuGP.ksConfig:addParam("ULTHITS", "Ult hit times:", SCRIPT_PARAM_SLICE, 2, 1, 7, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Farm Settings", "farm")
-	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, false)
+	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
 	MenuGP.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
-	--[[--- Jungle Farm --]]--
+	MenuGP.farm:addParam("manac", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Jungle Farm Settings", "jf")
 	MenuGP.jf:addParam("QJF", "Jungle Farm Use Q", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.jf:addParam("EJF", "Jungle Farm Use E", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
-	--[[--- Extra --]]--
+	MenuGP.jf:addParam("manac", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Extra Settings", "exConfig")
 	MenuGP.exConfig:addParam("CC", "Anty CC", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.exConfig:addParam("aw", "Auto Heal", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.exConfig:addParam("MINHPTOW", "Min % HP To Heal", SCRIPT_PARAM_SLICE, 60, 0, 100, 2)
 	MenuGP.exConfig:addParam("MINMPTOW", "Min % MP To Heal", SCRIPT_PARAM_SLICE, 70, 0, 100, 2)	
-	--[[--- Drawing --]]--
 	MenuGP:addSubMenu("[Gangplank Master]: Draw Settings", "drawConfig")
 	MenuGP.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
@@ -181,7 +171,6 @@ function Menu()
 	MenuGP.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.drawConfig:addParam("DER", "Draw E Range", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.drawConfig:addParam("DERC", "Draw E Range Color", SCRIPT_PARAM_COLOR, {255,255,0,0})
-	--[[--- Misc --]]--
 	MenuGP:addSubMenu("[Gangplank Master]: Misc Settings", "prConfig")
 	MenuGP.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuGP.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -194,55 +183,14 @@ function Menu()
 		GenModelPacket("Gangplank", MenuGP.prConfig.skin1)
 		lastSkin = MenuGP.prConfig.skin1
 	end
-	--[[-- PermShow --]]--
 	MenuGP.comboConfig:permaShow("CEnabled")
 	MenuGP.harrasConfig:permaShow("HEnabled")
 	MenuGP.harrasConfig:permaShow("HTEnabled")
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
-end
-
-function cancast()
-	--Q--
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGP.mpConfig.mptocq then
-		ccq = true
-	else
-		ccq = false
-	end
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGP.mpConfig.mptohq then
-		chq = true
-	else
-		chq = false
-	end
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGP.mpConfig.mptofq then
-		cfq = true
-	else
-		cfq = false
-	end
-	--W--
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGP.mpConfig.mptocw then
-		ccw = true
-	else
-		ccw = false
-	end
-	--E--
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGP.mpConfig.mptoce then
-		cce = true
-	else
-		cce = false
-	end
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGP.mpConfig.mptofe then
-		cfe = true
-	else
-		cfe = false
-	end
-	--R--
-	if ((myHero.mana/myHero.maxMana)*100) >= MenuGP.mpConfig.mptocr then
-		ccr = true
-	else
-		ccr = false
-	end
+	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
+	_G.DrawCircle = DrawCircle2
 end
 
 function caa()
@@ -253,9 +201,29 @@ function caa()
 	end
 end
 
+function GetCustomTarget()
+ 	TargetSelector:update()	
+	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then
+		return _G.MMA_Target
+	end
+	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
+		return _G.AutoCarry.Attack_Crosshair.target 
+	end
+	return TargetSelector.target
+end
+
 function Check()
-	caa()
-	cancast()
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+		Cel = SelectedTarget
+	else
+		Cel = GetCustomTarget()
+	end
+	if sac or mma then
+		SOWi.Menu.Enabled = false
+	else
+		SOWi.Menu.Enabled = true
+	end
+	SOWi:ForceTarget(Cel)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
@@ -265,18 +233,8 @@ function Check()
 		GenModelPacket("Gangplank", MenuGP.prConfig.skin1)
 		lastSkin = MenuGP.prConfig.skin1
 	end
+	if MenuGP.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
-
-function EnemyCount(point, range)
-	local count = 0
-	for _, enemy in pairs(GetEnemyHeroes()) do
-		if enemy and not enemy.dead and GetDistance(point, enemy) <= range then
-			count = count + 1
-		end
-	end            
-	return count
-end
-
 
 function CountTeam(point, range)
     local ChampCount = 0
@@ -308,10 +266,14 @@ function UseItems(unit)
 	end
 end
 
+function getHitBoxRadius(target)
+	return GetDistance(target.minBBox, target.maxBBox)/2
+end
+
 function Combo()
 	UseItems(Cel)
 	if MenuGP.comboConfig.USEQ then
-		if QReady and ValidTarget(Cel) and ccq then
+		if QReady and ValidTarget(Cel) then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, targetNetworkId = Cel.networkID}):send()
 			else
@@ -320,7 +282,7 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USEW then
-		if WReady and MenuGP.comboConfig.USEW and ccw then
+		if WReady and MenuGP.comboConfig.USEW then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _W}):send()
 			else
@@ -339,7 +301,7 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USER then
-		if RReady and GetDistance(CelR) < skills.skillR.range and MenuGP.comboConfig.USER and ccr then
+		if RReady and GetDistance(CelR) < skills.skillR.range and MenuGP.comboConfig.USER then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _R, targetNetworkId = CelR.networkID}):send()
 			else
@@ -351,7 +313,7 @@ end
 
 function Harrass()
 	if MenuGP.harrasConfig.QH then
-		if QReady and GetDistance(Cel) <= skills.skillQ.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and chq then
+		if QReady and GetDistance(Cel) <= skills.skillQ.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, targetNetworkId = Cel.networkID}):send()
 			else
@@ -380,7 +342,7 @@ function Farm(Mode)
 	
 	if UseQ then
 		for i, minion in pairs(EnemyMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
 				else
@@ -391,7 +353,7 @@ function Farm(Mode)
 	end
 	if UseE then
 		for i, minion in pairs(EnemyMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfe then
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _E}):send()
 				else
@@ -406,7 +368,7 @@ function JungleFarmm()
 	JungleMinions:update()
 	if MenuGP.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range and cfq then
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
 				else
@@ -417,7 +379,7 @@ function JungleFarmm()
 	end
 	if MenuGP.jf.EJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range and cfq then
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _E}):send()
 				else
@@ -441,7 +403,6 @@ function autow()
 end
 
 function lq()
-	EnemyMinions:update()
 	for i, minion in pairs(EnemyMinions.objects) do
         local qDmg = getDmg("Q",minion,  GetMyHero()) + getDmg("AD",minion,  GetMyHero())
 		local MinionHealth_ = minion.health
@@ -522,8 +483,8 @@ function autolvl()
 end
 
 function OnDraw()
-	DmgCalc()
 	if MenuGP.drawConfig.DD then	
+		DmgCalc()
 		for _,enemy in pairs(GetEnemyHeroes()) do
             if ValidTarget(enemy) and killstring[enemy.networkID] ~= nil then
                 local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
@@ -531,20 +492,11 @@ function OnDraw()
             end
         end
 	end
-	if MenuGP.drawConfig.DLC then
-		if MenuGP.drawConfig.DQR and QReady then
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillQ.range - 50, 1, RGB(MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
-		end
-		if MenuGP.drawConfig.DER and EReady then			
-			DrawCircle3D(myHero.x, myHero.y, myHero.z, skills.skillE.range - 95, 1, RGB(MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
-		end
-	else
-		if MenuGP.drawConfig.DQR and QReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, ARGB(MenuGP.drawConfig.DQRC[1], MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
-		end
-		if MenuGP.drawConfig.DER and EReady then			
-			DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, ARGB(MenuGP.drawConfig.DERC[1], MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
-		end
+	if MenuGP.drawConfig.DQR and QReady then
+		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, RGB(MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
+	end
+	if MenuGP.drawConfig.DER and EReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, RGB(MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
 	end
 end
 
@@ -554,7 +506,7 @@ function KillSteall()
 		local health = Enemy.health
 		local distance = GetDistance(Enemy)
 		if MenuGP.ksConfig.QKS then
-			qDmg = getDmg("Q", Enemy, myHero) + getDmg("AD", Enemy, GetMyHero())
+			qDmg = getDmg("Q", Enemy, myHero) + (myHero.damage)
 		else 
 			qDmg = 0
 		end
@@ -642,4 +594,34 @@ function GenModelPacket(champ, skinId)
 	end
 	p:Hide()
 	RecvPacket(p)
+end
+
+function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
+  radius = radius or 300
+  quality = math.max(8,round(180/math.deg((math.asin((chordlength/(2*radius)))))))
+  quality = 2 * math.pi / quality
+  radius = radius*.92
+  
+  local points = {}
+  for theta = 0, 2 * math.pi + quality, quality do
+    local c = WorldToScreen(D3DXVECTOR3(x + radius * math.cos(theta), y, z - radius * math.sin(theta)))
+    points[#points + 1] = D3DXVECTOR2(c.x, c.y)
+  end
+  
+  DrawLines2(points, width or 1, color or 4294967295)
+end
+
+function round(num) 
+  if num >= 0 then return math.floor(num+.5) else return math.ceil(num-.5) end
+end
+
+function DrawCircle2(x, y, z, radius, color)
+  local vPos1 = Vector(x, y, z)
+  local vPos2 = Vector(cameraPos.x, cameraPos.y, cameraPos.z)
+  local tPos = vPos1 - (vPos1 - vPos2):normalized() * radius
+  local sPos = WorldToScreen(D3DXVECTOR3(tPos.x, tPos.y, tPos.z))
+  
+  if OnScreen({ x = sPos.x, y = sPos.y }, { x = sPos.x, y = sPos.y }) then
+    DrawCircleNextLvl(x, y, z, radius, 1, color, 75) 
+  end
 end
