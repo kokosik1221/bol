@@ -2,7 +2,7 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.71
+	Last Version: 1.72
 	31.10.2014
 	
 ]]--
@@ -16,7 +16,7 @@ local AUTOUPDATE = true
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local SCRIPT_NAME = "GangplankMaster"
-local version = 1.71
+local version = 1.72
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -221,8 +221,6 @@ function Check()
 	end
 	if sac or mma then
 		SOWi.Menu.Enabled = false
-	else
-		SOWi.Menu.Enabled = true
 	end
 	SOWi:ForceTarget(Cel)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
