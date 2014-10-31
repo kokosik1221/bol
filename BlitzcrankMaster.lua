@@ -1,8 +1,8 @@
 --[[
 
 	Script Name: Blitzcrank MASTER 
-    	Author: kokosik1221
-	Last Version: 0.5
+	Author: kokosik1221
+	Last Version: 0.51
 	31.10.2014
 	
 ]]--
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.5
+local version = 0.51
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -260,8 +260,6 @@ function Check()
 	end
 	if sac or mma then
 		SOWi.Menu.Enabled = false
-	else
-		SOWi.Menu.Enabled = true
 	end
 	SOWi:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
