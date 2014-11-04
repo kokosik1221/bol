@@ -2,8 +2,8 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 1.69
-	31.10.2014
+	Last Version: 1.7
+	04.11.2014
 	
 ]]--
 
@@ -16,7 +16,7 @@ local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.69
+local version = 1.7
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -239,7 +239,7 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
+	if (sac or mma) then
 		SOWi.Menu.Enabled = false
 	end
 	SOWi:ForceTarget(Cel)
@@ -609,7 +609,7 @@ function CastQ(unit)
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
+		local Position, info = Prodiction.GetCircularAOEPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width, myHero)
 		if Position ~= nil and info.hitchance >= 2 then
 			SpellCast(_Q, Position)	
 		end
@@ -624,7 +624,7 @@ function CastE(unit)
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetPrediction(unit, skills.skillE.range, skills.skillE.speed, skills.skillE.delay, skills.skillE.width)
+		local Position, info = Prodiction.GetLineAOEPrediction(unit, skills.skillE.range, skills.skillE.speed, skills.skillE.delay, skills.skillE.width)
 		if Position ~= nil and info.hitchance >= 2 then
 			SpellCast(_E, Position)	
 		end
@@ -657,7 +657,7 @@ function GenModelPacket(champ, skinId)
 end
 
 function OnWndMsg(Msg, Key)
-	if Msg == WM_LBUTTONDOWN then
+	if Msg == WM_LBUTTONDOWN and MenuGalio.comboConfig.ST then
 		local dist = 0
 		local Selecttarget = nil
 		for i, enemy in ipairs(GetEnemyHeroes()) do
