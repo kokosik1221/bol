@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: Blitzcrank MASTER 
-	Author: kokosik1221
-	Last Version: 0.51
-	31.10.2014
+    	Author: kokosik1221
+	Last Version: 0.6
+	05.11.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.51
+local version = 0.6
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -78,7 +78,7 @@ local QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, fal
 local abilitylvl, lastskin = 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, zhonyaslot = nil, nil
+local IgniteKey, zhonyaslot, qPos = nil, nil, nil
 local killstring = {}
 local Spells = {_Q,_W,_E,_R}
 local Spells2 = {"Q","W","E","R"}
@@ -273,7 +273,11 @@ function Check()
 		GenModelPacket("Blitzcrank", MenuBlitz.prConfig.skin1)
 		lastSkin = MenuBlitz.prConfig.skin1
 	end
-	if MenuBlitz.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
+	if MenuBlitz.drawConfig.DLC then 
+		_G.DrawCircle = DrawCircle2 
+	else 
+		_G.DrawCircle = _G.oldDrawCircle 
+	end
 end
 
 function UseItems(unit)
@@ -310,7 +314,7 @@ function Combo()
 	end
 	if MenuBlitz.comboConfig.USER then
 		if MenuBlitz.comboConfig.Kilable then
-			local r = getDmg("R", Cel, myHero)
+			local r = getDmg("R", Cel, myHero) + ((myHero.ap*90)/100)
 			if Cel.health < r then
 				CastR(Cel)
 			end
@@ -421,7 +425,7 @@ function OnDraw()
 			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
 		end
 	end
-	if MenuBlitz.drawConfig.DQL and ValidTarget(Cel, skills.skillQ.range) then
+	if MenuBlitz.drawConfig.DQL and ValidTarget(Cel, skills.skillQ.range) and VIP_USER then
 		ProdictQCol:DrawCollision(myHero, Cel)
 	end
 	if MenuBlitz.drawConfig.DD then	
@@ -445,7 +449,7 @@ function KillSteall()
 	for i = 1, heroManager.iCount do
 		local Enemy = heroManager:getHero(i)
 		local health = Enemy.health
-		local qDmg = getDmg("Q", Enemy, myHero) + ((myHero.ap*90)/100)
+		local qDmg = myHero:CalcDamage(Enemy, (55 * myHero:GetSpellData(0).level + 25 + myHero.ap))
 		local eDmg = getDmg("E", Enemy, myHero) + myHero.totalDamage
 		local rDmg = getDmg("R", Enemy, myHero) + ((myHero.ap*90)/100)
 		local iDmg = getDmg("IGNITE", Enemy, myHero) 
@@ -454,6 +458,7 @@ function KillSteall()
 				CastQ(Enemy)
 			elseif health < eDmg and MenuBlitz.ksConfig.EKS then
 				CastE(Enemy)
+				myHero:Attack(Enemy)
 			elseif health < rDmg and MenuBlitz.ksConfig.RKS then
 				CastR(Enemy)
 			elseif health < iDmg and MenuBlitz.ksConfig.IKS and IReady then
@@ -461,15 +466,18 @@ function KillSteall()
 			elseif health < (qDmg + eDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
 				CastE(Enemy)
+				myHero:Attack(Enemy)
 			elseif health < (qDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
 				CastR(Enemy)				
 			elseif health < (eDmg + rDmg) and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillE.range then
 				CastE(Enemy)
+				myHero:Attack(Enemy)
 				CastR(Enemy)	
 			elseif health < (qDmg + eDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
 				CastE(Enemy)
+				myHero:Attack(Enemy)
 				CastR(Enemy)	
 			end
 		end
@@ -480,9 +488,9 @@ function DmgCalc()
 	for i=1, heroManager.iCount do
 		local enemy = heroManager:GetHero(i)
         if not enemy.dead and enemy.visible then
-			local qDmg = getDmg("Q", enemy, myHero) + ((myHero.ap*90)/100) 
+			local qDmg = myHero:CalcDamage(enemy, (55 * myHero:GetSpellData(0).level + 25 + myHero.ap))
 			local eDmg = getDmg("E", enemy, myHero) + myHero.totalDamage
-			local rDmg = getDmg("R", enemy, myHero) + ((myHero.ap*90)/100) 
+			local rDmg = getDmg("R", enemy, myHero) + ((myHero.ap*90)/100)
 			local iDmg = getDmg("IGNITE", enemy, myHero) 
             if enemy.health > (qDmg + eDmg + rDmg) then
 				killstring[enemy.networkID] = "Harass Him!!!"
@@ -597,7 +605,7 @@ function GenModelPacket(champ, skinId)
 end
 
 function OnWndMsg(Msg, Key)
-	if Msg == WM_LBUTTONDOWN then
+	if Msg == WM_LBUTTONDOWN and MenuBlitz.comboConfig.ST then
 		local dist = 0
 		local Selecttarget = nil
 		for i, enemy in ipairs(GetEnemyHeroes()) do
@@ -653,4 +661,3 @@ function DrawCircle2(x, y, z, radius, color)
     DrawCircleNextLvl(x, y, z, radius, 1, color, 75) 
   end
 end
-
