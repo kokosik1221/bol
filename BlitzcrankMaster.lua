@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.6
-	05.11.2014
+	Last Version: 0.61
+	06.11.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.6
+local version = 0.61
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -108,10 +108,14 @@ end
 function OnTick()
 	Check()
 	if Cel ~= nil and MenuBlitz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manac then
-		Combo()
+		if not MenuBlitz.blConfig[Cel.charName] then
+			Combo()
+		end
 	end
 	if Cel ~= nil and (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.harrasConfig.manah then
-		Harrass()
+		if not MenuBlitz.blConfig[Cel.charName] then
+			Harrass()
+		end
 	end
 	if MenuBlitz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.farm.manaf then
 		Farm()
@@ -201,6 +205,13 @@ function Menu()
 		end 
 	end 
 	MenuBlitz.exConfig:addParam("UI", "Use Auto-Interrupt", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz:addSubMenu("[Blitzcrank Master]: Black List", "blConfig")
+	for i = 1, heroManager.iCount do
+		local hero = heroManager:GetHero(i)
+		if hero.team ~= myHero.team then
+			MenuBlitz.blConfig:addParam(hero.charName, hero.charName, SCRIPT_PARAM_ONOFF, false)
+		end
+	end
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Misc Settings", "prConfig")
 	MenuBlitz.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
