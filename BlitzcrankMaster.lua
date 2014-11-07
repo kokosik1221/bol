@@ -1,14 +1,9 @@
 --[[
 
 	Script Name: Blitzcrank MASTER 
-    Author: kokosik1221
+    	Author: kokosik1221
 	Last Version: 0.62
 	07.11.2014
-	
-	- Added Auto Set PriorityOnLoad
-	- Added Option Move To Mouse In Harras Mode
-	- Fixed Bug With Attack Enemy After Back To Base
-	
 	
 ]]--
 
