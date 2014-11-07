@@ -1,9 +1,14 @@
 --[[
 
 	Script Name: Blitzcrank MASTER 
-    	Author: kokosik1221
+    Author: kokosik1221
 	Last Version: 0.62
 	07.11.2014
+	
+	- Added Auto Set PriorityOnLoad
+	- Added Option Move To Mouse In Harras Mode
+	- Fixed Bug With Attack Enemy After Back To Base
+	
 	
 ]]--
 
@@ -220,6 +225,7 @@ function Menu()
 			MenuBlitz.blConfig:addParam(hero.charName, hero.charName, SCRIPT_PARAM_ONOFF, false)
 		end
 	end
+	MenuBlitz.blConfig:addParam("UBL", "Use Black List Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("T"))
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Misc Settings", "prConfig")
 	MenuBlitz.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -243,6 +249,7 @@ function Menu()
 	MenuBlitz.harrasConfig:permaShow("HEnabled")
 	MenuBlitz.harrasConfig:permaShow("HTEnabled")
 	MenuBlitz.prConfig:permaShow("AZ")
+	MenuBlitz.blConfig:permaShow("UBL")
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
@@ -368,7 +375,7 @@ function Combo()
 end
 
 function Harrass()
-	if Cel ~= nil and ValidTarget(Cel) and not MenuBlitz.blConfig[Cel.charName] then
+	if Cel ~= nil and ValidTarget(Cel) and not MenuBlitz.blConfig.UBL and not MenuBlitz.blConfig[Cel.charName] then
 		if MenuBlitz.harrasConfig.HM == 1 then
 			CastQ(Cel)
 		end
@@ -501,7 +508,7 @@ function KillSteall()
 		local eDmg = getDmg("E", Enemy, myHero) + myHero.totalDamage
 		local rDmg = getDmg("R", Enemy, myHero) + ((myHero.ap*90)/100)
 		local iDmg = getDmg("IGNITE", Enemy, myHero) 
-		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+		if ValidTarget(Enemy) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health < qDmg and MenuBlitz.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif health < eDmg and MenuBlitz.ksConfig.EKS then
