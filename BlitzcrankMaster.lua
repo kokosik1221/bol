@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.61
-	06.11.2014
+	Last Version: 0.62
+	07.11.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.61
+local version = 0.62
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -86,6 +86,7 @@ local Spells2 = {"Q","W","E","R"}
 function OnLoad()
 	print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	Menu()
+	PriorityOnLoad()
 	if VIP_USER and prodstatus and colstatus then
 		Prodict = ProdictManager.GetInstance()
 		ProdictQ = Prodict:AddProdictionObject(_Q, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width, myHero)
@@ -101,21 +102,27 @@ function OnLoad()
 	end
 end
 
+function PriorityOnLoad()
+	if heroManager.iCount < 10 then
+		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
+	elseif heroManager.iCount == 6 then
+		arrangePrioritysTT()
+    else
+		arrangePrioritys()
+	end
+end
+
 function skinChanged()
 	return MenuBlitz.prConfig.skin1 ~= lastSkin
 end
 
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuBlitz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manac then
-		if not MenuBlitz.blConfig[Cel.charName] then
-			Combo()
-		end
+	if MenuBlitz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manac then
+		Combo()
 	end
-	if Cel ~= nil and (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.harrasConfig.manah then
-		if not MenuBlitz.blConfig[Cel.charName] then
-			Harrass()
-		end
+	if (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.harrasConfig.manah then
+		Harrass()
 	end
 	if MenuBlitz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.farm.manaf then
 		Farm()
@@ -161,6 +168,7 @@ function Menu()
 	MenuBlitz.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuBlitz.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuBlitz.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
+	MenuBlitz.harrasConfig:addParam("MM", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: KS Settings", "ksConfig")
 	MenuBlitz.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -240,6 +248,28 @@ function Menu()
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
+	TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
 end
 
 function EnemyCount(point, range)
@@ -313,38 +343,45 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
-	UseItems(Cel)
-	if MenuBlitz.comboConfig.USEQ then
-		CastQ(Cel)
-	end
-	if MenuBlitz.comboConfig.USEW then
-		CastW()
-	end
-	if MenuBlitz.comboConfig.USEE then
-		CastE(Cel)
-	end
-	if MenuBlitz.comboConfig.USER then
-		if MenuBlitz.comboConfig.Kilable then
-			local r = getDmg("R", Cel, myHero) + ((myHero.ap*90)/100)
-			if Cel.health < r then
+	if Cel ~= nil and ValidTarget(Cel) and not MenuBlitz.blConfig[Cel.charName] then
+		UseItems(Cel)
+		if MenuBlitz.comboConfig.USEQ then
+			CastQ(Cel)
+		end
+		if MenuBlitz.comboConfig.USEW then
+			CastW()
+		end
+		if MenuBlitz.comboConfig.USEE then
+			CastE(Cel)
+		end
+		if MenuBlitz.comboConfig.USER then
+			if MenuBlitz.comboConfig.Kilable then
+				local r = getDmg("R", Cel, myHero) + ((myHero.ap*90)/100)
+				if Cel.health < r then
+					CastR(Cel)
+				end
+			elseif not MenuBlitz.comboConfig.Kilable then
 				CastR(Cel)
 			end
-		elseif not MenuBlitz.comboConfig.Kilable then
-			CastR(Cel)
 		end
 	end
 end
 
 function Harrass()
-	if MenuBlitz.harrasConfig.HM == 1 then
-		CastQ(Cel)
+	if Cel ~= nil and ValidTarget(Cel) and not MenuBlitz.blConfig[Cel.charName] then
+		if MenuBlitz.harrasConfig.HM == 1 then
+			CastQ(Cel)
+		end
+		if MenuBlitz.harrasConfig.HM == 2 then
+			CastE(Cel)
+		end
+		if MenuBlitz.harrasConfig.HM == 3 then
+			CastQ(Cel)
+			CastE(Cel)
+		end
 	end
-	if MenuBlitz.harrasConfig.HM == 2 then
-		CastE(Cel)
-	end
-	if MenuBlitz.harrasConfig.HM == 3 then
-		CastQ(Cel)
-		CastE(Cel)
+	if MenuBlitz.harrasConfig.MM then
+		myHero:MoveTo(mousePos.x, mousePos.z)
 	end
 end
 
@@ -469,7 +506,6 @@ function KillSteall()
 				CastQ(Enemy)
 			elseif health < eDmg and MenuBlitz.ksConfig.EKS then
 				CastE(Enemy)
-				myHero:Attack(Enemy)
 			elseif health < rDmg and MenuBlitz.ksConfig.RKS then
 				CastR(Enemy)
 			elseif health < iDmg and MenuBlitz.ksConfig.IKS and IReady then
@@ -477,18 +513,15 @@ function KillSteall()
 			elseif health < (qDmg + eDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
 				CastE(Enemy)
-				myHero:Attack(Enemy)
 			elseif health < (qDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
 				CastR(Enemy)				
 			elseif health < (eDmg + rDmg) and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillE.range then
 				CastE(Enemy)
-				myHero:Attack(Enemy)
 				CastR(Enemy)	
 			elseif health < (qDmg + eDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
 				CastE(Enemy)
-				myHero:Attack(Enemy)
 				CastR(Enemy)	
 			end
 		end
@@ -564,10 +597,11 @@ function CastE(unit)
 	if EReady and GetDistance(unit) < skills.skillE.range then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _E}):send()
+			myHero:Attack(unit)
 		else
 			CastSpell(_E)
+			myHero:Attack(unit)
 		end	
-		myHero:Attack(unit)
 	end
 end
 
@@ -640,6 +674,34 @@ function OnWndMsg(Msg, Key)
 				end
 			end
 		end
+	end
+end
+
+function SetPriority(table, hero, priority)
+	for i=1, #table, 1 do
+		if hero.charName:find(table[i]) ~= nil then
+			TS_SetHeroPriority(priority, hero.charName)
+		end
+	end
+end
+
+function arrangePrioritysTT()
+    for i, enemy in ipairs(GetEnemyHeroes()) do
+		SetPriority(TargetTable.AD_Carry, enemy, 1)
+		SetPriority(TargetTable.AP,       enemy, 1)
+		SetPriority(TargetTable.Support,  enemy, 2)
+		SetPriority(TargetTable.Bruiser,  enemy, 2)
+		SetPriority(TargetTable.Tank,     enemy, 3)
+    end
+end
+
+function arrangePrioritys()
+	for i, enemy in ipairs(GetEnemyHeroes()) do
+		SetPriority(TargetTable.AD_Carry, enemy, 1)
+		SetPriority(TargetTable.AP, enemy, 2)
+		SetPriority(TargetTable.Support, enemy, 3)
+		SetPriority(TargetTable.Bruiser, enemy, 4)
+		SetPriority(TargetTable.Tank, enemy, 5)
 	end
 end
 
