@@ -2,7 +2,7 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.62
+	Last Version: 0.63
 	08.11.2014
 	
 	
