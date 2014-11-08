@@ -3,7 +3,8 @@
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
 	Last Version: 0.62
-	07.11.2014
+	08.11.2014
+	
 	
 ]]--
 
@@ -13,7 +14,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.62
+local version = 0.63
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -344,8 +345,18 @@ function getHitBoxRadius(target)
 	return GetDistance(target.minBBox, target.maxBBox)/2
 end
 
+function FindBL()
+	for i = 1, heroManager.iCount do
+		hero = heroManager:GetHero(i)
+		if MenuBlitz.blConfig.UBL and hero.team ~= myHero.team and not hero.dead and MenuBlitz.blConfig[hero.charName] then
+			return hero
+		end
+	end
+end
+
 function Combo()
-	if Cel ~= nil and ValidTarget(Cel) and not MenuBlitz.blConfig[Cel.charName] then
+	blacktarget = FindBL()
+	if Cel ~= nil and ValidTarget(Cel) and Cel ~= blacktarget then
 		UseItems(Cel)
 		if MenuBlitz.comboConfig.USEQ then
 			CastQ(Cel)
@@ -370,7 +381,8 @@ function Combo()
 end
 
 function Harrass()
-	if Cel ~= nil and ValidTarget(Cel) and not MenuBlitz.blConfig.UBL and not MenuBlitz.blConfig[Cel.charName] then
+	blacktarget = FindBL()
+	if Cel ~= nil and ValidTarget(Cel) and Cel ~= blacktarget then
 		if MenuBlitz.harrasConfig.HM == 1 then
 			CastQ(Cel)
 		end
@@ -504,13 +516,13 @@ function KillSteall()
 		local rDmg = getDmg("R", Enemy, myHero) + ((myHero.ap*90)/100)
 		local iDmg = getDmg("IGNITE", Enemy, myHero) 
 		if ValidTarget(Enemy) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health < qDmg and MenuBlitz.ksConfig.QKS then
+			if health < qDmg and MenuBlitz.ksConfig.QKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
-			elseif health < eDmg and MenuBlitz.ksConfig.EKS then
+			elseif health < eDmg and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < skills.skillE.range then
 				CastE(Enemy)
-			elseif health < rDmg and MenuBlitz.ksConfig.RKS then
+			elseif health < rDmg and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillR.range then
 				CastR(Enemy)
-			elseif health < iDmg and MenuBlitz.ksConfig.IKS and IReady then
+			elseif health < iDmg and MenuBlitz.ksConfig.IKS and IReady and GetDistance(Enemy) <= 600 then
 				CastSpell(IgniteKey, Enemy)
 			elseif health < (qDmg + eDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
