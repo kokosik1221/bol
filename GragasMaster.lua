@@ -1,8 +1,8 @@
 --[[
 
 	Script Name: Gragas MASTER 
-  Author: kokosik1221
-	Last Version: 0.1
+    	Author: kokosik1221
+	Last Version: 0.2
 	10.11.2014
 	
 ]]--
@@ -13,7 +13,7 @@ if myHero.charName ~= "Gragas" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.1
+local version = 0.2
 local SCRIPT_NAME = "GragasMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -391,7 +391,7 @@ function Farm()
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
 			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
-				local Pos, Hit = BestQFarmPos(Q.range, Q.width, JungleMinions.objects)
+				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
