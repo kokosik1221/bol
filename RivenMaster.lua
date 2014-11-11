@@ -1,6 +1,6 @@
 --[[
 	Script Name: RIVEN MASTER 
-  Author: kokosik1221
+  	Author: kokosik1221
 	Last Version: 0.1
 	11.11.2014
 	
