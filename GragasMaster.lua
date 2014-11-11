@@ -2,8 +2,8 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.2
-	10.11.2014
+	Last Version: 0.3
+	11.11.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Gragas" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.2
+local version = 0.3
 local SCRIPT_NAME = "GragasMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -35,9 +35,7 @@ RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
 require "AoE_Skillshot_Position"
 if VIP_USER then
 	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	RequireI:Add("Collision", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/b891699e739f77f77fd428e74dec00b2a692fdef/Common/Collision.lua")
 	prodstatus = true
-	colstatus = true
 end
 RequireI:Check()
 if RequireI.downloadNeeded == true then return end
@@ -104,7 +102,7 @@ function OnTick()
 	if MenuGragy.comboConfig.qConfig.ADQ then
 		AutoQ()
 	end
-	if Cel ~= nil and MenuGragy.comboConfig.rConfig.AHX then
+	if RReady and Cel ~= nil and MenuGragy.comboConfig.rConfig.AHX then
 		local rPos = GetAoESpellPosition(450, Cel)
         if rPos and GetDistance(rPos) <= R.range then
             if EnemyCount(rPos, 450) >= MenuGragy.comboConfig.rConfig.HXC then
@@ -139,7 +137,7 @@ function Menu()
 	MenuGragy.comboConfig:addSubMenu("[Gragas Master]: E Settings", "eConfig")
 	MenuGragy.comboConfig.eConfig:addParam("USEE", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.comboConfig:addSubMenu("[Gragas Master]: R Settings", "rConfig")
-	MenuGragy.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
+	MenuGragy.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, false)
 	MenuGragy.comboConfig.rConfig:addParam("Kilable", "Use Only If Target Is Killable", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.comboConfig.rConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.comboConfig.rConfig:addParam("AHX", "Use Automatically Without Combo", SCRIPT_PARAM_ONOFF, false)
@@ -170,6 +168,8 @@ function Menu()
 	MenuGragy.ksConfig:addParam("RKS", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy:addSubMenu("[Gragas Master]: Farm Settings", "farm")
 	MenuGragy.farm:addParam("QF", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear"})
+	MenuGragy.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGragy.farm:addParam("WF", "Use " .. W.name .. " (W)", SCRIPT_PARAM_LIST, 1, { "No", "Yes"})
 	MenuGragy.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.farm:addParam("EF",  "Use " .. E.name .. " (E)", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear"})
 	MenuGragy.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -336,34 +336,34 @@ function Combo()
 	if EReady and MenuGragy.comboConfig.eConfig.USEE and GetDistance(Cel) <= E.range then
 		CastE(Cel)
 	end
-	if RReady and MenuGragy.comboConfig.rConfig.USER then
-		if MenuGragy.comboConfig.rConfig.USER and GetDistance(Cel) < R.range then
+	if RReady and MenuGragy.comboConfig.rConfig.USER and GetDistance(Cel) < R.range then
+		if not MenuGragy.comboConfig.rConfig.CBE then
+			CastR(Cel)
+		else
+			CastRBehind(Cel)
+		end
+	end
+	if RReady and MenuGragy.comboConfig.rConfig.USER and MenuGragy.comboConfig.Kilable and GetDistance(Cel) < R.range then
+		local r = myHero:CalcDamage(Cel, (100 * myHero:GetSpellData(3).level + 100 + 0.7 * myHero.ap))
+		if Cel.health < r then
 			if not MenuGragy.comboConfig.rConfig.CBE then
 				CastR(Cel)
 			else
 				CastRBehind(Cel)
 			end
-		elseif MenuGragy.comboConfig.rConfig.USER and MenuGragy.comboConfig.Kilable and GetDistance(Cel) < R.range then
-			local r = myHero:CalcDamage(Cel, (100 * myHero:GetSpellData(3).level + 100 + 0.7 * myHero.ap))
-			if Cel.health < r then
-				if not MenuGragy.comboConfig.rConfig.CBE then
-					CastR(Cel)
-				else
-					CastRBehind(Cel)
-				end
-			end
-		elseif MenuGragy.comboConfig.rConfig.USER and MenuGragy.comboConfig.rConfig.HX and GetDistance(Cel) < R.range then
-			local rPos = GetAoESpellPosition(500, Cel)
-            if rPos and GetDistance(rPos) <= R.range then
-                if EnemyCount(rPos, 500) >= MenuGragy.comboConfig.rConfig.HXC then
-					if VIP_USER and MenuGragy.prConfig.pc then
-						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
-					else
-						CastSpell(_R, rPos.x, rPos.z)
-					end	
-                end
-            end
 		end
+	end
+	if RReady and MenuGragy.comboConfig.rConfig.USER and MenuGragy.comboConfig.rConfig.HX and GetDistance(Cel) < R.range then
+		local rPos = GetAoESpellPosition(500, Cel)
+           if rPos and GetDistance(rPos) <= R.range then
+            if EnemyCount(rPos, 500) >= MenuGragy.comboConfig.rConfig.HXC then
+				if VIP_USER and MenuGragy.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
+				else
+					CastSpell(_R, rPos.x, rPos.z)
+				end	
+            end
+        end
 	end
 end
 
@@ -387,6 +387,7 @@ function Farm()
 	EnemyMinions:update()
 	if not SOWi:CanMove() then return end
 	QMode =  MenuGragy.farm.QF
+	WMode =  MenuGragy.farm.WF
 	EMode =  MenuGragy.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
@@ -414,6 +415,11 @@ function Farm()
 				end
 			end
 		end
+		if WMode == 2 then
+			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+				CastW()
+			end
+		end
 	end
 end
 
@@ -428,14 +434,21 @@ function JungleFarm()
 		if MenuGragy.jf.QJF then
 			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, JungleMinions.objects)
-				if Pos ~= nil then
+				if Pos ~= nil and myHero:GetSpellData(_Q).name ~= "GragasQToggle" then
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
+				DelayAction(function() Q2JF() end, 2)
 			end
 		end
 		if ValidTarget(minion, aarange) then
 			myHero:Attack(minion)
 		end
+	end
+end
+
+function Q2JF()
+	if myHero:GetSpellData(_Q).name == "GragasQToggle" then
+		CastSpell(_Q)
 	end
 end
 
