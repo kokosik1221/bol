@@ -2,10 +2,9 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.63
-	08.11.2014
-	
-	
+	Last Version: 0.64
+	17.11.2014
+
 ]]--
 
 
@@ -14,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.63
+local version = 0.64
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -79,7 +78,7 @@ local QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, fal
 local abilitylvl, lastskin = 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, zhonyaslot, qPos = nil, nil, nil
+local IgniteKey, SmiteKey, zhonyaslot, qPos = nil, nil, nil
 local killstring = {}
 local Spells = {_Q,_W,_E,_R}
 local Spells2 = {"Q","W","E","R"}
@@ -153,6 +152,7 @@ function Menu()
 	MenuBlitz.STS:addTS(TargetSelector)
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Combo Settings", "comboConfig")
 	MenuBlitz.comboConfig:addParam("USEQ", "Use " .. skills.skillQ.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.comboConfig:addParam("USEQS", "Use Smite If See Collision", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("USEW", "Use " .. skills.skillW.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -249,6 +249,9 @@ function Menu()
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonersmite") then SmiteKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonersmite") then SmiteKey = SUMMONER_2
+	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
 	TargetTable = {
@@ -313,6 +316,7 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+	SReady = (SmiteKey ~= nil and myHero:CanUseSpell(SmiteKey) == READY)
 	if MenuBlitz.prConfig.skin and VIP_USER and skinChanged() then
 		GenModelPacket("Blitzcrank", MenuBlitz.prConfig.skin1)
 		lastSkin = MenuBlitz.prConfig.skin1
@@ -514,7 +518,7 @@ function KillSteall()
 		local qDmg = myHero:CalcDamage(Enemy, (55 * myHero:GetSpellData(0).level + 25 + myHero.ap))
 		local eDmg = getDmg("E", Enemy, myHero) + myHero.totalDamage
 		local rDmg = getDmg("R", Enemy, myHero) + ((myHero.ap*90)/100)
-		local iDmg = getDmg("IGNITE", Enemy, myHero) 
+		local iDmg = (50 + (20 * myHero.level))
 		if ValidTarget(Enemy) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health < qDmg and MenuBlitz.ksConfig.QKS and GetDistance(Enemy) < skills.skillQ.range then
 				CastQ(Enemy)
@@ -572,8 +576,12 @@ function DmgCalc()
 end
 
 function CastQ(unit)
-	if QReady and GetDistance(unit) < skills.skillQ.range then
+	if QReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < skills.skillQ.range then
 		if MenuBlitz.prConfig.pro == 1 then
+			local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
+			if #ColTable2 == 1 and MenuBlitz.comboConfig.USEQS and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
+				CastSpell(SmiteKey, ColTable2[1])
+			end
 			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
 			if HitChance >= MenuBlitz.prConfig.vphit - 1 then
 				if VIP_USER and MenuBlitz.prConfig.pc then
@@ -585,7 +593,10 @@ function CastQ(unit)
 		end
 		if MenuBlitz.prConfig.pro == 2 and VIP_USER and prodstatus then
 			local Position = ProdictQ:GetPrediction(unit)
-			local willCollide = ProdictQCol:GetMinionCollision(Position, myHero)
+			local willCollide, ColTable = ProdictQCol:GetMinionCollision(Position, myHero)
+			if #ColTable == 1 and MenuBlitz.comboConfig.USEQS and SReady and GetDistance(myHero, ColTable[1]) < 800 then
+				CastSpell(SmiteKey, ColTable[1])
+			end
 			if Position ~= nil and not willCollide then
 				if VIP_USER and MenuBlitz.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -620,7 +631,7 @@ function CastE(unit)
 end
 
 function CastR(unit)
-	if RReady and GetDistance(unit) < skills.skillR.range then
+	if RReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < skills.skillR.range then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _R}):send()
 		else
@@ -747,4 +758,74 @@ function DrawCircle2(x, y, z, radius, color)
   if OnScreen({ x = sPos.x, y = sPos.y }, { x = sPos.x, y = sPos.y }) then
     DrawCircleNextLvl(x, y, z, radius, 1, color, 75) 
   end
+end
+
+
+-- FROM Collision 1.1.1 by Klokje Mod by Boboben1 --
+function GetMinionCollisionM(pStart, pEnd)
+    EnemyMinions:update()
+    local distance =  GetDistance(pStart, pEnd)
+    local prediction = TargetPrediction(skills.skillQ.range, skills.skillQ.speed/1000, skills.skillQ.delay*1000, skills.skillQ.width)
+    local mCollision = {}
+    if distance > skills.skillQ.range then
+        distance = skills.skillQ.range
+    end
+    local V = Vector(pEnd) - Vector(pStart)
+    local k = V:normalized()
+    local P = V:perpendicular2():normalized()
+    local t,i,u = k:unpack()
+    local x,y,z = P:unpack()
+    local startLeftX = pStart.x + (x *skills.skillQ.width)
+    local startLeftY = pStart.y + (y *skills.skillQ.width)
+    local startLeftZ = pStart.z + (z *skills.skillQ.width)
+    local endLeftX = pStart.x + (x * skills.skillQ.width) + (t * distance)
+    local endLeftY = pStart.y + (y * skills.skillQ.width) + (i * distance)
+    local endLeftZ = pStart.z + (z * skills.skillQ.width) + (u * distance)
+    local startRightX = pStart.x - (x * skills.skillQ.width)
+    local startRightY = pStart.y - (y * skills.skillQ.width)
+    local startRightZ = pStart.z - (z * skills.skillQ.width)
+    local endRightX = pStart.x - (x * skills.skillQ.width) + (t * distance)
+    local endRightY = pStart.y - (y * skills.skillQ.width) + (i * distance)
+    local endRightZ = pStart.z - (z * skills.skillQ.width)+ (u * distance)
+    local startLeft = WorldToScreen(D3DXVECTOR3(startLeftX, startLeftY, startLeftZ))
+    local endLeft = WorldToScreen(D3DXVECTOR3(endLeftX, endLeftY, endLeftZ))
+    local startRight = WorldToScreen(D3DXVECTOR3(startRightX, startRightY, startRightZ))
+    local endRight = WorldToScreen(D3DXVECTOR3(endRightX, endRightY, endRightZ))
+    local poly = Polygon(Point(startLeft.x, startLeft.y),  Point(endLeft.x, endLeft.y), Point(startRight.x, startRight.y),   Point(endRight.x, endRight.y))
+    for index, minion in pairs(EnemyMinions.objects) do
+        if minion ~= nil and minion.valid and not minion.dead then
+            if GetDistance(pStart, minion) < distance then
+                local pos, t, vec = prediction:GetPrediction(minion)
+                local lineSegmentLeft = LineSegment(Point(startLeftX,startLeftZ), Point(endLeftX, endLeftZ))
+                local lineSegmentRight = LineSegment(Point(startRightX,startRightZ), Point(endRightX, endRightZ))
+                local toScreen, toPoint
+                if pos ~= nil then
+                    toScreen = WorldToScreen(D3DXVECTOR3(minion.x, minion.y, minion.z))
+                    toPoint = Point(toScreen.x, toScreen.y)
+                else
+                    toScreen = WorldToScreen(D3DXVECTOR3(minion.x, minion.y, minion.z))
+                    toPoint = Point(toScreen.x, toScreen.y)
+                end
+                if poly:contains(toPoint) then
+                    table.insert(mCollision, minion)
+                else
+                    if pos ~= nil then
+                        distance1 = Point(pos.x, pos.z):distance(lineSegmentLeft)
+                        distance2 = Point(pos.x, pos.z):distance(lineSegmentRight)
+                    else
+                        distance1 = Point(minion.x, minion.z):distance(lineSegmentLeft)
+                        distance2 = Point(minion.x, minion.z):distance(lineSegmentRight)
+                    end
+                    if (distance1 < (getHitBoxRadius2(minion)*2+10) or distance2 < (getHitBoxRadius2(minion) *2+10)) then
+                        table.insert(mCollision, minion)
+                    end
+                end
+            end
+        end
+    end
+    if #mCollision > 0 then return true, mCollision else return false, mCollision end
+end
+
+function getHitBoxRadius2(target)
+    return GetDistance(target, target.minBBox)/2
 end
