@@ -1,10 +1,9 @@
-
 --[[
 
 	Script Name: OLAF MASTER 
-  	Author: kokosik1221
-	Last Version: 0.1
-	21.11.2014
+    	Author: kokosik1221
+	Last Version: 0.2
+	22.11.2014
 	
 ]]--
 
@@ -15,7 +14,7 @@ local AUTOUPDATE = true
 
 
 
-local version = 0.1
+local version = 0.2
 local SCRIPT_NAME = "OlafMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -45,10 +44,13 @@ local W = {name = "Vicious Strikes"}
 local E = {name = "Reckless Swing", range = 325}
 local R = {name = "Ragnarok"}
 local Items = {
+	BRK = { id = 3153, range = 450, reqTarget = true, slot = nil },
 	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
-	DFG = { id = 3128, range = 750, reqTarget = true, slot = nil },
-	HGB = { id = 3146, range = 400, reqTarget = true, slot = nil },
-	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
+	RSH = { id = 3074, range = 350, reqTarget = false, slot = nil },
+	STD = { id = 3131, range = 350, reqTarget = false, slot = nil },
+	TMT = { id = 3077, range = 350, reqTarget = false, slot = nil },
+	YGB = { id = 3142, range = 350, reqTarget = false, slot = nil },
+	RND = { id = 3143, range = 275, reqTarget = false, slot = nil },
 }
 local QReady, WReady, EReady, RReady, IReady, pickaxe = false, false, false, false, false, false
 local abilitylvl, lastskin = 0, 0
@@ -93,7 +95,7 @@ local ccspells = {
 	['ThreshRPenta'] = {charName = "Thresh", spellSlot = "R", SpellType = "skillshot"},
 	['AhriSeduce'] = {charName = "Ahri", spellSlot = "E", SpellType = "skillshot"},
 	['BandageToss'] = {charName = "Amumu", spellSlot = "Q", SpellType = "skillshot"},
-	['CurseoftheSadMumm'] = {charName = "Amumu", spellSlot = "R", SpellType = "skillshot"},
+	['CurseoftheSadMummy'] = {charName = "Amumu", spellSlot = "R", SpellType = "skillshot"},
 	['FlashFrost'] = {charName = "Anivia", spellSlot = "Q", SpellType = "skillshot"},
 	['EnchantedCrystalArrow'] = {charName = "Ashe", spellSlot = "R", SpellType = "skillshot"},
 	['YasuoRKnockUpComboW'] = {charName = "Yasuo", spellSlot = "R", SpellType = "skillshot"},
@@ -169,7 +171,7 @@ function OnTick()
 	if MenuOlaf.prConfig.ALS then
 		autolvl()
 	end
-	if MenuOlaf.exConfig.APA then
+	if MenuOlaf.exConfig.APA or MenuOlaf.exConfig.APA2 then
 		AutoAxe()
 	end
 	KillSteall()
@@ -181,7 +183,7 @@ function Menu()
 	MenuOlaf:addSubMenu("Orbwalking", "Orbwalking")
 	SxOrb:LoadToMenu(MenuOlaf.Orbwalking)
 	MenuOlaf:addSubMenu("Target selector", "STS")
-	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
+	TargetSelector = TargetSelector(TARGET_NEAR_MOUSE, Q.range, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Olaf"
 	MenuOlaf.STS:addTS(TargetSelector)
 	MenuOlaf:addSubMenu("[Olaf Master]: Combo Settings", "comboConfig")
@@ -236,7 +238,8 @@ function Menu()
 	end 
 	MenuOlaf.exConfig:addParam("AUCC", "Anty CC With (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuOlaf.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuOlaf.exConfig:addParam("APA", "Auto Pick Axe's", SCRIPT_PARAM_ONOFF, true)
+	MenuOlaf.exConfig:addParam("APA", "Auto Pick Axe's (OnKeyDown)", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("SPACE"))
+	MenuOlaf.exConfig:addParam("APA2", "Auto Pick Axe's (Toggle)", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("T"))
 	MenuOlaf:addSubMenu("[Olaf Master]: Draw Settings", "drawConfig")
 	MenuOlaf.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuOlaf.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
@@ -374,10 +377,10 @@ function Combo()
 end
 
 function Harrass()
-	if MenuOlaf.harrasConfig.USEQ and ((myHero.mana/myHero.maxMana)*100) >= MenuOlaf.harrasConfig.manah then
+	if MenuOlaf.harrasConfig.HM == 1 and ((myHero.mana/myHero.maxMana)*100) >= MenuOlaf.harrasConfig.manah then
 		CastQ(Cel)
 	end
-	if MenuOlaf.harrasConfig.USEE then
+	if MenuOlaf.harrasConfig.HM == 2 then
 		CastE(Cel)
 	end
 end
@@ -443,7 +446,7 @@ function GetBestLineFarmPosition(range, width, objects)
 end
 
 function AutoAxe()
-	if axe and not MenuOlaf.comboConfig.CEnabled and GetDistance(myHero, axe) <= 365 then
+	if axe and GetDistance(myHero, axe) <= 365 then
         pickaxe = true
         myHero:MoveTo(axe.x, axe.z)
 	end
