@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: ANNIE MASTER 
-    	Author: kokosik1221
-	Last Version: 0.1
-	23.11.2014
+    Author: kokosik1221
+	Last Version: 0.2
+	26.11.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Annie" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.1
+local version = 0.2
 local SCRIPT_NAME = "AnnieMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -262,7 +262,7 @@ function GetCustomTarget()
 end
 
 function Check()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
@@ -667,7 +667,7 @@ function CastR(unit)
 end
 
 function CastWMEC(unit, count)
-	local wPos = GetAoESpellPosition(W.width, unit)
+	local wPos = GetAoESpellPosition(W.width, unit, W.delay)
     if wPos and GetDistance(wPos) < W.range then
         if EnemyCount(wPos, W.width) >= count then
 			if VIP_USER and MenuAnnie.prConfig.pc then
@@ -680,7 +680,7 @@ function CastWMEC(unit, count)
 end
 
 function CastRMEC(unit, count)
-	local rPos = GetAoESpellPosition(R.width, unit)
+	local rPos = GetAoESpellPosition(R.width, unit, R.delay)
     if rPos and GetDistance(rPos) <= R.range then
         if EnemyCount(rPos, R.width) >= count then
 			if VIP_USER and MenuAnnie.prConfig.pc then
