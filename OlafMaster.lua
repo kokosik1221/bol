@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: OLAF MASTER 
-    	Author: kokosik1221
-	Last Version: 0.2
-	22.11.2014
+    Author: kokosik1221
+	Last Version: 0.3
+	26.11.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ local AUTOUPDATE = true
 
 
 
-local version = 0.2
+local version = 0.3
 local SCRIPT_NAME = "OlafMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -446,7 +446,7 @@ function GetBestLineFarmPosition(range, width, objects)
 end
 
 function AutoAxe()
-	if axe and GetDistance(myHero, axe) <= 365 then
+	if not MenuOlaf.jf.JFEnabled and not MenuOlaf.farm.LaneClear and axe and GetDistance(myHero, axe) <= 365 then
         pickaxe = true
         myHero:MoveTo(axe.x, axe.z)
 	end
