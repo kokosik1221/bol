@@ -2,8 +2,8 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.3
-	11.11.2014
+	Last Version: 0.4
+	29.11.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Gragas" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.3
+local version = 0.4
 local SCRIPT_NAME = "GragasMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -158,6 +158,8 @@ function Menu()
 	MenuGragy.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuGragy.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuGragy.harrasConfig:addParam("manah", "Min. Mana To Harass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuGragy:addSubMenu("[Gragas Master]: Interrupt Settings", "iConfig")
+    Interrupter(MenuGragy.iConfig, Interrup)
 	MenuGragy:addSubMenu("[Gragas Master]: KS Settings", "ksConfig")
 	MenuGragy.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -355,7 +357,7 @@ function Combo()
 	end
 	if RReady and MenuGragy.comboConfig.rConfig.USER and MenuGragy.comboConfig.rConfig.HX and GetDistance(Cel) < R.range then
 		local rPos = GetAoESpellPosition(500, Cel)
-           if rPos and GetDistance(rPos) <= R.range then
+        if rPos and GetDistance(rPos) <= R.range then
             if EnemyCount(rPos, 500) >= MenuGragy.comboConfig.rConfig.HXC then
 				if VIP_USER and MenuGragy.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
@@ -466,6 +468,12 @@ function BestQFarmPos(range, radius, objects)
          end
     end
     return Pos, BHit
+end
+
+function Interrup(unit, spell)
+	if EReady and GetDistance(unit) <= E.range then
+		CastE(unit)
+	end
 end
 
 function autozh()
