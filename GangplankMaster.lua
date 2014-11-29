@@ -2,8 +2,9 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.72
-	31.10.2014
+	Last Version: 1.73
+	29.11.2014
+
 	
 ]]--
 
@@ -16,7 +17,7 @@ local AUTOUPDATE = true
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local SCRIPT_NAME = "GangplankMaster"
-local version = 1.72
+local version = 1.73
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -30,6 +31,7 @@ end
 local RequireI = Require("SourceLib")
 RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
 RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
+require "AoE_Skillshot_Position"
 RequireI:Check()
 if RequireI.downloadNeeded == true then return end
 
@@ -129,10 +131,16 @@ function Menu()
 	MenuGP.STS:addTS(TargetSelector)
 	MenuGP:addSubMenu("[Gangplank Master]: Combo Settings", "comboConfig")
 	MenuGP.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.comboConfig:addParam("USEW", "Use W in Combo", SCRIPT_PARAM_ONOFF, false)
+	MenuGP.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.comboConfig:addParam("USEE", "Use E in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.comboConfig:addParam("EC", "Min Team Count To Cast E", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
+	MenuGP.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.comboConfig:addParam("USER", "Use R in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.comboConfig:addParam("USER2", "Use Only If Can Hit X Enemy", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.comboConfig:addParam("USER2C", "X = ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
+	MenuGP.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	MenuGP.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
@@ -143,11 +151,13 @@ function Menu()
 	MenuGP.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: KS Settings", "ksConfig")
 	MenuGP.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.ksConfig:addParam("QKS", "Use Q To KS", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.ksConfig:addParam("ULTHITS", "Ult hit times:", SCRIPT_PARAM_SLICE, 2, 1, 7, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Farm Settings", "farm")
-	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, false)
 	MenuGP.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
 	MenuGP.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
@@ -160,6 +170,7 @@ function Menu()
 	MenuGP.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Extra Settings", "exConfig")
 	MenuGP.exConfig:addParam("CC", "Anty CC", SCRIPT_PARAM_ONOFF, true)
+	MenuGP.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.exConfig:addParam("aw", "Auto Heal", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.exConfig:addParam("MINHPTOW", "Min % HP To Heal", SCRIPT_PARAM_SLICE, 60, 0, 100, 2)
 	MenuGP.exConfig:addParam("MINMPTOW", "Min % MP To Heal", SCRIPT_PARAM_SLICE, 70, 0, 100, 2)	
@@ -236,16 +247,24 @@ function Check()
 end
 
 function CountTeam(point, range)
-    local ChampCount = 0
-    for j = 1, heroManager.iCount, 1 do
-        local enemyhero = heroManager:getHero(j)
-		if myHero.team == enemyhero.team and ValidTarget(enemyhero, skills.skillE.range) then
-            if GetDistance(enemyhero, point) <= range then
-                 ChampCount = ChampCount + 1
-            end
-        end
-    end            
-    return ChampCount
+	local count = 0
+	for i = 1, heroManager.iCount do
+		local player = heroManager:getHero(i)
+		if player and player.team == myHero.team and not player.dead and GetDistance(point, player) <= range then
+			count = count + 1
+		end
+	end
+	return count
+end
+
+function EnemyCount(point, range)
+	local count = 0
+	for _, enemy in pairs(GetEnemyHeroes()) do
+		if enemy and not enemy.dead and GetDistance(point, enemy) <= range then
+			count = count + 1
+		end
+	end            
+	return count
 end
 
 function UseItems(unit)
@@ -290,8 +309,8 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USEE then
-		local enemyCount = CountTeam(myHero, skills.skillE.range)
-		if EReady and MenuGP.comboConfig.USEE and enemyCount >= MenuGP.comboConfig.EC then
+		local Count = CountTeam(myHero, skills.skillE.range)
+		if EReady and MenuGP.comboConfig.USEE and Count >= MenuGP.comboConfig.EC then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _E}):send()
 			else
@@ -299,14 +318,26 @@ function Combo()
 			end
 		end
 	end
-	if MenuGP.comboConfig.USER then
-		if RReady and GetDistance(Cel) < skills.skillR.range and MenuGP.comboConfig.USER then
+	if MenuGP.comboConfig.USER and not MenuGP.comboConfig.USER2 then
+		if RReady and GetDistance(Cel) < skills.skillR.range then
 			if VIP_USER and MenuGP.prConfig.pc then
-				Packet("S_CAST", {spellId = _R, targetNetworkId = Cel.networkID}):send()
+				Packet("S_CAST", {spellId = _R, fromX = Cel.x, fromY = Cel.z, toX = Cel.x, toY = Cel.z}):send()
 			else
-				CastSpell(_R, Cel)
-			end
+				CastSpell(_R, Cel.x, Cel.z)
+			end	
 		end
+	end
+	if MenuGP.comboConfig.USER and MenuGP.comboConfig.USER2 then
+		local rPos = GetAoESpellPosition(600, Cel)
+        if rPos and GetDistance(rPos) <= skills.skillR.range then
+            if RReady and EnemyCount(rPos, 600) >= MenuGP.comboConfig.USER2C then
+				if VIP_USER and MenuGP.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
+				else
+					CastSpell(_R, rPos.x, rPos.z)
+				end	
+            end
+        end
 	end
 end
 
