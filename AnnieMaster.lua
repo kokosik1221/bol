@@ -2,8 +2,8 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.2
-	26.11.2014
+	Last Version: 0.3
+	29.11.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Annie" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.2
+local version = 0.3
 local SCRIPT_NAME = "AnnieMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -57,7 +57,7 @@ function Vars()
 	W = {name = "Incinerate", range = 625, speed = math.huge, delay = 0.60, width = 50*math.pi/180}
 	E = {name = "Molten Shield"}
 	R = {name = "Summon: Tibbers", range = 600, speed = math.huge, delay = 0.20, width = 200}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma, stun, tibbers = false, false, false, false, false, false, false, false, false, false
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma, stun, tibbers, recall = false, false, false, false, false, false, false, false, false, false, false
 	abilitylvl, lastskin = 0, 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -143,6 +143,7 @@ function Menu()
 	MenuAnnie.comboConfig.rConfig:addParam("HXC", "Min. Enemy To Hit", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
 	MenuAnnie.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAnnie.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuAnnie.comboConfig:addParam("uaa2", "Use AA Only If Enemy Is In Q Range", SCRIPT_PARAM_ONOFF, true)
 	MenuAnnie.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
 	MenuAnnie.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAnnie.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
@@ -243,10 +244,17 @@ function Menu()
 end
 
 function caa()
-	if MenuAnnie.comboConfig.uaa then
+	if MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
 		SOWi:EnableAttacks()
-	elseif not MenuAnnie.comboConfig.uaa then
+	elseif not MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
 		SOWi:DisableAttacks()
+	end
+	if MenuAnnie.comboConfig.uaa and MenuAnnie.comboConfig.uaa2 then
+		if GetDistance(Cel) < Q.range then
+			SOWi:EnableAttacks()
+		else
+			SOWi:DisableAttacks()
+		end
 	end
 end
 
@@ -339,12 +347,12 @@ end
 
 function Harrass()
 	if MenuAnnie.harrasConfig.HM == 1 then
-		if QReady and GetDistance(Cel) <= Q.range then
+		if QReady and GetDistance(Cel) <= Q.range and not recall then
 			CastQ(Cel)
 		end
 	end
 	if MenuAnnie.harrasConfig.HM == 2 then
-		if WReady and GetDistance(Cel) < W.range then
+		if WReady and GetDistance(Cel) < W.range and not recall then
 			CastW(Cel)
 		end
 	end
@@ -401,7 +409,7 @@ function AutoW()
 	for i=1, heroManager.iCount do
 		local enemy = heroManager:GetHero(i)
         if not enemy.dead and enemy.visible then
-			if stun and WReady then
+			if stun and WReady and not recall then
 				CastWMEC(enemy, MenuAnnie.exConfig.AWX)
 			end
 		end
@@ -412,7 +420,7 @@ function AutoR()
 	for i=1, heroManager.iCount do
 		local enemy = heroManager:GetHero(i)
         if not enemy.dead and enemy.visible then
-			if stun and RReady then
+			if stun and RReady and not recall then
 				CastRMEC(enemy, MenuAnnie.exConfig.ARX)
 			end
 		end
@@ -420,7 +428,7 @@ function AutoR()
 end
 
 function stackp()
-	if not stun and EReady then
+	if not stun and EReady and not recall then
 		CastE()
 	end
 end
@@ -707,6 +715,9 @@ function OnCreateObj(object)
     if object.name == "BearFire_foot.troy" then
         tibbers = true
     end
+	if object.name:find("TeleportHome") then
+		recall = true
+	end
 end
  
 function OnDeleteObj(object)
@@ -716,6 +727,9 @@ function OnDeleteObj(object)
     if object.name == "BearFire_foot.troy" then
         tibbers = false
     end
+	if object.name:find("TeleportHome") or (recall == nil and object.name == recall.name) then
+		recall = false
+	end
 end
 
 function EnemyCount(point, range)
