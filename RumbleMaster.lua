@@ -2,7 +2,7 @@
 
 	Script Name: RUMBLE MASTER 
     	Author: kokosik1221
-	Last Version: 0.1
+	Last Version: 0.2
 	29.11.2014
 	
 ]]--
@@ -13,7 +13,7 @@ if myHero.charName ~= "Rumble" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.1
+local version = 0.2
 local SCRIPT_NAME = "RumbleMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -318,9 +318,9 @@ function Combo()
 			end
 			if MenuRumble.comboConfig.rConfig.RM == 2 then
 				if myHero.mana >= 50 then
-					r = getDmg("R", enemy, myHero, 2)
+					r = getDmg("R", Cel, myHero, 2)
 				else
-					r = getDmg("R", enemy, myHero, 1)
+					r = getDmg("R", Cel, myHero, 1)
 				end
 				if Cel.health < r then
 					if VIP_USER then
@@ -486,7 +486,7 @@ function KillSteall()
 			RDMG = getDmg("R", enemy, myHero, 1)
 			IDMG = getDmg("IGNITE", enemy, myHero) 
 		end
-		if ValidTarget(enemy) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible and GetDistance(enemy) < R.range then
+		if ValidTarget(enemy) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
 			if enemy.health < QDMG and GetDistance(enemy) < Q.range and MenuRumble.ksConfig.QKS then
 				CastQ(enemy)
 			elseif enemy.health < EDMG and GetDistance(enemy) < E.range and MenuRumble.ksConfig.EKS then
@@ -497,7 +497,7 @@ function KillSteall()
 				else
 					CastRFREE(enemy)
 				end
-			elseif enemy.health < IDMG and GetDistance(enemy) <= 600 and MenuRumble.ksConfig.IKS then
+			elseif enemy.health < IDMG and IReady and GetDistance(enemy) <= 600 and MenuRumble.ksConfig.IKS then
 				CastSpell(IgniteKey, enemy)
 			end
 		end
