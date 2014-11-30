@@ -3,7 +3,7 @@
 	Script Name: RUMBLE MASTER 
     	Author: kokosik1221
 	Last Version: 0.2
-	29.11.2014
+	30.11.2014
 	
 ]]--
 
