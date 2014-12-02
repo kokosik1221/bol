@@ -2,8 +2,8 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.3
-	29.11.2014
+	Last Version: 0.4
+	02.12.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Annie" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.3
+local version = 0.4
 local SCRIPT_NAME = "AnnieMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -708,6 +708,18 @@ function OnProcessSpell(unit,spell)
 	end
 end
 
+function OnGainBuff(unit, buff)
+	if unit.isMe and (buff.name == "recallimproved") then
+		recall = true
+	end 
+end
+
+function OnLoseBuff(unit, buff)
+	if unit.isMe and (buff.name == "recallimproved") then
+		recall = false
+	end 
+end
+
 function OnCreateObj(object)
     if object.name == "StunReady.troy" then
         stun = true
@@ -715,9 +727,6 @@ function OnCreateObj(object)
     if object.name == "BearFire_foot.troy" then
         tibbers = true
     end
-	if object.name:find("TeleportHome") then
-		recall = true
-	end
 end
  
 function OnDeleteObj(object)
@@ -727,9 +736,6 @@ function OnDeleteObj(object)
     if object.name == "BearFire_foot.troy" then
         tibbers = false
     end
-	if object.name:find("TeleportHome") or (recall == nil and object.name == recall.name) then
-		recall = false
-	end
 end
 
 function EnemyCount(point, range)
