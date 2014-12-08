@@ -2,8 +2,8 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.4
-	29.11.2014
+	Last Version: 0.5
+	08.12.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Gragas" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.4
+local version = 0.5
 local SCRIPT_NAME = "GragasMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -102,6 +102,13 @@ function OnTick()
 	if MenuGragy.comboConfig.qConfig.ADQ then
 		AutoQ()
 	end
+	if MenuGragy.comboConfig.rConfig.CRKD and Cel then
+		if not MenuGragy.comboConfig.rConfig.CBE then
+			CastR(Cel)
+		else
+			CastRBehind(Cel)
+		end
+	end
 	if RReady and Cel ~= nil and MenuGragy.comboConfig.rConfig.AHX then
 		local rPos = GetAoESpellPosition(450, Cel)
         if rPos and GetDistance(rPos) <= R.range then
@@ -147,6 +154,8 @@ function Menu()
 	MenuGragy.comboConfig.rConfig:addParam("CBE", "Cast Behind Enemy", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.comboConfig.rConfig:addParam("qqq", "OFF (Cast To Target POS)", SCRIPT_PARAM_INFO,"")
 	MenuGragy.comboConfig.rConfig:addParam("qqq", "ON (Try Cast Behind Target)", SCRIPT_PARAM_INFO,"")
+	MenuGragy.comboConfig.rConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGragy.comboConfig.rConfig:addParam("CRKD", "Cast (R) Key Down", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 	MenuGragy.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
