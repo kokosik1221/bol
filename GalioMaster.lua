@@ -3,7 +3,7 @@
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
 	Last Version: 1.8
-	04.11.2014
+	08.12.2014
 	
 ]]--
 
