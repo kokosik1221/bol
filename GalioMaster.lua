@@ -2,7 +2,7 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 1.7
+	Last Version: 1.8
 	04.11.2014
 	
 ]]--
@@ -16,7 +16,7 @@ local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.7
+local version = 1.8
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -37,27 +37,29 @@ end
 RequireI:Check()
 if RequireI.downloadNeeded == true then return end
 
-local skills = {
-	skillQ = {range = 940, speed = 1400, delay = 0.25, width = 235},
-	skillW = {range = 800},
-	skillE = {range = 1180, speed = 1400, delay = 0.25, width = 235},
-	skillR = {range = 560},
-}
 local Items = {
 	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
 	DFG = { id = 3128, range = 750, reqTarget = true, slot = nil },
 	HGB = { id = 3146, range = 400, reqTarget = true, slot = nil },
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, ultbuff, sac, mma = false, false, false, false, false, false, false, false, false
-local abilitylvl, lastskin, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
-local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, zhonyaslot = nil, nil
-local killstring = {}
 		
-function OnLoad()
+function Vars()
+	Q = {range = 940, speed = 1400, delay = 0.25, width = 235}
+	W = {range = 800}
+	E = {range = 1180, speed = 1400, delay = 0.25, width = 235}
+	R = {range = 560}
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, ultbuff, sac, mma, oc = false, false, false, false, false, false, false, false, false, false
+	abilitylvl, lastskin, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
+	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	IgniteKey, zhonyaslot = nil, nil
+	killstring = {}
 	print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+end
+
+function OnLoad()
+	Vars()
 	Menu()
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -77,10 +79,12 @@ function CheckUlt()
     if TargetHaveBuff("GalioIdolOfDurand", myHero) then
          ultbuff = true
 		 SOWi.Menu.Enabled = false
+		 oc = false
     else
          ultbuff = false
-		 if not (sac or mma) then
+		 if oc == false then
 			SOWi.Menu.Enabled = true
+			oc = true
 		 end
     end
 end
@@ -121,8 +125,8 @@ function Menu()
 	MenuGalio:addSubMenu("Orbwalking", "Orbwalking")
 	SOWi:LoadToMenu(MenuGalio.Orbwalking)
 	MenuGalio:addSubMenu("Target selector", "STS")
-    TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, skills.skillE.range, DAMAGE_MAGIC)
-	TargetSelector.name = "Fizz"
+    TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
+	TargetSelector.name = "Galio"
 	MenuGalio.STS:addTS(TargetSelector)
 	MenuGalio:addSubMenu("[Galio Master]: Combo Settings", "comboConfig")
     MenuGalio.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
@@ -295,12 +299,12 @@ end
 function Combo()
 	UseItems(Cel)
 	if MenuGalio.comboConfig.USEQ then
-		if QReady and MenuGalio.comboConfig.USEQ and GetDistance(Cel) < skills.skillQ.range then
+		if QReady and MenuGalio.comboConfig.USEQ and GetDistance(Cel) < Q.range then
 			CastQ(Cel)
 		end
 	end
 	if MenuGalio.comboConfig.USEW then
-		if WReady and MenuGalio.comboConfig.USEW and GetDistance(Cel) <= skills.skillW.range then
+		if WReady and MenuGalio.comboConfig.USEW and GetDistance(Cel) <= W.range then
 			if MenuGalio.comboConfig.USEWDMG then
 				if lasthealthchecked > myHero.health then
 					CastSpell(_W)
@@ -311,13 +315,13 @@ function Combo()
 		end
 	end
 	if MenuGalio.comboConfig.USEE then
-		if EReady and MenuGalio.comboConfig.USEE and GetDistance(Cel) < skills.skillE.range then
+		if EReady and MenuGalio.comboConfig.USEE and GetDistance(Cel) < E.range then
 			CastE(Cel)
 		end
 	end
 	if MenuGalio.comboConfig.USER then
-		local enemyCount = EnemyCount(myHero, skills.skillR.range)
-		if not ultbuff and RReady and GetDistance(Cel) < skills.skillR.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR then
+		local enemyCount = EnemyCount(myHero, R.range)
+		if not ultbuff and RReady and GetDistance(Cel) < R.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR then
 			SOWi.Menu.Enabled = false
 			CastSpell(_R)
 		end
@@ -326,12 +330,12 @@ end
 
 function Harrass()
 	if MenuGalio.harrasConfig.QH then
-		if QReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and GetDistance(Cel) < skills.skillQ.range and Cel.visible then
+		if QReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and GetDistance(Cel) < Q.range and Cel.visible then
 			CastQ(Cel)
 		end
 	end
 	if MenuGalio.harrasConfig.EH then
-		if EReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and GetDistance(Cel) < skills.skillE.range and Cel.visible then
+		if EReady and Cel ~= nil and Cel.team ~= player.team and not Cel.dead and GetDistance(Cel) < E.range and Cel.visible then
 			CastE(Cel)
 		end
 	end
@@ -368,8 +372,8 @@ function Farm(Mode)
 	
 	if UseQ then
 		for i, minion in pairs(EnemyMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range then
-				local Pos, Hit = BestQFarmPos(skills.skillQ.range, skills.skillQ.width, EnemyMinions.objects)
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
+				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
@@ -379,8 +383,8 @@ function Farm(Mode)
 
 	if UseE then
 		for i, minion in pairs(EnemyMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range then
-				local Pos, Hit = BestQFarmPos(skills.skillE.range, skills.skillE.width, EnemyMinions.objects)
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
+				local Pos, Hit = BestQFarmPos(E.range, E.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_E, Pos.x, Pos.z)
 				end
@@ -410,14 +414,14 @@ end
 function JungleFarmm()
 	if MenuGalio.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range then
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
 				CastQ(minion)
 			end
 		end
 	end
 	if MenuGalio.jf.EJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range then
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
 				CastE(minion)
 			end
 		end
@@ -426,47 +430,30 @@ end
 
 function KillSteall()
 if not ultbuff then 
-	for i = 1, heroManager.iCount do
-		local Enemy = heroManager:getHero(i)
+	for _, Enemy in pairs(GetEnemyHeroes()) do
 		local health = Enemy.health
 		local distance = GetDistance(Enemy)
-		if MenuGalio.ksConfig.IKS then
-			iDmg = getDmg("IGNITE", Enemy, myHero)
-		else 
-			iDmg = 0
-		end
-		if MenuGalio.ksConfig.QKS then
-			qDmg = getDmg("Q", Enemy, myHero)
-		else 
-			qDmg = 0
-		end
-		if MenuGalio.ksConfig.EKS then
-			eDmg = getDmg("E", Enemy, myHero)
-		else 
-			eDmg = 0
-		end
-		if MenuGalio.ksConfig.RKS then
-			rDmg = getDmg("R", Enemy, myHero)
-		else 
-			rDmg = 0
-		end
+		local qDmg = myHero:CalcDamage(Enemy, (55 * myHero:GetSpellData(0).level + 25 + 0.6 * myHero.ap))
+		local eDmg = myHero:CalcDamage(Enemy, (45 * myHero:GetSpellData(2).level + 15 + 0.5 * myHero.ap))
+		local rDmg = myHero:CalcDamage(Enemy, (110 * myHero:GetSpellData(3).level + 110 + 0.6 * myHero.ap))
+		local iDmg = 50 + (20 * myHero.level)
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health < qDmg and QReady and (distance < skills.skillQ.range) and MenuGalio.ksConfig.QKS then
+			if health < qDmg and QReady and (distance < Q.range) and MenuGalio.ksConfig.QKS then
 				CastQ(Enemy)
-			elseif health < eDmg and EReady and (distance < skills.skillE.range) and MenuGalio.ksConfig.EKS then
+			elseif health < eDmg and EReady and (distance < E.range) and MenuGalio.ksConfig.EKS then
 				CastE(Enemy)
-			elseif health < rDmg and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS then
+			elseif health < rDmg and RReady and (distance < R.range) and MenuGalio.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (qDmg + eDmg) and QReady and EReady and (distance < skills.skillQ.range) and MenuGalio.ksConfig.EKS and MenuGalio.ksConfig.QKS then
+			elseif health < (qDmg + eDmg) and QReady and EReady and (distance < Q.range) and MenuGalio.ksConfig.EKS and MenuGalio.ksConfig.QKS then
 				CastQ(Enemy)
 				CastE(Enemy)
-			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS and MenuGalio.ksConfig.QKS then
+			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < R.range) and MenuGalio.ksConfig.RKS and MenuGalio.ksConfig.QKS then
 				CastQ(Enemy)
 				CastSpell(_R)
-			elseif health < (eDmg + rDmg) and EReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.EKS and MenuGalio.ksConfig.RKS then
+			elseif health < (eDmg + rDmg) and EReady and RReady and (distance < R.range) and MenuGalio.ksConfig.EKS and MenuGalio.ksConfig.RKS then
 				CastE(Enemy)
 				CastSpell(_R)
-			elseif health < (qDmg + eDmg + rDmg) and QReady and EReady and RReady and (distance < skills.skillR.range) and MenuGalio.ksConfig.RKS and MenuGalio.ksConfig.QKS and MenuGalio.ksConfig.EKS then
+			elseif health < (qDmg + eDmg + rDmg) and QReady and EReady and RReady and (distance < R.range) and MenuGalio.ksConfig.RKS and MenuGalio.ksConfig.QKS and MenuGalio.ksConfig.EKS then
 				CastQ(Enemy)
 				CastE(Enemy)
 				CastSpell(_R)
@@ -486,16 +473,16 @@ function OnDraw()
 		end
 	end
 	if MenuGalio.drawConfig.DQR and QReady then
-		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
 	end
 	if MenuGalio.drawConfig.DWR and WReady then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillW.range, RGB(MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
 	end
 	if MenuGalio.drawConfig.DER and EReady then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, RGB(MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
 	end
 	if MenuGalio.drawConfig.DRR and RReady then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, RGB(MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
 	end
 	if MenuGalio.drawConfig.DD then	
 		DmgCalc()
@@ -559,7 +546,7 @@ function autolvl()
 end
 
 function PluginOnProcessSpell(unit, spell)
-    if MenuGalio.exConfig.AR and unit ~= nil and unit.valid and unit.team == TEAM_ENEMY and CanUseSpell(_R) == READY and GetDistance(unit) < skills.skillR.range then
+    if MenuGalio.exConfig.AR and unit ~= nil and unit.valid and unit.team == TEAM_ENEMY and CanUseSpell(_R) == READY and GetDistance(unit) < R.range then
         if spell.name=="KatarinaR" or spell.name=="GalioIdolOfDurand" or spell.name=="Crowstorm" or spell.name=="DrainChannel" or spell.name=="AbsoluteZero" or spell.name=="ShenStandUnited" or spell.name=="UrgotSwap2" or spell.name=="AlZaharNetherGrasp" or spell.name=="FallenOne" or spell.name=="Pantheon_GrandSkyfall_Jump" or spell.name=="CaitlynAceintheHole" or spell.name=="MissFortuneBulletTime" or spell.name=="InfiniteDuress" or spell.name=="Teleport" then
             CastSpell(_R, unit)
         end
@@ -569,9 +556,9 @@ end
 function DmgCalc()
     for _,enemy in pairs(GetEnemyHeroes()) do
         if not enemy.dead and enemy.visible then
-            local qDmg = getDmg("Q", enemy, myHero)
-            local eDmg = getDmg("E", enemy, myHero)
-			local rDmg = getDmg("R", enemy, myHero)
+			local qDmg = myHero:CalcDamage(enemy, (55 * myHero:GetSpellData(0).level + 25 + 0.6 * myHero.ap))
+			local eDmg = myHero:CalcDamage(enemy, (45 * myHero:GetSpellData(2).level + 15 + 0.5 * myHero.ap))
+			local rDmg = myHero:CalcDamage(enemy, (110 * myHero:GetSpellData(3).level + 110 + 0.6 * myHero.ap))
             if enemy.health > (qDmg + eDmg + rDmg) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < qDmg then
@@ -603,13 +590,13 @@ end
 
 function CastQ(unit)
 	if MenuGalio.prConfig.pro == 1 then
-		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, false)
+		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, false)
 		if HitChance >= MenuGalio.prConfig.vphit - 1 then
 			SpellCast(_Q, CastPosition)
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetCircularAOEPrediction(unit, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width, myHero)
+		local Position, info = Prodiction.GetCircularAOEPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
 		if Position ~= nil and info.hitchance >= 2 then
 			SpellCast(_Q, Position)	
 		end
@@ -618,13 +605,13 @@ end
 
 function CastE(unit)
 	if MenuGalio.prConfig.pro == 1 then
-		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillE.delay, skills.skillE.width, skills.skillE.range, skills.skillE.speed, myHero, false)
+		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, E.delay, E.width, E.range, E.speed, myHero, false)
 		if HitChance >= MenuGalio.prConfig.vphit - 1 then
 			SpellCast(_E, CastPosition)
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetLineAOEPrediction(unit, skills.skillE.range, skills.skillE.speed, skills.skillE.delay, skills.skillE.width)
+		local Position, info = Prodiction.GetLineAOEPrediction(unit, E.range, E.speed, E.delay, E.width)
 		if Position ~= nil and info.hitchance >= 2 then
 			SpellCast(_E, Position)	
 		end
