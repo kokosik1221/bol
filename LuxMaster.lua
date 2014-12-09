@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: LUX MASTER 
-    Author: kokosik1221
-	Last Version: 0.1
-	02.12.2014
+    	Author: kokosik1221
+	Last Version: 0.2
+	09.12.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Lux" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.1
+local version = 0.2
 local SCRIPT_NAME = "LuxMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -112,14 +112,7 @@ function OnTick()
 	if MenuLux.comboConfig.rConfig.CRKD and RCel then
 		CastR(RCel)
 	end
-	if MenuLux.exConfig.ARF then
-		AutoR()
-	end
-	if MenuLux.exConfig.AEF then
-		AutoE()
-	end
-	AutoDetonateE()
-	KillSteall()
+	KSandAUTO()
 	StealJungle()	
 end
 
@@ -143,7 +136,7 @@ function Menu()
 	MenuLux.comboConfig.eConfig:addParam("USEE", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.comboConfig:addSubMenu("[Lux Master]: R Settings", "rConfig")
 	MenuLux.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
-	MenuLux.comboConfig.rConfig:addParam("RM", "Cast (R) Mode", SCRIPT_PARAM_LIST, 2, {"Normal", "Killable", "Hit X"})
+	MenuLux.comboConfig.rConfig:addParam("RM", "Cast (R) Mode", SCRIPT_PARAM_LIST, 2, {"Normal", "Killable", "Hit X", "Stun", "Stun&Killable"})
 	MenuLux.comboConfig.rConfig:addParam('USERX', 'X = ', SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
 	MenuLux.comboConfig.rConfig:addParam("CRKD", "Cast (R) Key Down", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 	MenuLux.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -216,8 +209,7 @@ function Menu()
 	MenuLux.drawConfig:addParam("DER", "Draw E Range", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.drawConfig:addParam("DERC", "Draw E Range Color", SCRIPT_PARAM_COLOR, {255,0,200,0})
 	MenuLux.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuLux.drawConfig:addParam("DRR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
-	MenuLux.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
+	MenuLux.drawConfig:addParam("DRR", "Draw R Range MiniMap", SCRIPT_PARAM_ONOFF, true)
 	MenuLux:addSubMenu("[Lux Master]: Misc Settings", "prConfig")
 	MenuLux.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuLux.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -332,17 +324,6 @@ function getHitBoxRadius(target)
 	return GetDistance(target.minBBox, target.maxBBox)/2
 end
 
-function AutoDetonateE()
-	for i=1, heroManager.iCount do
-		local enemy = heroManager:GetHero(i)
-		if ValidTarget(enemy) and eobject and GetDistance(eobject,enemy) <= E.width then
-			if myHero:GetSpellData(_E).name == "luxlightstriketoggle" then
-				CastSpell(_E)
-			end
-		end
-	end
-end
-
 function Combo()
 	if myHero.mana >= MenuLux.comboConfig.manac and not recall then
 		if Cel ~= nil then
@@ -380,6 +361,17 @@ function Combo()
 								CastSpell(_R, rPos.x, rPos.z)
 							end	
 						end
+					end
+				end
+				if MenuLux.comboConfig.rConfig.RM == 4 then
+					if RCel.canMove == false then
+						CastR(RCel)
+					end
+				end
+				if MenuLux.comboConfig.rConfig.RM == 5 then
+					local r = getDmg("R", RCel, myHero, 1)
+					if RCel.health < r and RCel.canMove == false then
+						CastR(RCel)
 					end
 				end
 			end
@@ -550,38 +542,8 @@ function OnDraw()
 	if MenuLux.drawConfig.DER and EReady then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuLux.drawConfig.DERC[2], MenuLux.drawConfig.DERC[3], MenuLux.drawConfig.DERC[4]))
 	end
-	if MenuLux.drawConfig.DRR and RReady then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuLux.drawConfig.DRRC[2], MenuLux.drawConfig.DRRC[3], MenuLux.drawConfig.DRRC[4]))
-	end
-end
-
-function AutoR()
-	for _, enemy in pairs(GetEnemyHeroes()) do
-		if RReady and ValidTarget(enemy) and GetDistance(enemy) < R.range and not recall then
-			local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
-			if rPos ~= nil and maxHit >= MenuLux.exConfig.ARX and HitChance >=2 then		
-				if VIP_USER and MenuLux.prConfig.pc then
-					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
-				else
-					CastSpell(_R, rPos.x, rPos.z)
-				end
-			end
-		end
-	end
-end
-
-function AutoE()
-	for _, enemy in pairs(GetEnemyHeroes()) do
-		if EReady and ValidTarget(enemy) and GetDistance(enemy) < E.range and not recall then
-			local ePos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, E.delay, E.width, E.range, E.speed, myHero)
-			if ePos ~= nil and maxHit >= MenuLux.exConfig.AEX and HitChance >=2 then		
-				if VIP_USER and MenuLux.prConfig.pc then
-					Packet("S_CAST", {spellId = _E, fromX = ePos.x, fromY = ePos.z, toX = ePos.x, toY = ePos.z}):send()
-				else
-					CastSpell(_E, ePos.x, ePos.z)
-				end
-			end
-		end
+	if MenuLux.drawConfig.DRR then			
+		DrawCircleMinimap(myHero.x, myHero.y, myHero.z, R.range)
 	end
 end
 
@@ -639,30 +601,59 @@ function StealJungle()
 	end
 end
 
-function KillSteall()
-	for i = 1, heroManager.iCount do
-		local enemy = heroManager:getHero(i)
-		local QDMG = getDmg("Q", enemy, myHero, 1)
-		local EDMG = getDmg("E", enemy, myHero, 1)
-		local RDMG = getDmg("R", enemy, myHero, 1)
-		local IDMG = getDmg("IGNITE", enemy, myHero) 
-		if ValidTarget(enemy) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible and GetDistance(enemy) < R.range and not recall then
-			if enemy.health < QDMG and GetDistance(enemy) < Q.range and MenuLux.ksConfig.QKS then
-				CastQ(enemy)
-			elseif enemy.health < EDMG and GetDistance(enemy) < E.range and MenuLux.ksConfig.EKS then
-				CastE(enemy)
-			elseif enemy.health < RDMG and GetDistance(enemy) < R.range and MenuLux.ksConfig.RKS then
-				CastR(enemy)
-			elseif enemy.health < IDMG and GetDistance(enemy) <= 600 and MenuLux.ksConfig.IKS then
-				CastSpell(IgniteKey, enemy)
+function KSandAUTO()
+	for _, enemy in pairs(GetEnemyHeroes()) do
+		if ValidTarget(enemy) and eobject and GetDistance(eobject,enemy) <= E.width then
+			if myHero:GetSpellData(_E).name == "luxlightstriketoggle" then
+				CastSpell(_E)
+			end
+		end
+		if MenuLux.ksConfig.QKS or MenuLux.ksConfig.EKS or MenuLux.ksConfig.RKS or MenuLux.ksConfig.IKS then
+			if ValidTarget(enemy, R.range) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible and not recall then
+				local QDMG = getDmg("Q", enemy, myHero, 1)
+				local EDMG = getDmg("E", enemy, myHero, 1)
+				local RDMG = getDmg("R", enemy, myHero, 1)
+				local IDMG = getDmg("IGNITE", enemy, myHero) 
+				if enemy.health < QDMG and QReady and GetDistance(enemy) < Q.range and MenuLux.ksConfig.QKS then
+					CastQ(enemy)
+				elseif enemy.health < EDMG and EReady and GetDistance(enemy) < E.range and MenuLux.ksConfig.EKS then
+					CastE(enemy)
+				elseif enemy.health < RDMG and RReady and GetDistance(enemy) < R.range and MenuLux.ksConfig.RKS then
+					CastR(enemy)
+				elseif enemy.health < IDMG and IReady and GetDistance(enemy) <= 600 and MenuLux.ksConfig.IKS then
+					CastSpell(IgniteKey, enemy)
+				end
+			end
+		end
+		if MenuLux.exConfig.AEF then
+			if EReady and ValidTarget(enemy) and GetDistance(enemy) < E.range and not recall then
+				local ePos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, E.delay, E.width, E.range, E.speed, myHero)
+				if ePos ~= nil and maxHit >= MenuLux.exConfig.AEX and HitChance >=2 then		
+					if VIP_USER and MenuLux.prConfig.pc then
+						Packet("S_CAST", {spellId = _E, fromX = ePos.x, fromY = ePos.z, toX = ePos.x, toY = ePos.z}):send()
+					else
+						CastSpell(_E, ePos.x, ePos.z)
+					end
+				end
+			end
+		end
+		if MenuLux.exConfig.ARF then
+			if RReady and ValidTarget(enemy) and GetDistance(enemy) < R.range and not recall then
+				local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
+				if rPos ~= nil and maxHit >= MenuLux.exConfig.ARX and HitChance >=2 then		
+					if VIP_USER and MenuLux.prConfig.pc then
+						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
+					else
+						CastSpell(_R, rPos.x, rPos.z)
+					end
+				end
 			end
 		end
 	end
 end
 
 function DmgCalc()
-	for i=1, heroManager.iCount do
-		local enemy = heroManager:GetHero(i)
+	for _, enemy in pairs(GetEnemyHeroes()) do
         if not enemy.dead and enemy.visible then
 			local QDMG = getDmg("Q", enemy, myHero, 1)
 			local EDMG = getDmg("E", enemy, myHero, 1)
