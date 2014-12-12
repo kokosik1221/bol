@@ -2,8 +2,9 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.5
-	08.12.2014
+	Last Version: 0.51
+	12.12.2014
+
 	
 ]]--
 
@@ -13,7 +14,7 @@ if myHero.charName ~= "Gragas" then return end
 local AUTOUPDATE = true
 
 
-local version = 0.5
+local version = 0.51
 local SCRIPT_NAME = "GragasMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -568,7 +569,7 @@ function KillSteall()
 		local QDMG = myHero:CalcDamage(enemy, (40 * myHero:GetSpellData(0).level + 40 + 0.6 * myHero.ap))
 		local EDMG = myHero:CalcDamage(enemy, (50 * myHero:GetSpellData(2).level + 30 + 0.6 * myHero.ap))
 		local RDMG = myHero:CalcDamage(enemy, (100 * myHero:GetSpellData(3).level + 100 + 0.7 * myHero.ap))
-		local IDMG = getDmg("IGNITE", enemy, myHero) 
+		local IDMG = 50 + (20 * myHero.level)
 		if ValidTarget(enemy) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
 			if health < QDMG and MenuGragy.ksConfig.QKS and GetDistance(enemy) < Q.range and QReady then
 				CastQ(enemy)
