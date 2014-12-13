@@ -2,18 +2,19 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.64
-	17.11.2014
-
+	Last Version: 0.65
+	13.12.2014
+	
 ]]--
 
 
 if myHero.charName ~= "Blitzcrank" then return end
 
-local AUTOUPDATE = true
+_G.AUTOUPDATE = true
+_G.USESKINHACK = false
 
 
-local version = 0.64
+local version = 0.65
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -26,7 +27,7 @@ else
 	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
 end
 if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
-if AUTOUPDATE then
+if _G.AUTOUPDATE then
 	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 local RequireI = Require("SourceLib")
@@ -60,13 +61,6 @@ local Counterspells = {
 	['Teleport'] = {},
 }
 
-local skills = {
-	skillQ = {name = "Rocket Grab", range = 900, speed = 1800, delay = 0.25, width = 60},
-	skillW = {name = "Overdrive"},
-	skillE = {name = "Power Fist", range = 140},
-	skillR = {name = "Static Field", range = 600},
-}
-
 local Items = {
 	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
 	DFG = { id = 3128, range = 750, reqTarget = true, slot = nil },
@@ -74,23 +68,24 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
-local abilitylvl, lastskin = 0, 0
-local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, SmiteKey, zhonyaslot, qPos = nil, nil, nil
-local killstring = {}
-local Spells = {_Q,_W,_E,_R}
-local Spells2 = {"Q","W","E","R"}
-
-function OnLoad()
+function Vars()
+	Q = {name = "Rocket Grab", range = 900, speed = 1800, delay = 0.25, width = 60}
+	W = {name = "Overdrive"}
+	E = {name = "Power Fist", range = 140}
+	R = {name = "Static Field", range = 600}
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
+	abilitylvl, lastskin = 0, 0
+	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	IgniteKey, SmiteKey, zhonyaslot, qPos = nil, nil, nil
+	killstring = {}
+	Spells = {_Q,_W,_E,_R}
+	Spells2 = {"Q","W","E","R"}
 	print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-	Menu()
-	PriorityOnLoad()
 	if VIP_USER and prodstatus and colstatus then
 		Prodict = ProdictManager.GetInstance()
-		ProdictQ = Prodict:AddProdictionObject(_Q, skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width, myHero)
-        ProdictQCol = Collision(skills.skillQ.range, skills.skillQ.speed, skills.skillQ.delay, skills.skillQ.width)
+		ProdictQ = Prodict:AddProdictionObject(_Q, Q.range, Q.speed, Q.delay, Q.width, myHero)
+        ProdictQCol = Collision(Q.range, Q.speed, Q.delay, Q.width)
 	end
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -102,6 +97,12 @@ function OnLoad()
 	end
 end
 
+function OnLoad()
+	Vars()
+	Menu()
+	PriorityOnLoad()
+end
+
 function PriorityOnLoad()
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
@@ -110,10 +111,6 @@ function PriorityOnLoad()
     else
 		arrangePrioritys()
 	end
-end
-
-function skinChanged()
-	return MenuBlitz.prConfig.skin1 ~= lastSkin
 end
 
 function OnTick()
@@ -147,18 +144,18 @@ function Menu()
 	MenuBlitz:addSubMenu("Orbwalking", "Orbwalking")
 	SOWi:LoadToMenu(MenuBlitz.Orbwalking)
 	MenuBlitz:addSubMenu("Target selector", "STS")
-	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, skills.skillQ.range, DAMAGE_MAGIC)
+	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Blitzcrank"
 	MenuBlitz.STS:addTS(TargetSelector)
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Combo Settings", "comboConfig")
-	MenuBlitz.comboConfig:addParam("USEQ", "Use " .. skills.skillQ.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("USEQS", "Use Smite If See Collision", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.comboConfig:addParam("USEW", "Use " .. skills.skillW.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.comboConfig:addParam("USEW", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.comboConfig:addParam("USEE", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.comboConfig:addParam("USEE", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.comboConfig:addParam("USER", "Use " .. skills.skillR.name .. "(R)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.comboConfig:addParam("USER", "Use " .. R.name .. "(R)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("Kilable", "Only Use If Target Is Killable", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
@@ -173,22 +170,22 @@ function Menu()
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: KS Settings", "ksConfig")
 	MenuBlitz.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.ksConfig:addParam("QKS", "Use " .. skills.skillQ.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ksConfig:addParam("QKS", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.ksConfig:addParam("EKS", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ksConfig:addParam("EKS", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.ksConfig:addParam("RKS", "Use " .. skills.skillR.name .. "(R)", SCRIPT_PARAM_ONOFF, false)
+	MenuBlitz.ksConfig:addParam("RKS", "Use " .. R.name .. "(R)", SCRIPT_PARAM_ONOFF, false)
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: LaneClear Settings", "farm")
-	MenuBlitz.farm:addParam("QF", "Use " .. skills.skillQ.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.farm:addParam("QF", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.farm:addParam("EF", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.farm:addParam("EF", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.farm:addParam("LaneClear", "LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
 	MenuBlitz.farm:addParam("manaf", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Jungle Farm Settings", "jf")
-	MenuBlitz.jf:addParam("QJF", "Use " .. skills.skillQ.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.jf:addParam("QJF", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.jf:addParam("EJF", "Use " .. skills.skillE.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.jf:addParam("EJF", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
 	MenuBlitz.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
@@ -237,10 +234,6 @@ function Menu()
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuBlitz.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
-	if MenuBlitz.prConfig.skin and VIP_USER then
-		GenModelPacket("Blitzcrank", MenuBlitz.prConfig.skin1)
-		lastSkin = MenuBlitz.prConfig.skin1
-	end
 	MenuBlitz.comboConfig:permaShow("CEnabled")
 	MenuBlitz.harrasConfig:permaShow("HEnabled")
 	MenuBlitz.harrasConfig:permaShow("HTEnabled")
@@ -317,9 +310,11 @@ function Check()
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	SReady = (SmiteKey ~= nil and myHero:CanUseSpell(SmiteKey) == READY)
-	if MenuBlitz.prConfig.skin and VIP_USER and skinChanged() then
-		GenModelPacket("Blitzcrank", MenuBlitz.prConfig.skin1)
-		lastSkin = MenuBlitz.prConfig.skin1
+	if MenuBlitz.prConfig.skin and VIP_USER and _G.USESKINHACK then
+		if MenuBlitz.prConfig.skin1 ~= lastSkin then
+			GenModelPacket("Blitzcrank", MenuBlitz.prConfig.skin1)
+			lastSkin = MenuBlitz.prConfig.skin1
+		end
 	end
 	if MenuBlitz.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
@@ -491,7 +486,7 @@ function OnDraw()
 			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
 		end
 	end
-	if MenuBlitz.drawConfig.DQL and ValidTarget(Cel, skills.skillQ.range) and VIP_USER then
+	if MenuBlitz.drawConfig.DQL and ValidTarget(Cel, Q.range) and VIP_USER then
 		ProdictQCol:DrawCollision(myHero, Cel)
 	end
 	if MenuBlitz.drawConfig.DD then	
@@ -504,10 +499,10 @@ function OnDraw()
         end
 	end
 	if MenuBlitz.drawConfig.DQR and QReady then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
 	end
 	if MenuBlitz.drawConfig.DRR and RReady then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillR.range, RGB(MenuBlitz.drawConfig.DRRC[2], MenuBlitz.drawConfig.DRRC[3], MenuBlitz.drawConfig.DRRC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuBlitz.drawConfig.DRRC[2], MenuBlitz.drawConfig.DRRC[3], MenuBlitz.drawConfig.DRRC[4]))
 	end
 end
 
@@ -520,24 +515,24 @@ function KillSteall()
 		local rDmg = getDmg("R", Enemy, myHero) + ((myHero.ap*90)/100)
 		local iDmg = (50 + (20 * myHero.level))
 		if ValidTarget(Enemy) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health < qDmg and MenuBlitz.ksConfig.QKS and GetDistance(Enemy) < skills.skillQ.range then
+			if health < qDmg and MenuBlitz.ksConfig.QKS and GetDistance(Enemy) < Q.range then
 				CastQ(Enemy)
-			elseif health < eDmg and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < skills.skillE.range then
+			elseif health < eDmg and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < E.range then
 				CastE(Enemy)
-			elseif health < rDmg and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillR.range then
+			elseif health < rDmg and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < R.range then
 				CastR(Enemy)
 			elseif health < iDmg and MenuBlitz.ksConfig.IKS and IReady and GetDistance(Enemy) <= 600 then
 				CastSpell(IgniteKey, Enemy)
-			elseif health < (qDmg + eDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < skills.skillQ.range then
+			elseif health < (qDmg + eDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < Q.range then
 				CastQ(Enemy)
 				CastE(Enemy)
-			elseif health < (qDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillQ.range then
+			elseif health < (qDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < Q.range then
 				CastQ(Enemy)
 				CastR(Enemy)				
-			elseif health < (eDmg + rDmg) and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillE.range then
+			elseif health < (eDmg + rDmg) and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < E.range then
 				CastE(Enemy)
 				CastR(Enemy)	
-			elseif health < (qDmg + eDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < skills.skillQ.range then
+			elseif health < (qDmg + eDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < Q.range then
 				CastQ(Enemy)
 				CastE(Enemy)
 				CastR(Enemy)	
@@ -576,13 +571,13 @@ function DmgCalc()
 end
 
 function CastQ(unit)
-	if QReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < skills.skillQ.range then
+	if QReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < Q.range then
 		if MenuBlitz.prConfig.pro == 1 then
 			local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
 			if #ColTable2 == 1 and MenuBlitz.comboConfig.USEQS and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
 				CastSpell(SmiteKey, ColTable2[1])
 			end
-			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, skills.skillQ.delay, skills.skillQ.width, skills.skillQ.range, skills.skillQ.speed, myHero, true)
+			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
 			if HitChance >= MenuBlitz.prConfig.vphit - 1 then
 				if VIP_USER and MenuBlitz.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -619,7 +614,7 @@ function CastW()
 end
 
 function CastE(unit)
-	if EReady and GetDistance(unit) < skills.skillE.range then
+	if EReady and GetDistance(unit) < E.range then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _E}):send()
 			myHero:Attack(unit)
@@ -631,7 +626,7 @@ function CastE(unit)
 end
 
 function CastR(unit)
-	if RReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < skills.skillR.range then
+	if RReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < R.range then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _R}):send()
 		else
@@ -765,28 +760,28 @@ end
 function GetMinionCollisionM(pStart, pEnd)
     EnemyMinions:update()
     local distance =  GetDistance(pStart, pEnd)
-    local prediction = TargetPrediction(skills.skillQ.range, skills.skillQ.speed/1000, skills.skillQ.delay*1000, skills.skillQ.width)
+    local prediction = TargetPrediction(Q.range, Q.speed/1000, Q.delay*1000, Q.width)
     local mCollision = {}
-    if distance > skills.skillQ.range then
-        distance = skills.skillQ.range
+    if distance > Q.range then
+        distance = Q.range
     end
     local V = Vector(pEnd) - Vector(pStart)
     local k = V:normalized()
     local P = V:perpendicular2():normalized()
     local t,i,u = k:unpack()
     local x,y,z = P:unpack()
-    local startLeftX = pStart.x + (x *skills.skillQ.width)
-    local startLeftY = pStart.y + (y *skills.skillQ.width)
-    local startLeftZ = pStart.z + (z *skills.skillQ.width)
-    local endLeftX = pStart.x + (x * skills.skillQ.width) + (t * distance)
-    local endLeftY = pStart.y + (y * skills.skillQ.width) + (i * distance)
-    local endLeftZ = pStart.z + (z * skills.skillQ.width) + (u * distance)
-    local startRightX = pStart.x - (x * skills.skillQ.width)
-    local startRightY = pStart.y - (y * skills.skillQ.width)
-    local startRightZ = pStart.z - (z * skills.skillQ.width)
-    local endRightX = pStart.x - (x * skills.skillQ.width) + (t * distance)
-    local endRightY = pStart.y - (y * skills.skillQ.width) + (i * distance)
-    local endRightZ = pStart.z - (z * skills.skillQ.width)+ (u * distance)
+    local startLeftX = pStart.x + (x *Q.width)
+    local startLeftY = pStart.y + (y *Q.width)
+    local startLeftZ = pStart.z + (z *Q.width)
+    local endLeftX = pStart.x + (x * Q.width) + (t * distance)
+    local endLeftY = pStart.y + (y * Q.width) + (i * distance)
+    local endLeftZ = pStart.z + (z * Q.width) + (u * distance)
+    local startRightX = pStart.x - (x * Q.width)
+    local startRightY = pStart.y - (y * Q.width)
+    local startRightZ = pStart.z - (z * Q.width)
+    local endRightX = pStart.x - (x * Q.width) + (t * distance)
+    local endRightY = pStart.y - (y * Q.width) + (i * distance)
+    local endRightZ = pStart.z - (z * Q.width)+ (u * distance)
     local startLeft = WorldToScreen(D3DXVECTOR3(startLeftX, startLeftY, startLeftZ))
     local endLeft = WorldToScreen(D3DXVECTOR3(endLeftX, endLeftY, endLeftZ))
     local startRight = WorldToScreen(D3DXVECTOR3(startRightX, startRightY, startRightZ))
