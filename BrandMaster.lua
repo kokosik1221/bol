@@ -1,19 +1,19 @@
 --[[
 
 	Script Name: BRAND MASTER 
- 	Author: kokosik1221
-	Last Version: 1.25
-	30.11.2014
+    	Author: kokosik1221
+	Last Version: 1.26
+	13.12.2014
 	
 ]]--
 	
 if myHero.charName ~= "Brand" then return end
 
-local AUTOUPDATE = true
+_G.AUTOUPDATE = true
+_G.USESKINHACK = false
 
 
-
-local version = 1.25
+local version = 1.26
 local SCRIPT_NAME = "BrandMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -25,7 +25,7 @@ else
 	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
 end
 if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
-if AUTOUPDATE then
+if _G.AUTOUPDATE then
 	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 local RequireI = Require("SourceLib")
@@ -63,10 +63,6 @@ function OnLoad()
 		print("<b><font color=\"#6699FF\">Brand Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
 	end
-end
-
-function skinChanged()
-	return MenuBrand.prConfig.skin1 ~= lastSkin
 end
 
 function Havepasive(target)
@@ -214,10 +210,6 @@ function Menu()
 	MenuBrand.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBrand.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuBrand.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
-	if MenuBrand.prConfig.skin and VIP_USER then
-		GenModelPacket("Brand", MenuBrand.prConfig.skin1)
-		lastSkin = MenuBrand.prConfig.skin1
-	end
 	MenuBrand.comboConfig:permaShow("CEnabled")
 	MenuBrand.harrasConfig:permaShow("HEnabled")
 	MenuBrand.harrasConfig:permaShow("HTEnabled")
@@ -265,9 +257,11 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuBrand.prConfig.skin and VIP_USER and skinChanged() then
-		GenModelPacket("Brand", MenuBrand.prConfig.skin1)
-		lastSkin = MenuBrand.prConfig.skin1
+	if MenuBrand.prConfig.skin and VIP_USER and _G.USESKINHACK then
+		if MenuBrand.prConfig.skin1 ~= lastSkin then
+			GenModelPacket("Brand", MenuBrand.prConfig.skin1)
+			lastSkin = MenuBrand.prConfig.skin1
+		end
 	end
 	if MenuBrand.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
