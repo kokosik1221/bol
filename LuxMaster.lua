@@ -2,18 +2,19 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.2
-	09.12.2014
+	Last Version: 0.21
+	13.12.2014
 	
 ]]--
 
 
 if myHero.charName ~= "Lux" then return end
 
-local AUTOUPDATE = true
+_G.AUTOUPDATE = true
+_G.USESKINHACK = false
 
 
-local version = 0.2
+local version = 0.21
 local SCRIPT_NAME = "LuxMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -25,7 +26,7 @@ else
 	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
 end
 if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
-if AUTOUPDATE then
+if _G.AUTOUPDATE then
 	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 local RequireI = Require("SourceLib")
@@ -224,10 +225,6 @@ function Menu()
 	MenuLux.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	MenuLux.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuLux.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
-	if MenuLux.prConfig.skin and VIP_USER then
-		GenModelPacket("Lux", MenuLux.prConfig.skin1)
-		lastSkin = MenuLux.prConfig.skin1
-	end
 	MenuLux.comboConfig:permaShow("CEnabled")
 	MenuLux.harrasConfig:permaShow("HEnabled")
 	MenuLux.harrasConfig:permaShow("HTEnabled")
@@ -292,9 +289,11 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuLux.prConfig.skin and VIP_USER and skinChanged() then
-		GenModelPacket("Lux", MenuLux.prConfig.skin1)
-		lastSkin = MenuLux.prConfig.skin1
+	if MenuLux.prConfig.skin and VIP_USER and _G.USESKINHACK then
+		if MenuLux.prConfig.skin1 ~= lastSkin then
+			GenModelPacket("Lux", MenuLux.prConfig.skin1)
+			lastSkin = MenuLux.prConfig.skin1
+		end
 	end
 	if MenuLux.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
@@ -864,10 +863,6 @@ function EnemyCount(point, range)
 		end
 	end            
 	return count
-end
-
-function skinChanged()
-	return MenuLux.prConfig.skin1 ~= lastSkin
 end
 
 function GenModelPacket(champ, skinId)
