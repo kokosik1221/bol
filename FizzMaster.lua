@@ -1,9 +1,1027 @@
 --[[
+
 	Script Name: FIZZ MASTER 
-  	Author: kokosik1221
-	Last Version: 1.2
-	17.11.2014
+    	Author: kokosik1221
+	Last Version: 1.3
+	13.12.2014
 	
 ]]--
+
+
+if myHero.charName ~= "Fizz" then return end
+
+_G.AUTOUPDATE = true
+_G.USESKINHACK = false
+
+
+local version = 1.3
+local SCRIPT_NAME = "FizzMaster"
+local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
+local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
+local prodstatus = false
+if FileExist(SOURCELIB_PATH) then
+	require("SourceLib")
+else
+	DOWNLOADING_SOURCELIB = true
+	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
+end
+if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+if _G.AUTOUPDATE then
+	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+end
+local RequireI = Require("SourceLib")
+RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
+RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
+if VIP_USER then
+	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
+	prodstatus = true
+end
+RequireI:Check()
+if RequireI.downloadNeeded == true then return end
+
+local Items = {
+	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
+	DFG = { id = 3128, range = 750, reqTarget = true, slot = nil },
+	HGB = { id = 3146, range = 400, reqTarget = true, slot = nil },
+	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
+}
+
+local DodgeSpells = {
+  ['AkaliShadowDance'] = {charName = "Akali", spellSlot = "R", SpellType = "castcel"},
+  ['BrandWildfire'] = {charName = "Brand", spellSlot = "R", SpellType = "castcel"},
+  ['AceintheHole'] = {charName = "Caitlyn", spellSlot = "R", SpellType = "castcel"},
+  ['Feast'] = {charName = "ChoGath", spellSlot = "R", SpellType = "castcel"},
+  ['DariusExecute'] = {charName = "Darius", spellSlot = "R", SpellType = "castcel"},
+  ['DianaTeleport'] = {charName = "Diana", spellSlot = "R", SpellType = "castcel"},
+  ['FioraDance'] = {charName = "Fiora", spellSlot = "R", SpellType = "castcel"},
+  ['GarenR'] = {charName = "Garen", spellSlot = "R", SpellType = "castcel"},
+  ['BlindMonkRKick'] = {charName = "LeeSin", spellSlot = "R", SpellType = "castcel"},
+  ['LissandraR'] = {charName = "Lissandra", spellSlot = "R", SpellType = "castcel"},
+  ['AlZaharNetherGrasp'] = {charName = "Malzahar", spellSlot = "R", SpellType = "castcel"},
+  ['MordekaiserChildrenOfTheGrave'] = {charName = "Mordekaiser", spellSlot = "R", SpellType = "castcel"},
+  ['NautilusGandLine'] = {charName = "Nautilus", spellSlot = "R", SpellType = "castcel"},
+  ['NocturneParanoia'] = {charName = "Nocturne", spellSlot = "R", SpellType = "castcel"},
+  ['SkarnerImpale'] = {charName = "Skarner", spellSlot = "R", SpellType = "castcel"},
+  ['SyndraR'] = {charName = "Syndra", spellSlot = "R", SpellType = "castcel"},
+  ['BusterShot'] = {charName = "Tristana", spellSlot = "R", SpellType = "castcel"},
+  ['TrundlePain'] = {charName = "Trundle", spellSlot = "R", SpellType = "castcel"},
+  ['UrgotSwap2'] = {charName = "Urgot", spellSlot = "R", SpellType = "castcel"},
+  ['VeigarPrimordialBurst'] = {charName = "Veigar", spellSlot = "R", SpellType = "castcel"},
+  ['ViR'] = {charName = "Vi", spellSlot = "R", SpellType = "castcel"},
+  ['InfiniteDuress'] = {charName = "Warwick", spellSlot = "R", SpellType = "castcel"},
+  ['zedult'] = {charName = "Zed", spellSlot = "R", SpellType = "castcel"},
+  ['AkaliMota'] = {charName = "Akali", spellSlot = "Q", SpellType = "castcel"},
+  ['Pulverize'] = {charName = "Alistar", spellSlot = "Q", SpellType = "castcel"},
+  ['Headbutt'] = {charName = "Alistar", spellSlot = "W", SpellType = "castcel"},
+  ['Frostbite'] = {charName = "Anivia", spellSlot = "E", SpellType = "castcel"},
+  ['Disintegrate'] = {charName = "Annie", spellSlot = "Q", SpellType = "castcel"},
+  ['Incinerate'] = {charName = "Annie", spellSlot = "W", SpellType = "castcel"},
+  ['BrandConflagration'] = {charName = "Brand", spellSlot = "E", SpellType = "castcel"},
+  ['CassiopeiaTwinFang'] = {charName = "Cassiopeia", spellSlot = "E", SpellType = "castcel"},
+  ['VorpalSpikes'] = {charName = "Chogath", spellSlot = "E", SpellType = "castcel"},
+  ['Terrify'] = {charName = "FiddleSticks", spellSlot = "Q", SpellType = "castcel"},
+  ['Drain'] = {charName = "FiddleSticks", spellSlot = "W", SpellType = "castcel"},
+  ['FiddlesticksDarkWind'] = {charName = "FiddleSticks", spellSlot = "E", SpellType = "castcel"},
+  ['FioraQ'] = {charName = "Fiora", spellSlot = "Q", SpellType = "castcel"},
+  ['FizzPiercingStrike'] = {charName = "Fizz", spellSlot = "Q", SpellType = "castcel"},
+  ['Parley'] = {charName = "Gangplank", spellSlot = "Q", SpellType = "castcel"},
+  ['IreliaGatotsu'] = {charName = "Irelia", spellSlot = "Q", SpellType = "castcel"},
+  ['IreliaEquilibriumStrike'] = {charName = "Irelia", spellSlot = "E", SpellType = "castcel"},
+  ['SowTheWind'] = {charName = "Janna", spellSlot = "W", SpellType = "castcel"},
+  ['JaxLeapStrike'] = {charName = "Jax", spellSlot = "Q", SpellType = "castcel"},
+  ['JayceToTheSkies'] = {charName = "Jayce", spellSlot = "Q", SpellType = "castcel"},
+  ['JayceThunderingBlow'] = {charName = "Jayce", spellSlot = "E", SpellType = "castcel"},
+  ['KarmaSpiritBind'] = {charName = "Karma", spellSlot = "W", SpellType = "castcel"},
+  ['NullLance'] = {charName = "Kassadin", spellSlot = "Q", SpellType = "castcel"},
+  ['KatarinaQ'] = {charName = "Katarina", spellSlot = "Q", SpellType = "castcel"},
+  ['JudicatorReckoning'] = {charName = "Kayle", spellSlot = "Q", SpellType = "castcel"},
+  ['KennenShurikenHurlMissile1'] = {charName = "Kennen", spellSlot = "Q", SpellType = "castcel"},
+  ['LeblancChaosOrb'] = {charName = "Leblanc", spellSlot = "Q", SpellType = "castcel"},
+  ['LucianQ']= {charName = "Lucian", spellSlot = "Q", SpellType = "castcel"},
+  ['LuluW'] = {charName = "Lulu", spellSlot = "W", SpellType = "castcel"},
+  ['LuluE'] = {charName = "Lulu", spellSlot = "E", SpellType = "castcel"},
+  ['SeismicShard'] = {charName = "Malphite", spellSlot = "Q", SpellType = "castcel"},
+  ['AlZaharMaleficVisions'] = {charName = "Malzahar", spellSlot = "E", SpellType = "castcel"},
+  ['MaokaiUnstableGrowth'] = {charName = "Maokai", spellSlot = "W", SpellType = "castcel"},
+  ['AlphaStrike'] = {charName = "MasterYi", spellSlot = "Q", SpellType = "castcel"},
+  ['MissFortuneRicochetShot'] = {charName = "MissFortune", spellSlot = "Q", SpellType = "castcel"},
+  ['NamiW'] = {charName = "Nami", spellSlot = "W", SpellType = "castcel"},
+  ['NasusW'] = {charName = "Nasus", spellSlot = "W", SpellType = "castcel"},
+  ['NocturneUnspeakableHorror'] = {charName = "Nocturne", spellSlot = "E", SpellType = "castcel"},
+  ['IceBlast'] = {charName = "Nunu", spellSlot = "E", SpellType = "castcel"},
+  ['OlafRecklessStrike'] = {charName = "Olaf", spellSlot = "E", SpellType = "castcel"},
+  ['Pantheon_Throw'] = {charName = "Pantheon", spellSlot = "Q", SpellType = "castcel"},
+  ['Pantheon_LeapBash'] = {charName = "Pantheon", spellSlot = "W", SpellType = "castcel"},
+  ['PoppyHeroicCharge'] = {charName = "Poppy", spellSlot = "E", SpellType = "castcel"},
+  ['QuinnE'] = {charName = "Quinn", spellSlot = "E", SpellType = "castcel"},
+  ['PuncturingTaunt'] = {charName = "Rammus", spellSlot = "E", SpellType = "castcel"},
+  ['Overload'] = {charName = "Ryze", spellSlot = "Q", SpellType = "castcel"},
+  ['RunePrison'] = {charName = "Ryze", spellSlot = "W", SpellType = "castcel"},
+  ['SpellFlux'] = {charName = "Ryze", spellSlot = "E", SpellType = "castcel"},
+  ['TwoShivPoisen'] = {charName = "Shaco", spellSlot = "E", SpellType = "castcel"},
+  ['ShenVorpalStar'] = {charName = "Shen", spellSlot = "Q", SpellType = "castcel"},
+  ['Fling'] = {charName = "Singed", spellSlot = "E", SpellType = "castcel"},
+  ['CrypticGaze'] = {charName = "Sion", spellSlot = "Q", SpellType = "castcel"},
+  ['SwainDecrepify'] = {charName = "Swain", spellSlot = "Q", SpellType = "castcel"},
+  ['SwainTorment'] = {charName = "Swain", spellSlot = "E", SpellType = "castcel"},
+  ['TalonCutthroat'] = {charName = "Talon", spellSlot = "E", SpellType = "castcel"},
+  ['Dazzle'] = {charName = "Taric", spellSlot = "E", SpellType = "castcel"},
+  ['BlindingDart'] = {charName = "Teemo", spellSlot = "Q", SpellType = "castcel"},
+  ['DetonatingShot'] = {charName = "Tristana", spellSlot = "E", SpellType = "castcel"},
+  ['TrundleTrollSmash'] = {charName = "Trundle", spellSlot = "Q", SpellType = "castcel"},
+  ['VayneCondemm'] = {charName = "Vayne", spellSlot = "E", SpellType = "castcel"},
+  ['VeigarBalefulStrike'] = {charName = "Veigar", spellSlot = "Q", SpellType = "castcel"},
+  ['VladimirTransfusion'] = {charName = "Vladimir", spellSlot = "Q", SpellType = "castcel"},
+  ['VolibearW'] = {charName = "Volibear", spellSlot = "W", SpellType = "castcel"},
+  ['HungeringStrike'] = {charName = "Warwick", spellSlot = "Q", SpellType = "castcel"},
+  ['MonkeyKingNimbus'] = {charName = "MonkeyKing", spellSlot = "E", SpellType = "castcel"},
+  ['XenZhaoSweep'] = {charName = "Xin Zhao", spellSlot = "E", SpellType = "castcel"},
+  ['YasuoDashWrapper'] = {charName = "Yasuo", spellSlot = "E", SpellType = "castcel"},
+  ['YorickRavenous'] = {charName = "Yorick", spellSlot = "E", SpellType = "castcel"},
+  ['TimeBomb'] = {charName = "Zilean", spellSlot = "Q", SpellType = "castcel"},
+  ['TimeWarp'] = {charName = "Zilean", spellSlot = "E", SpellType = "castcel"},
+  ['InfernalGuardian'] = {charName = "Annie", spellSlot = "R", SpellType = "skillshot", range = 600},
+  ['KatarinaR'] = {charName = "Katarina", spellSlot = "R", SpellType = "skillshot", range = 600},
+  ['CurseoftheSadMumm'] = {charName = "Amumu", spellSlot = "R", SpellType = "skillshot", range = 550},
+  ['EnchantedCrystalArrow'] = {charName = "Ashe", spellSlot = "R", SpellType = "skillshot", range = 20000},
+  ['FizzMarinerDoom'] = {charName = "Fizz", spellSlot = "R", SpellType = "skillshot", range = 1300},
+  ['JinxRWrapper'] = {charName = "Jinx", spellSlot = "R", SpellType = "skillshot", range = 20000},
+  ['UFSlash'] = {charName = "Malphite", spellSlot = "R", SpellType = "skillshot", range = 1000},
+  ['OrianaDetonateCommand'] = {charName = "Orianna", spellSlot = "R", SpellType = "skillshot", range = 900},
+  ['SonaCrescendo'] = {charName = "Sona", spellSlot = "R", SpellType = "skillshot", range = 1000},
+  ['YasuoRKnockUpComboW'] = {charName = "Yasuo", spellSlot = "R", SpellType = "skillshot", range = 800},
+  ['LeonaSolarFlare'] = {charName = "Leona", spellSlot = "R", SpellType = "skillshot", range = 600},
+  ['VarusR'] = {charName = "Varus", spellSlot = "R", SpellType = "skillshot", range = 1075},
+  ['VelkozR'] = {charName = "Velkoz", spellSlot = "R", SpellType = "skillshot", range = 1550},
+  ['BraumR'] = {charName = "Braum", spellSlot = "R", SpellType = "skillshot", range = 1250},
+  ['CassiopeiaPetrifyingGaze'] = {charName = "Cassiopeia", spellSlot = "R", SpellType = "skillshot", range = 825},
+  ['EvelynnR'] = {charName = "Evelynn", spellSlot = "R", SpellType = "skillshot", range = 650},
+  ['EzrealTruehotBarrage'] = {charName = "Ezreal", spellSlot = "R", SpellType = "skillshot", range = 20000},
+  ['GragasExplosiveCask'] = {charName = "Gragas", spellSlot = "R", SpellType = "skillshot", range = 1150},
+  ['RiftWalk'] = {charName = "Kassadin", spellSlot = "R", SpellType = "skillshot", range = 700},
+  ['LuxMaliceCannon'] = {charName = "Lux", spellSlot = "R", SpellType = "skillshot", range = 3330},
+ }
+ 
+function Vars()
+	Q = {name = "Urchin Strike", range = 550}
+	W = {name = "Seastone Trident"}
+	E = {name = "Playful", range = 400, speed = 1200, delay = 0.25, width = 330}
+	E2 = {name = "Trickster", range = 400, speed = 1200, delay = 0.25, width = 270}
+	R = {name = "Chum the Waters", range = 1175, speed = 1200, delay = 0.5, width = 80}
+	killstring = {}
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
+	abilitylvl, lastskin, aarange = 0, 0, 175
+	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	IgniteKey, zhonyaslot = nil, nil
+	Spells = {_Q,_W,_E,_R}
+	Spells2 = {"Q","W","E","R"}
+	print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+end
+
+function OnLoad()
+	Vars()
+	Menu()
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		mma = true
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		sac = true
+	end
+end
+
+function OnTick()
+	Check()
+	if Cel ~= nil and MenuFizz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.comboConfig.manac then
+		caa()
+		Combo()
+	end
+	if Cel ~= nil and (MenuFizz.harrasConfig.HEnabled or MenuFizz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.harrasConfig.manah then
+		Harrass()
+	end
+	if MenuFizz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.farm.manaf then
+		Farm()
+	end
+	if MenuFizz.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.jf.manajf then
+		JungleFarmm()
+	end
+	if MenuFizz.prConfig.AZ then
+		autozh()
+	end
+	if MenuFizz.prConfig.ALS then
+		autolvl()
+	end
+	if MenuFizz.exConfig.ESCAPE then
+		Escape()
+	end
+	if MenuFizz.comboConfig.FU then
+		if ValidTarget(Cel, R.range) and not Cel.dead then
+			CastR(Cel)
+		end
+	end
+	KillSteall()
+end
+
+function Menu()
+	VP = VPrediction()
+	SOWi = SOW(VP)
+	MenuFizz = scriptConfig("Fizz Master "..version, "Fizz Master "..version)
+	MenuFizz:addSubMenu("Orbwalking", "Orbwalking")
+	SOWi:LoadToMenu(MenuFizz.Orbwalking)
+	MenuFizz:addSubMenu("Target selector", "STS")
+	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
+	TargetSelector.name = "Fizz"
+	MenuFizz.STS:addTS(TargetSelector)
+	MenuFizz:addSubMenu("[Fizz Master]: Combo Settings", "comboConfig")
+	MenuFizz.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.comboConfig:addParam("USEW", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.comboConfig:addParam("USEE", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, false)
+	MenuFizz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.comboConfig:addParam("USER", "Use " .. R.name .. "(R)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.comboConfig:addParam("Kilable", "Only Use If Target Is Killable", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.comboConfig:addParam("FU", "Cast Ult To Target", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
+	MenuFizz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
+	MenuFizz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.comboConfig:addParam("CT", "Combo Type", SCRIPT_PARAM_LIST, 1, { "Q>R>W>E", "R>Q>W>E"})
+	MenuFizz.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
+	MenuFizz.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
+	MenuFizz:addSubMenu("[Fizz Master]: Harras Settings", "harrasConfig")
+	MenuFizz.harrasConfig:addParam("HM", "Harrass Mode:", SCRIPT_PARAM_LIST, 2, {"|Q|", "|W|Q|", "|W|Q|E|"}) 
+	MenuFizz.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
+	MenuFizz.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
+	MenuFizz.harrasConfig:addParam("manah", "Min. Mana To Harass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuFizz:addSubMenu("[Fizz Master]: KS Settings", "ksConfig")
+	MenuFizz.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.ksConfig:addParam("QKS", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.ksConfig:addParam("WKS", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.ksConfig:addParam("EKS", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, false)
+	MenuFizz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.ksConfig:addParam("RKS", "Use " .. R.name .. "(R)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz:addSubMenu("[Fizz Master]: Farm Settings", "farm")
+	MenuFizz.farm:addParam("QF", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear"})
+	MenuFizz.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.farm:addParam("WF",  "Use " .. W.name .. "(W)", SCRIPT_PARAM_LIST, 2, { "No", "LaneClear"})
+	MenuFizz.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.farm:addParam("EF",  "Use " .. E.name .. "(E)", SCRIPT_PARAM_LIST, 2, { "No", "LaneClear"})
+	MenuFizz.farm:addParam("EF2", "Use " .. E2.name .. "(E)", SCRIPT_PARAM_ONOFF, false)
+	MenuFizz.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.farm:addParam("LaneClear", "Farm ", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
+	MenuFizz.farm:addParam("manaf", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuFizz:addSubMenu("[Fizz Master]: Jungle Farm Settings", "jf")
+	MenuFizz.jf:addParam("QJF", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.jf:addParam("WJF", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.jf:addParam("EJF", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.jf:addParam("EJF2", "Use " .. E2.name .. "(E)", SCRIPT_PARAM_ONOFF, false)
+	MenuFizz.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
+	MenuFizz.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuFizz:addSubMenu("[Fizz Master]: Extra Settings", "exConfig")
+	MenuFizz.exConfig:addSubMenu("Dodge Skills", "ES")
+	Enemies = GetEnemyHeroes() 
+    for i,enemy in pairs (Enemies) do
+		for j,spell in pairs (Spells) do 
+			if DodgeSpells[enemy:GetSpellData(spell).name] then 
+				MenuFizz.exConfig.ES:addParam(tostring(enemy:GetSpellData(spell).name),"Dodge "..tostring(enemy.charName).." Spell "..tostring(Spells2[j]),SCRIPT_PARAM_ONOFF,true)
+			end 
+		end 
+	end 
+	MenuFizz.exConfig:addParam("AE", "Dodge Spells With " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.exConfig:addParam("ESCAPE", "Small Escape", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
+	MenuFizz.exConfig:addParam("EUE", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.exConfig:addParam("EUQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz:addSubMenu("[Fizz Master]: Draw Settings", "drawConfig")
+	MenuFizz.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.drawConfig:addParam("DAAR", "Draw AA Range", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.drawConfig:addParam("DAARC", "Draw AA Range Color", SCRIPT_PARAM_COLOR, {255,0,200,0})
+	MenuFizz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.drawConfig:addParam("DQR", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.drawConfig:addParam("DQRC", "Draw Q Range Color", SCRIPT_PARAM_COLOR, {255,0,0,255})
+	MenuFizz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.drawConfig:addParam("DER", "Draw E Range", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.drawConfig:addParam("DERC", "Draw E Range Color", SCRIPT_PARAM_COLOR, {255,255,0,0})
+	MenuFizz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.drawConfig:addParam("DRR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.drawConfig:addParam("DRRC", "Draw R Range Color", SCRIPT_PARAM_COLOR, {255, 0, 255, 0})
+	MenuFizz:addSubMenu("[Fizz Master]: Misc Settings", "prConfig")
+	MenuFizz.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
+	MenuFizz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
+	MenuFizz.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 5, 1, 5)
+	MenuFizz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
+	MenuFizz.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
+	MenuFizz.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
+	MenuFizz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
+	MenuFizz.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuFizz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuFizz.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuFizz.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
+	MenuFizz.comboConfig:permaShow("CEnabled")
+	MenuFizz.harrasConfig:permaShow("HEnabled")
+	MenuFizz.harrasConfig:permaShow("HTEnabled")
+	MenuFizz.prConfig:permaShow("AZ")
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
+	end
+	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
+	_G.DrawCircle = DrawCircle2
+end
+
+function EnemyCount(point, range)
+	local count = 0
+	for _, enemy in pairs(GetEnemyHeroes()) do
+		if enemy and not enemy.dead and GetDistance(point, enemy) <= range then
+			count = count + 1
+		end
+	end            
+	return count
+end
+
+function caa()
+	if MenuFizz.comboConfig.uaa then
+		SOWi:EnableAttacks()
+	elseif not MenuFizz.comboConfig.uaa then
+		SOWi:DisableAttacks()
+	end
+end
+
+function GetCustomTarget()
+ 	TargetSelector:update()	
+	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then
+		return _G.MMA_Target
+	end
+	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then 
+		return _G.AutoCarry.Attack_Crosshair.target 
+	end
+	return TargetSelector.target
+end
+
+function Check()
+	if RReady and MenuFizz.comboConfig.CT == 2 then
+		TargetSelector.range = R.range
+	else
+		TargetSelector.range = Q.range
+	end
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+		Cel = SelectedTarget
+	else
+		Cel = GetCustomTarget()
+	end
+	if sac or mma then
+		SOWi.Menu.Enabled = false
+	end
+	SOWi:ForceTarget(Cel)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
+	QReady = (myHero:CanUseSpell(_Q) == READY)
+	WReady = (myHero:CanUseSpell(_W) == READY)
+	EReady = (myHero:CanUseSpell(_E) == READY)
+	RReady = (myHero:CanUseSpell(_R) == READY)
+	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+	if MenuFizz.prConfig.skin and VIP_USER and _G.USESKINHACK then
+		if MenuFizz.prConfig.skin1 ~= lastSkin then
+			GenModelPacket("Fizz", MenuFizz.prConfig.skin1)
+			lastSkin = MenuFizz.prConfig.skin1
+		end
+	end
+	if MenuFizz.drawConfig.DLC then 
+		_G.DrawCircle = DrawCircle2 
+	else 
+		_G.DrawCircle = _G.oldDrawCircle 
+	end
+end
+
+function UseItems(unit)
+	if unit ~= nil then
+		for _, item in pairs(Items) do
+			item.slot = GetInventorySlotItem(item.id)
+			if item.slot ~= nil then
+				if item.reqTarget and GetDistance(unit) < item.range then
+					CastSpell(item.slot, unit)
+				elseif not item.reqTarget then
+					if (GetDistance(unit) - getHitBoxRadius(myHero) - getHitBoxRadius(unit)) < 50 then
+						CastSpell(item.slot)
+					end
+				end
+			end
+		end
+	end
+end
+
+function getHitBoxRadius(target)
+	return GetDistance(target.minBBox, target.maxBBox)/2
+end
+
+function Combo()
+	UseItems(Cel)
+	if MenuFizz.comboConfig.CT == 1 then
+		comboQRWE()
+	elseif MenuFizz.comboConfig.CT == 2 then
+		comboRQWE()
+	end
+end
+
+function comboQRWE()
+	if MenuFizz.comboConfig.USEQ then
+		if ValidTarget(Cel, Q.range) and not Cel.dead then
+			CastQ(Cel)
+		end
+	end
+	if MenuFizz.comboConfig.USER then
+		if ValidTarget(Cel, R.range) and not Cel.dead then
+			if MenuFizz.comboConfig.Kilable then
+				local RDMG = getDmg("R", Cel, myHero, 1)
+				if Cel.health < RDMG then
+					CastR(Cel)
+				end
+			elseif not MenuFizz.comboConfig.Kilable then
+				CastR(Cel)
+			end
+		end
+	end
+	if MenuFizz.comboConfig.USEW then
+		if ValidTarget(Cel, aarange) and not Cel.dead then
+			CastW()
+		end
+	end
+	if MenuFizz.comboConfig.USEE then
+		if ValidTarget(Cel, E.range + 50) and not Cel.dead then
+			CastE(Cel)
+		end
+		if GetDistance(Cel, myHero) > 330 and not Cel.dead then
+			CastE2(Cel)
+		end
+	end
+end
+
+function comboRQWE()
+	if MenuFizz.comboConfig.USER then
+		if ValidTarget(Cel, R.range) and not Cel.dead then
+			if MenuFizz.comboConfig.Kilable then
+				local RDMG = getDmg("R", Cel, myHero, 1)
+				if Cel.health < RDMG then
+					CastR(Cel)
+				end
+			elseif not MenuFizz.comboConfig.Kilable then
+				CastR(Cel)
+			end
+		end
+	end
+	if MenuFizz.comboConfig.USEQ then
+		if ValidTarget(Cel, Q.range) and not Cel.dead then
+			CastQ(Cel)
+		end
+	end
+	if MenuFizz.comboConfig.USEW then
+		if ValidTarget(Cel, aarange) and not Cel.dead then
+			CastW()
+		end
+	end
+	if MenuFizz.comboConfig.USEE then
+		if ValidTarget(Cel, E.range + 50) and not Cel.dead then
+			CastE(Cel)
+		end
+		if GetDistance(Cel, myHero) > 330 and not Cel.dead then
+			CastE2(Cel)
+		end
+	end
+end
+
+function Harrass()
+	QMana = myHero:GetSpellData(_Q).mana
+    WMana = myHero:GetSpellData(_W).mana
+    EMana = myHero:GetSpellData(_E).mana
+	if MenuFizz.harrasConfig.HM == 1 then
+		if ValidTarget(Cel, Q.range) and myHero.mana > QMana then
+			CastQ(Cel)
+		end
+	end
+	if MenuFizz.harrasConfig.HM == 2 then
+		if WReady and QReady and ValidTarget(Cel, Q.range) and myHero.mana > (WMana + QMana) then
+			CastW()
+			CastQ(Cel)
+		end
+	end
+	if MenuFizz.harrasConfig.HM == 3 then
+		if WReady and QReady and ValidTarget(Cel, Q.range) and myHero.mana > (WMana + QMana + EMana) then
+			CastW()
+			CastQ(Cel)
+		end
+		if EReady then
+			CastSpell(_E, mousePos.x, mousePos.z)
+		end
+	end
+	if ValidTarget(Cel, aarange) then
+		myHero:Attack(Cel)
+	end
+end
+
+function Farm()
+	local myE = myHero:GetSpellData(_E)
+	EnemyMinions:update()
+	if not SOWi:CanMove() then return end
+	QMode =  MenuFizz.farm.QF
+	WMode =  MenuFizz.farm.WF
+	EMode =  MenuFizz.farm.EF
+	for i, minion in pairs(EnemyMinions.objects) do
+		if QMode == 3 then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+				CastSpell(_Q, minion)
+			end
+		elseif QMode == 2 then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+				if minion.health <= getDmg("Q", minion, myHero) then
+					CastSpell(_Q, minion)
+				end
+			end
+		end
+		if WMode == 2 then
+			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+				CastW()
+			end
+		end
+		if EMode == 2 then
+			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+				local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
+				if Pos ~= nil then
+					if myE.name == "FizzJump" then
+						CastSpell(_E, Pos.x, Pos.z)
+					end
+					if MenuFizz.farm.EF2 then
+						if myE.name == "fizzjumptwo" then
+							CastSpell(_E, Pos.x, Pos.z)
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+function BestEFarmPos(range, radius, objects)
+    local Pos 
+    local BHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BHit then
+            BHit = hit
+            Pos = Vector(object)
+            if BHit == #objects then
+               break
+            end
+         end
+    end
+    return Pos, BHit
+end
+
+function JungleFarmm()
+	JungleMinions:update()
+	local myE = myHero:GetSpellData(_E)
+	for i, minion in pairs(JungleMinions.objects) do
+		if MenuFizz.jf.QJF then
+			if minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
+				CastQ(minion)
+			end
+		end
+		if MenuFizz.jf.WJF then
+			if minion ~= nil and not minion.dead and GetDistance(minion) <= aarange then
+				CastW()
+			end
+		end
+		if MenuFizz.jf.EJF then
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
+				local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
+				if Pos ~= nil then
+					if myE.name == "FizzJump" then
+						CastSpell(_E, Pos.x, Pos.z)
+					end
+					if MenuFizz.farm.EF2 then
+						if myE.name == "fizzjumptwo" then
+							CastSpell(_E, Pos.x, Pos.z)
+						end
+					end
+				end
+			end
+		end
+		myHero:Attack(minion)
+	end
+end
+
+function autozh()
+	local count = EnemyCount(myHero, MenuFizz.prConfig.AZMR)
+	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuFizz.prConfig.AZHP and count == 0 then
+		CastSpell(zhonyaslot)
+	end
+end
+
+function autolvl()
+	if not MenuFizz.prConfig.ALS then return end
+	if myHero.level > abilitylvl then
+		abilitylvl = abilitylvl + 1
+		if MenuFizz.prConfig.AL == 1 then			
+			LevelSpell(_R)
+			LevelSpell(_Q)
+			LevelSpell(_W)
+			LevelSpell(_E)
+		end
+		if MenuFizz.prConfig.AL == 2 then	
+			LevelSpell(_R)
+			LevelSpell(_Q)
+			LevelSpell(_E)
+			LevelSpell(_W)
+		end
+		if MenuFizz.prConfig.AL == 3 then	
+			LevelSpell(_R)
+			LevelSpell(_W)
+			LevelSpell(_Q)
+			LevelSpell(_E)
+		end
+		if MenuFizz.prConfig.AL == 4 then	
+			LevelSpell(_R)
+			LevelSpell(_W)
+			LevelSpell(_E)
+			LevelSpell(_Q)
+		end
+		if MenuFizz.prConfig.AL == 5 then	
+			LevelSpell(_R)
+			LevelSpell(_E)
+			LevelSpell(_Q)
+			LevelSpell(_W)
+		end
+		if MenuFizz.prConfig.AL == 6 then	
+			LevelSpell(_R)
+			LevelSpell(_E)
+			LevelSpell(_W)
+			LevelSpell(_Q)
+		end
+	end
+end
+
+function OnDraw()
+	if MenuFizz.drawConfig.DST and MenuFizz.comboConfig.ST then
+		if SelectedTarget ~= nil and not SelectedTarget.dead then
+			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuFizz.drawConfig.DQRC[2], MenuFizz.drawConfig.DQRC[3], MenuFizz.drawConfig.DQRC[4]))
+		end
+	end
+	if MenuFizz.drawConfig.DD then
+		DmgCalc()
+		for _,enemy in pairs(GetEnemyHeroes()) do
+            if ValidTarget(enemy, 2000) and killstring[enemy.networkID] ~= nil then
+                local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
+                DrawText(killstring[enemy.networkID], 20, pos.x - 35, pos.y - 10, 0xFFFFFF00)
+            end
+        end
+	end
+	if MenuFizz.drawConfig.DAAR then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, myHero.range + 65, RGB(MenuFizz.drawConfig.DAARC[2], MenuFizz.drawConfig.DAARC[3], MenuFizz.drawConfig.DAARC[4]))
+	end
+	if MenuFizz.drawConfig.DQR and QReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuFizz.drawConfig.DQRC[2], MenuFizz.drawConfig.DQRC[3], MenuFizz.drawConfig.DQRC[4]))
+	end
+	if MenuFizz.drawConfig.DER and EReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuFizz.drawConfig.DERC[2], MenuFizz.drawConfig.DERC[3], MenuFizz.drawConfig.DERC[4]))
+	end
+	if MenuFizz.drawConfig.DRR and RReady then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuFizz.drawConfig.DRRC[2], MenuFizz.drawConfig.DRRC[3], MenuFizz.drawConfig.DRRC[4]))
+	end
+end
+
+function KillSteall()
+	for _, Enemy in pairs(GetEnemyHeroes()) do
+		local hp = Enemy.health
+		local QDMG = getDmg("Q", Enemy, myHero, 1)
+		local WDMG = getDmg("W", Enemy, myHero, 3)
+		local EDMG = getDmg("E", Enemy, myHero, 1)
+		local RDMG = getDmg("R", Enemy, myHero, 1)
+		local IDMG = 50 + (20 * myHero.level)
+		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+			if hp < QDMG and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS then
+				CastQ(Enemy)
+			elseif hp < WDMG and ValidTarget(Enemy, aarange) and MenuFizz.ksConfig.WKS then
+				CastW()
+				myHero:Attack(Enemy)
+			elseif hp < EDMG and ValidTarget(Enemy, E.range + 50) and MenuFizz.ksConfig.EKS then
+				if EReady and ValidTarget(Enemy, E.range + 50) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
+					CastE(Enemy)
+				end
+				if GetDistance(Enemy, myHero) > 330 and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
+					CastE2(Enemy)
+				end
+			elseif hp < RDMG and ValidTarget(Enemy, R.range) and MenuFizz.ksConfig.RKS then	
+				CastR(Enemy)
+			elseif hp < (QDMG+WDMG) and QReady and WReady and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.WKS then
+				CastW()
+				CastQ(Enemy)
+			elseif hp < (QDMG+EDMG) and QReady and EReady and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.EKS then
+				CastQ(Enemy)
+				if EReady and ValidTarget(Enemy, E.range + 50) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
+					CastE(Enemy)
+				end
+				if GetDistance(Enemy, myHero) > 330 and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
+					CastE2(Enemy)
+				end			
+			elseif hp < (QDMG+RDMG) and QReady and RReady and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.RKS then
+				CastR(Enemy)
+				CastQ(Enemy)
+			elseif hp < (RDMG+WDMG) and WReady and RReady and ValidTarget(Enemy, aarange) and MenuFizz.ksConfig.RKS and MenuFizz.ksConfig.WKS then
+				CastR(Enemy)
+				CastW()
+				myHero:Attack(Enemy)
+			elseif hp < (QDMG+WDMG+RDMG) and QReady and WReady and RReady and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.RKS and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.WKS then
+				CastR(Enemy)
+				CastW()
+				CastQ(Enemy)
+			end
+			if IReady and hp < IDMG and MenuFizz.ksConfig.IKS and ValidTarget(Enemy, 600) then
+				CastSpell(IgniteKey, Enemy)
+			end
+		end
+	end
+end
 	
-assert(load(Base64Decode("G0x1YVIAAQQEBAgAGZMNChoKAAAAAAAAAAAAASODAwAABgBAAAdAQABYgEAAFwAAgB8AgAADAIAAQcAAAIEAAQDBQAEABoFBAEHBAQAWQQECQwEAAIYBQgDAAQACnYEAAZsBAAAXwACAhkFCAMGBAgCdQQABF0ABgAgAw4WGQUMAwAGAAQACAAJlAgAAnUEAAobBQgCbAQAAF8AAgIaBQwDBwQMAnUEAAR8AgAAbAAAAF8AEgIYBRADAAQABAAKAAEFCBACBggQAwAIAAQHDBACWAgMFxgJFAAZDRQAdg4AAB4NFBtYCgwUBgwQAQAMAAYHDBQAWgwMGnYGAA4wBRgOdQQABhkFGAMGBAgCdgQABzIFGA0HCBgCBAgcA3UEAAsyBRgNBQgcAgYIHAN1BAALGwUcA2wEAABcAAYDMgUYDQQIIAIFCCADdQQACQwGAAMyBSAPdQQABx8FIAxgAwwMXAACAHwCAAMuBAADKQUmSysFJkwtCAAAKAkqSS0IBAEpCSpJKgkqTSgLLlUqCy5ZKAsyXi0IBAIpCTJKKgkqTigLLlYqCy5aKgsyXy0IBAMrCTJLKAk2TygLLlcpCzZbKgs2XCwMBAEsDAQBKQ06cSoNKk0oDQ51KA8+dCkODm0sDAQBKg0+cSsNPk0oDQ51KA8+dCkODnksDAQBKQ1CcSoNKk0oDQ51KA8+dCkMDoEsDAQBKw1CcSsNPk0oDQ51KA8+dCkMDoUMDAACDAwAAwwMAAAMEAABDBAAAgwQAAMMEAAADBQAAQQURAIEFEQDBRREABoZRAEbGUQCHhskDxgZAAAYHUgAdhoACRoZRAIZGUgDHhskDBgdAAEYHUgBdhoAChAaAAAsHAABLBwAChodSAMbHUgAGCFMARkhTAGRHAAKLBwACwYcTAAHIEwBBCBQAgUgUAKRHAALLxwkAC8gAAArI1IAKSFSqCojVqsoHCKkLyAAACgjWgApIVKoKiNWqygeIqwvIAAAKiNaACkhUqgqI1arKB4isC8gAAAoI14AKSFSqCojVqsoHiK0LyAAACojXgApIVKoKiNWqygeIrgvIAAAKCNiACkhUqgqI1arKB4ivC8gAAAqI2IAKSFSqCojVqsoHiLALyAAACgjZgApIVKoKiNWqygeIsQvIAAAKiNmACkhUqgqI1arKB4iyC8gAAAoI2oAKSFSqCojVqsoHiLMLyAAACojagApIVKoKiNWqygeItAvIAAAKCNuACkhUqgqI1arKB4i1C8gAAAqI24AKSFSqCojVqsoHiLYLyAAACgjcgApIVKoKiNWqygeItwvIAAAKiNyACkhUqgqI1arKB4i4C8gAAAoI3YAKSFSqCojVqsoHiLkLyAAACojdgApIVKoKiNWqygeIugvIAAAKCN6ACkhUqgqI1arKB4i7C8gAAAqI3oAKSFSqCojVqsoHiLwLyAAACgjfgApIVKoKiNWqygeIvQvIAAAKiN+ACkhUqgqI1arKB4i+C8gAAAoI4IAKSFSqCojVqsoHiL8LyAAACojggApIVKoKiNWqygeIwAvIAAAKyNSACohTqgqI1arKB4jBC8gAAApI4YAKiFOqCojVqsoHCMILyAAACkjhgArIU6oKiNWqygcIwwvIAAAKCOKACghUqgqI1arKB4jDC8gAAAqI4oAKiFOqCojVqsoHiMQLyAAACojigArIU6oKiNWqygeIxQvIAAAKCNaACghUqgqI1arKBwjGC8gAAAqI44AKCFSqCojVqsoHiMYLyAAACgjkgAoIVKoKiNWqygeIxwvIAAAKiOSACohTqgqI1arKB4jIC8gAAAqI5IAKyFOqCojVqsoHiMkLyAAACojkgAoIVKoKiNWqygcIygvIAAAKiNiACohTqgqI1arKB4jKC8gAAAqIwIAKiFOqCojVqsoHCMsLyAAACgjmgAqIU6oKiNWqygeIywvIAAAKiOaACohTqgqI1arKB4jMC8gAAAqI5oAKCFSqCojVqsoHiM0LyAAACkjngArIU6oKiNWqygcIzgvIAAAKyOeACohTqgqI1arKBwjPC8gAAApI6IAKiFOqCojVqsoHCNALyAAACkjogAoIVKoKiNWqygcI0QvIAAAKCOmACshTqgqI1arKB4jRC8gAAAqI6YAKiFOqCojVqsoHiNILyAAACgjqgAqIU6oKiNWqygeI0wvIAAAKiOqACohTqgqI1arKB4jUC8gAAAoI64AKiFOqCojVqsoHiNULyAAACojrgAqIU6oKiNWqygeI1gvIAAAKCOyACohTqgqI1arKB4jXC8gAAAqI7IAKyFOqCojVqsoHiNgLyAAACojsgAoIVKoKiNWqygeI2QvIAAAKSO2ACohTqgqI1arKBwjaC8gAAAqI2oAKCFSqCojVqsoHCNsLyAAACgjugArIU6oKiNWqygeI2wvIAAAKiO6ACohTqgqI1arKB4jcC8gAAAoI74AKiFOqCojVqsoHiN0LyAAACojvgArIU6oKiNWqygeI3gvIAAAKCPCACshTqgqI1arKB4jfC8gAAAoI3IAKCFSqCojVqsoHiOALyAAACsjwgAoIVKoKiNWqygcI4QvIAAAKSPGACghUqgqI1arKBwjiC8gAAArI8YAKiFOqCojVqsoHCOMLyAAACsjxgArIU6oKiNWqygcI5AvIAAAKiPKACghUqgqI1arKB4jkC8gAAAoI84AKCFSqCojVqsoHiOULyAAACojzgAoIVKoKiNWqygeI5gvIAAAKCPSACohTqgqI1arKB4jnC8gAAAoI9IAKyFOqCojVqsoHiOgLyAAACgj0gAoIVKoKiNWqygcI6QvIAAAKCPWACghUqgqI1arKB4jpC8gAAAqI9YAKiFOqCojVqsoHiOoLyAAACgj2gAoIVKoKiNWqygeI6wvIAAAKiPaACohTqgqI1arKB4jsC8gAAAoI94AKiFOqCojVqsoHiO0LyAAACgj3gAoIVKoKiNWqygeI7gvIAAAKyPeACghUqgqI1arKBwjvC8gAAApI+IAKCFSqCojVqsoHCPALyAAACsj4gAqIU6oKiNWqygcI8QvIAAAKiN2ACghUqgqI1arKBwjyC8gAAAoI3oAKiFOqCojVqsoHiPILyAAACsj5gAoIVKoKiNWqygcI8wvIAAAKCN+ACohTqgqI1arKBwj0C8gAAAqI+oAKiFOqCojVqsoHiPQLyAAACgj7gArIU6oKiNWqygeI9QvIAAAKCOCACohTqgqI1arKB4j2C8gAAArI+4AKCFSqCojVqsoHCPcLyAAACkj8gAoIVKoKiNWqygcI+AvIAAAKyPyACghUqgqI1arKBwj5C8gAAApI/YAKCFSqCojVqsoHCPoLyAAACsj9gAqIU6oKiNWqygcI+wvIAAAKyP2ACghUqgqI1arKBwj8CwgBAAqI4oAKSFSqCoj+qgrIfpPKB4j8CwgBAAoI6oAKSFSqCoj+qgrIfpPKBwj+CwgBAAqI/4AKSFSqCoj+qgrISZPKB4j+CwgBAEEIQAAKSIiACkhUqgqI/qpBSEAACkgIk8oHiP8BiEAASwgBAEqIwIBKSFSqSoj+qoHIQABKiAiTykcIEAEIQQBLCAEAgUhBAEqIiIBKSFSqSoj+qoFIQABKiAiTykcIEAGIQQBLCAEASkjtgEpIVKpKiP6qgchBAEqICJPKRwgQAQhCAEsIAQCBSEIASoiIgEpIVKpKiP6qgYhCAEqICJPKRwgQAchCAEsIAQCBCEMASoiIgEpIVKpKiP6qgchBAEqICJPKRwgQAUhDAEsIAQBKyPyASkhUqkqI/qqBiEMASogIk8pHCBAByEMASwgBAIEIRABKiIiASkhUqkqI/qpKyH6TykcIEAFIRABLCAEAgYhEAEqIiIBKSFSqSoj+qoHIRABKiAiTykcIEAEIRQBLCAEAgUhFAEqIiIBKSFSqSoj+qoGIRQBKiAiTykcIEAHIRQBLCAEAgQhGAEqIiIBKSFSqSoj+qoFIRgBKiAiTykcIEAGIRgBLCAEASojjgEpIVKpKiP6qgchGAEqICJPKRwgQAQhHAEsIAQCBSEcASoiIgEpIVKpKiP6qgYhHAEqICJPKRwgQAchHAEsIAQCBCEgASoiIgEpIVKpKiP6qgUhAAEqICJPKRwgQAUhIAEsIAQCBiEgASoiIgEpIVKpKiP6qgchIAEqICJPKRwgQAQhJAEsIAQBKiOmASkhUqkqI/qqBSEkASogIk8pHCBABiEkASwgBAIHISQBKiIiASkhUqkqI/qqBCEoASogIk8pHCBABSEoAZUgAAAhACBABiEoAZYgAAAhACBAByEoAZcgAAAhACBABCEsAZQgBAAhACBABSEsAZUgBAAhACBABiEsAZYgBAAhACBAByEsAZcgBAAhACBAlCAIACAAIkQEITABlSAIACEAIEAFITABliAIACEAIEAGITABlyAIACEAIEAHITABlCAMACEAIEAEITQBlSAMACEAIEAFITQBliAMACEAIEAGITQBlyAMACEAIEAHITQBlCAQACEAIEAEITgBlSAQACEAIEAFITgBliAQACEAIEAGITgBlyAQACEAIEAHITgBlCAUACEAIEAEITwBlSAUACEAIEAFITwBliAUACEAIEAGITwBlyAUACEAIEAHITwBlCAYACEAIEAEIUABlSAYACEAIEAFIUABliAYACEAIEAGIUABlyAYACEAIEAHIUABlCAcACEAIEAEIUQBlSAcACEAIEAFIUQBliAcACEAIEAGIUQBlyAcACEAIEAHIUQBlCAgACEAIEAEIUgBlSAgACEAIEAFIUgBliAgACEAIEB8AgABKAQAABAcAAABteUhlcm8ABAkAAABjaGFyTmFtZQAEBQAAAEZpenoAAzMzMzMzM/M/BAsAAABGaXp6TWFzdGVyAARIAAAAaHR0cHM6Ly9yYXcuZ2l0aHViLmNvbS9UaGVSZWFsU291cmNlL3B1YmxpYy9tYXN0ZXIvY29tbW9uL1NvdXJjZUxpYi5sdWEABAkAAABMSUJfUEFUSAAEDgAAAFNvdXJjZUxpYi5sdWEABAoAAABGaWxlRXhpc3QABAgAAAByZXF1aXJlAAQKAAAAU291cmNlTGliAAQWAAAARE9XTkxPQURJTkdfU09VUkNFTElCAAEBBA0AAABEb3dubG9hZEZpbGUABAoAAABQcmludENoYXQABC8AAABEb3dubG9hZGluZyByZXF1aXJlZCBsaWJyYXJpZXMsIHBsZWFzZSB3YWl0Li4uAAQOAAAAU291cmNlVXBkYXRlcgAEDwAAAHJhdy5naXRodWIuY29tAAQZAAAAL2tva29zaWsxMjIxL2JvbC9tYXN0ZXIvAAQFAAAALmx1YQAEDAAAAFNDUklQVF9QQVRIAAQOAAAAR2V0Q3VycmVudEVudgAECgAAAEZJTEVfTkFNRQAECQAAAC52ZXJzaW9uAAQMAAAAQ2hlY2tVcGRhdGUABAgAAABSZXF1aXJlAAQEAAAAQWRkAAQMAAAAdlByZWRpY3Rpb24ABEIAAABodHRwczovL3Jhdy5naXRodWIuY29tL0hlbGxzaW5nL0JvTC9tYXN0ZXIvY29tbW9uL1ZQcmVkaWN0aW9uLmx1YQAEBAAAAFNPVwAEOgAAAGh0dHBzOi8vcmF3LmdpdGh1Yi5jb20vSGVsbHNpbmcvQm9ML21hc3Rlci9jb21tb24vU09XLmx1YQAECQAAAFZJUF9VU0VSAAQLAAAAUHJvZGljdGlvbgAEhAAAAGh0dHBzOi8vYml0YnVja2V0Lm9yZy9LbG9ramUvcHVibGljLWtsb2tqZXMtYm9sLXNjcmlwdHMvcmF3L2VjODMwZmFjY2NlZmIzYjUyMjEyZGJhNTY5NmMwODY5N2MzYzI4NTQvVGVzdC9Qcm9kaWN0aW9uL1Byb2RpY3Rpb24ubHVhAAQGAAAAQ2hlY2sABA8AAABkb3dubG9hZE5lZWRlZAAEBQAAAG5hbWUABA4AAABVcmNoaW4gU3RyaWtlAAQGAAAAcmFuZ2UAAwAAAAAAMIFABBEAAABTZWFzdG9uZSBUcmlkZW50AAQIAAAAUGxheWZ1bAADAAAAAAAAeUAEBgAAAHNwZWVkAAMAAAAAAMCSQAQGAAAAZGVsYXkAAwAAAAAAANA/BAYAAAB3aWR0aAADAAAAAACgdEAECgAAAFRyaWNrc3RlcgADAAAAAADgcEAEEAAAAENodW0gdGhlIFdhdGVycwADAAAAAABckkADAAAAAAAA4D8DAAAAAAAAVEAEBAAAAEJXQwAEAwAAAGlkAAMAAAAAAJCoQAQKAAAAcmVxVGFyZ2V0AAQFAAAAc2xvdAAABAQAAABERkcAAwAAAAAAcKhAAwAAAAAAcIdABAQAAABIR0IAAwAAAAAAlKhABAQAAABCRlQAAwAAAAAA6KhAAwAAAAAAAAAAAwAAAAAA4GVABA4AAABtaW5pb25NYW5hZ2VyAAQNAAAATUlOSU9OX0VORU1ZAAQaAAAATUlOSU9OX1NPUlRfTUFYSEVBTFRIX0RFQwAEDgAAAE1JTklPTl9KVU5HTEUABAMAAABfUQAEAwAAAF9XAAQDAAAAX0UABAMAAABfUgAEAgAAAFEABAIAAABXAAQCAAAARQAEAgAAAFIABBEAAABBa2FsaVNoYWRvd0RhbmNlAAQGAAAAQWthbGkABAoAAABzcGVsbFNsb3QABAoAAABTcGVsbFR5cGUABAgAAABjYXN0Y2VsAAQOAAAAQnJhbmRXaWxkZmlyZQAEBgAAAEJyYW5kAAQNAAAAQWNlaW50aGVIb2xlAAQIAAAAQ2FpdGx5bgAEBgAAAEZlYXN0AAQIAAAAQ2hvR2F0aAAEDgAAAERhcml1c0V4ZWN1dGUABAcAAABEYXJpdXMABA4AAABEaWFuYVRlbGVwb3J0AAQGAAAARGlhbmEABAsAAABGaW9yYURhbmNlAAQGAAAARmlvcmEABAcAAABHYXJlblIABAYAAABHYXJlbgAEDwAAAEJsaW5kTW9ua1JLaWNrAAQHAAAATGVlU2luAAQLAAAATGlzc2FuZHJhUgAECgAAAExpc3NhbmRyYQAEEwAAAEFsWmFoYXJOZXRoZXJHcmFzcAAECQAAAE1hbHphaGFyAAQeAAAATW9yZGVrYWlzZXJDaGlsZHJlbk9mVGhlR3JhdmUABAwAAABNb3JkZWthaXNlcgAEEQAAAE5hdXRpbHVzR2FuZExpbmUABAkAAABOYXV0aWx1cwAEEQAAAE5vY3R1cm5lUGFyYW5vaWEABAkAAABOb2N0dXJuZQAEDgAAAFNrYXJuZXJJbXBhbGUABAgAAABTa2FybmVyAAQIAAAAU3luZHJhUgAEBwAAAFN5bmRyYQAECwAAAEJ1c3RlclNob3QABAkAAABUcmlzdGFuYQAEDAAAAFRydW5kbGVQYWluAAQIAAAAVHJ1bmRsZQAECwAAAFVyZ290U3dhcDIABAYAAABVcmdvdAAEFgAAAFZlaWdhclByaW1vcmRpYWxCdXJzdAAEBwAAAFZlaWdhcgAEBAAAAFZpUgAEAwAAAFZpAAQPAAAASW5maW5pdGVEdXJlc3MABAgAAABXYXJ3aWNrAAQHAAAAemVkdWx0AAQEAAAAWmVkAAQKAAAAQWthbGlNb3RhAAQKAAAAUHVsdmVyaXplAAQIAAAAQWxpc3RhcgAECQAAAEhlYWRidXR0AAQKAAAARnJvc3RiaXRlAAQHAAAAQW5pdmlhAAQNAAAARGlzaW50ZWdyYXRlAAQGAAAAQW5uaWUABAsAAABJbmNpbmVyYXRlAAQTAAAAQnJhbmRDb25mbGFncmF0aW9uAAQTAAAAQ2Fzc2lvcGVpYVR3aW5GYW5nAAQLAAAAQ2Fzc2lvcGVpYQAEDQAAAFZvcnBhbFNwaWtlcwAECAAAAENob2dhdGgABAgAAABUZXJyaWZ5AAQNAAAARmlkZGxlU3RpY2tzAAQGAAAARHJhaW4ABBUAAABGaWRkbGVzdGlja3NEYXJrV2luZAAEBwAAAEZpb3JhUQAEEwAAAEZpenpQaWVyY2luZ1N0cmlrZQAEBwAAAFBhcmxleQAECgAAAEdhbmdwbGFuawAEDgAAAElyZWxpYUdhdG90c3UABAcAAABJcmVsaWEABBgAAABJcmVsaWFFcXVpbGlicml1bVN0cmlrZQAECwAAAFNvd1RoZVdpbmQABAYAAABKYW5uYQAEDgAAAEpheExlYXBTdHJpa2UABAQAAABKYXgABBAAAABKYXljZVRvVGhlU2tpZXMABAYAAABKYXljZQAEFAAAAEpheWNlVGh1bmRlcmluZ0Jsb3cABBAAAABLYXJtYVNwaXJpdEJpbmQABAYAAABLYXJtYQAECgAAAE51bGxMYW5jZQAECQAAAEthc3NhZGluAAQKAAAAS2F0YXJpbmFRAAQJAAAAS2F0YXJpbmEABBMAAABKdWRpY2F0b3JSZWNrb25pbmcABAYAAABLYXlsZQAEGwAAAEtlbm5lblNodXJpa2VuSHVybE1pc3NpbGUxAAQHAAAAS2VubmVuAAQQAAAATGVibGFuY0NoYW9zT3JiAAQIAAAATGVibGFuYwAECAAAAEx1Y2lhblEABAcAAABMdWNpYW4ABAYAAABMdWx1VwAEBQAAAEx1bHUABAYAAABMdWx1RQAEDQAAAFNlaXNtaWNTaGFyZAAECQAAAE1hbHBoaXRlAAQWAAAAQWxaYWhhck1hbGVmaWNWaXNpb25zAAQVAAAATWFva2FpVW5zdGFibGVHcm93dGgABAcAAABNYW9rYWkABAwAAABBbHBoYVN0cmlrZQAECQAAAE1hc3RlcllpAAQYAAAATWlzc0ZvcnR1bmVSaWNvY2hldFNob3QABAwAAABNaXNzRm9ydHVuZQAEBgAAAE5hbWlXAAQFAAAATmFtaQAEBwAAAE5hc3VzVwAEBgAAAE5hc3VzAAQaAAAATm9jdHVybmVVbnNwZWFrYWJsZUhvcnJvcgAECQAAAEljZUJsYXN0AAQFAAAATnVudQAEEwAAAE9sYWZSZWNrbGVzc1N0cmlrZQAEBQAAAE9sYWYABA8AAABQYW50aGVvbl9UaHJvdwAECQAAAFBhbnRoZW9uAAQSAAAAUGFudGhlb25fTGVhcEJhc2gABBIAAABQb3BweUhlcm9pY0NoYXJnZQAEBgAAAFBvcHB5AAQHAAAAUXVpbm5FAAQGAAAAUXVpbm4ABBAAAABQdW5jdHVyaW5nVGF1bnQABAcAAABSYW1tdXMABAkAAABPdmVybG9hZAAEBQAAAFJ5emUABAsAAABSdW5lUHJpc29uAAQKAAAAU3BlbGxGbHV4AAQOAAAAVHdvU2hpdlBvaXNlbgAEBgAAAFNoYWNvAAQPAAAAU2hlblZvcnBhbFN0YXIABAUAAABTaGVuAAQGAAAARmxpbmcABAcAAABTaW5nZWQABAwAAABDcnlwdGljR2F6ZQAEBQAAAFNpb24ABA8AAABTd2FpbkRlY3JlcGlmeQAEBgAAAFN3YWluAAQNAAAAU3dhaW5Ub3JtZW50AAQPAAAAVGFsb25DdXR0aHJvYXQABAYAAABUYWxvbgAEBwAAAERhenpsZQAEBgAAAFRhcmljAAQNAAAAQmxpbmRpbmdEYXJ0AAQGAAAAVGVlbW8ABA8AAABEZXRvbmF0aW5nU2hvdAAEEgAAAFRydW5kbGVUcm9sbFNtYXNoAAQNAAAAVmF5bmVDb25kZW1tAAQGAAAAVmF5bmUABBQAAABWZWlnYXJCYWxlZnVsU3RyaWtlAAQUAAAAVmxhZGltaXJUcmFuc2Z1c2lvbgAECQAAAFZsYWRpbWlyAAQKAAAAVm9saWJlYXJXAAQJAAAAVm9saWJlYXIABBAAAABIdW5nZXJpbmdTdHJpa2UABBEAAABNb25rZXlLaW5nTmltYnVzAAQLAAAATW9ua2V5S2luZwAEDQAAAFhlblpoYW9Td2VlcAAECQAAAFhpbiBaaGFvAAQRAAAAWWFzdW9EYXNoV3JhcHBlcgAEBgAAAFlhc3VvAAQPAAAAWW9yaWNrUmF2ZW5vdXMABAcAAABZb3JpY2sABAkAAABUaW1lQm9tYgAEBwAAAFppbGVhbgAECQAAAFRpbWVXYXJwAAQRAAAASW5mZXJuYWxHdWFyZGlhbgAECgAAAHNraWxsc2hvdAADAAAAAADAgkAECgAAAEthdGFyaW5hUgAEEgAAAEN1cnNlb2Z0aGVTYWRNdW1tAAQGAAAAQW11bXUABBYAAABFbmNoYW50ZWRDcnlzdGFsQXJyb3cABAUAAABBc2hlAAMAAAAAAIjTQAQQAAAARml6ek1hcmluZXJEb29tAAMAAAAAAFCUQAQNAAAASmlueFJXcmFwcGVyAAQFAAAASmlueAAECAAAAFVGU2xhc2gAAwAAAAAAQI9ABBYAAABPcmlhbmFEZXRvbmF0ZUNvbW1hbmQABAgAAABPcmlhbm5hAAMAAAAAACCMQAQOAAAAU29uYUNyZXNjZW5kbwAEBQAAAFNvbmEABBQAAABZYXN1b1JLbm9ja1VwQ29tYm9XAAMAAAAAAACJQAQQAAAATGVvbmFTb2xhckZsYXJlAAQGAAAATGVvbmEABAcAAABWYXJ1c1IABAYAAABWYXJ1cwADAAAAAADMkEAECAAAAFZlbGtvelIABAcAAABWZWxrb3oAAwAAAAAAOJhABAcAAABCcmF1bVIABAYAAABCcmF1bQADAAAAAACIk0AEGQAAAENhc3Npb3BlaWFQZXRyaWZ5aW5nR2F6ZQADAAAAAADIiUAECQAAAEV2ZWx5bm5SAAQIAAAARXZlbHlubgADAAAAAABQhEAEFQAAAEV6cmVhbFRydWVob3RCYXJyYWdlAAQHAAAARXpyZWFsAAQUAAAAR3JhZ2FzRXhwbG9zaXZlQ2FzawAEBwAAAEdyYWdhcwADAAAAAAD4kUAECQAAAFJpZnRXYWxrAAMAAAAAAOCFQAQQAAAATHV4TWFsaWNlQ2Fubm9uAAQEAAAATHV4AAMAAAAAAASqQAQHAAAAT25Mb2FkAAQMAAAAc2tpbkNoYW5nZWQABAcAAABPblRpY2sABAUAAABNZW51AAQLAAAARW5lbXlDb3VudAAEBAAAAGNhYQAEEAAAAEdldEN1c3RvbVRhcmdldAAECQAAAFVzZUl0ZW1zAAQQAAAAZ2V0SGl0Qm94UmFkaXVzAAQGAAAAQ29tYm8ABAoAAABjb21ib1FSV0UABAoAAABjb21ib1JRV0UABAgAAABIYXJyYXNzAAQFAAAARmFybQAEDQAAAEJlc3RFRmFybVBvcwAEDAAAAEp1bmdsZUZhcm1tAAQHAAAAYXV0b3poAAQIAAAAYXV0b2x2bAAEBwAAAE9uRHJhdwAECwAAAEtpbGxTdGVhbGwABAgAAABEbWdDYWxjAAQGAAAAQ2FzdFEABAYAAABDYXN0VwAEBgAAAENhc3RFAAQHAAAAQ2FzdEUyAAQGAAAAQ2FzdFIABA8AAABPblByb2Nlc3NTcGVsbAAEBwAAAEVzY2FwZQAEDwAAAEdlbk1vZGVsUGFja2V0AAQJAAAAT25XbmRNc2cABBIAAABEcmF3Q2lyY2xlTmV4dEx2bAAEBgAAAHJvdW5kAAQMAAAARHJhd0NpcmNsZTIAIwAAAA8AAAAPAAAAAAACBAAAAAYAQABBQAAAHUAAAR8AgAACAAAABAoAAABQcmludENoYXQABDoAAABSZXF1aXJlZCBsaWJyYXJpZXMgZG93bmxvYWRlZCBzdWNjZXNzZnVsbHksIHBsZWFzZSByZWxvYWQAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAACqAAAAtQAAAAAAAhgAAAAGAEAAQUAAAB1AAAEGgEAAHUCAAAbAQAAHAEEAGwAAABcAAYAGAEAAQUABAB1AAAEDAIAACQCAAAbAQAAHgEEAGwAAABcAAYAGAEAAQcABAB1AAAEDAIAACQAAAR8AgAAIAAAABAYAAABwcmludAAEbgAAADxiPjxmb250IGNvbG9yPSIjNjY5OUZGIj5GaXp6IE1hc3Rlcjo8L2ZvbnQ+PC9iPiA8Zm9udCBjb2xvcj0iI0ZGRkZGRiI+R29vZCBsdWNrIGFuZCBnaXZlIG1lIGZlZWRiYWNrITwvZm9udD4ABAUAAABNZW51AAQDAAAAX0cABAsAAABNTUFfTG9hZGVkAARiAAAAPGI+PGZvbnQgY29sb3I9IiM2Njk5RkYiPkZpenogTWFzdGVyOjwvZm9udD48L2I+IDxmb250IGNvbG9yPSIjRkZGRkZGIj5NTUEgU3VwcG9ydCBMb2FkZWQuPC9mb250PgAECgAAAEF1dG9DYXJyeQAEYgAAADxiPjxmb250IGNvbG9yPSIjNjY5OUZGIj5GaXp6IE1hc3Rlcjo8L2ZvbnQ+PC9iPiA8Zm9udCBjb2xvcj0iI0ZGRkZGRiI+U0FDIFN1cHBvcnQgTG9hZGVkLjwvZm9udD4AAAAAAAMAAAAAAAEUARMAAAAAAAAAAAAAAAAAAAAAtwAAALkAAAAAAAIKAAAABgBAAAdAQAAHgEAARsBAABhAAAAXAACAA0AAAAMAgAAfAAABHwCAAAQAAAAECQAAAE1lbnVGaXp6AAQJAAAAcHJDb25maWcABAYAAABza2luMQAECQAAAGxhc3RTa2luAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAuwAAANoAAAAAAAOQAAAABgBAAB1AgAAGQEAAWIBAABfABIAGwEAABwBBAAdAQQAbAAAAF4ADgAaAQQAHwEEARoBBAEcAwgAQQAAAD0BCAEbAQABHAMEAR4DCABoAgAAXwACABsBCAB1AgAAGAEMAHUCAAAZAQABYgEAAF4AFgAbAQAAHQEMAB4BDABtAAAAXAAGABsBAAAdAQwAHwEMAGwAAABcAA4AGgEEAB8BBAEaAQQBHAMIAEEAAAA9AQgBGwEAAR0DDAEcAxAAaAIAAF0AAgAZARAAdQIAABsBAAAeARAAHwEQAG0AAABcAAYAGwEAAB4BEAAcARQAbAAAAF4AFgAaAQQAHwEEARoBBAEcAwgAQQAAAD0BCAEbAQABHgMQAR0DFABoAgAAXwAKABsBAAAeARAAHwEQAGwAAABeAAIABwAQAG0AAABcAAIABAAUARoBFAIAAAABdQAABBsBAAAfARQAHAEYAGwAAABcAA4AGgEEAB8BBAEaAQQBHAMIAEEAAAA9AQgBGwEAAR8DFAEdAxgAaAIAAF0AAgAaARgAdQIAABsBAAAfARgAHAEcAGwAAABdAAIAGQEcAHUCAAAbAQAAHwEYAB4BHABsAAAAXQACABsBHAB1AgAAGwEAABwBIAAdASAAbAAAAF0AAgAaASAAdQIAABsBAAAcASAAHwEgAGwAAABcAA4AGAEkARkBAAIZAyQAdgIABGwAAABeAAYAGQEAAB4BJABtAAAAXgACABsBJAEZAQAAdQAABBgBKAB1AgAAfAIAAKQAAAAQGAAAAQ2hlY2sABAQAAABDZWwAAAQJAAAATWVudUZpenoABAwAAABjb21ib0NvbmZpZwAECQAAAENFbmFibGVkAAQHAAAAbXlIZXJvAAQFAAAAbWFuYQAECAAAAG1heE1hbmEAAwAAAAAAAFlABAYAAABtYW5hYwAEBAAAAGNhYQAEBgAAAENvbWJvAAQNAAAAaGFycmFzQ29uZmlnAAQJAAAASEVuYWJsZWQABAoAAABIVEVuYWJsZWQABAYAAABtYW5haAAECAAAAEhhcnJhc3MABAUAAABmYXJtAAQHAAAARnJlZXplAAQKAAAATGFuZUNsZWFyAAQGAAAAbWFuYWYABAUAAABGYXJtAAQDAAAAamYABAoAAABKRkVuYWJsZWQABAcAAABtYW5hamYABAwAAABKdW5nbGVGYXJtbQAECQAAAHByQ29uZmlnAAQDAAAAQVoABAcAAABhdXRvemgABAQAAABBTFMABAgAAABhdXRvbHZsAAQJAAAAZXhDb25maWcABAcAAABFU0NBUEUABAcAAABFc2NhcGUABAMAAABGVQAEDAAAAFZhbGlkVGFyZ2V0AAQGAAAAcmFuZ2UABAUAAABkZWFkAAQGAAAAQ2FzdFIABAsAAABLaWxsU3RlYWxsAAAAAAACAAAAAAABCwAAAAAAAAAAAAAAAAAAAADcAAAAVwEAAAAAEhQEAAAGQEAAHYCAAAgAAIAGwEAARgBAAB2AAAEIAACBBkBBAEGAAQCFAIAAVoCAAIGAAQDFAIAAlsAAAR2AgAEIAACCBgBBAAzAQQCBAAIAwQACAB1AAAIGgEAADEBCAIYAQQCHAEIBHUCAAQYAQQAMwEEAgYACAMHAAgAdQAACBgBDAEZAQwCGgEMBxsBDAB2AAAIIAACGBgBDAApARIgGAEEAB8BCAAyARACGAEMAHUCAAQYAQQAMwEEAgcAEAMEABQAdQAACBgBBAAcARQAMQEUAgYAFAMHABQAGAUQBQQEGANZAgQEGQUYAQwGAAB1AAAMGAEEABwBFAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHAEUADEBFAIGABwDBwAUABgHEAUHBBwDWQIEBBkFGAEMBgAAdQAADBgBBAAcARQAMQEUAgYAGAMHABgAGAUcAQUEHAB1AAAMGAEEABwBFAAxARQCBAAgAwcAFAAYBRAJBQQgA1kCBAQZBRgBDAQAAHUAAAwYAQQAHAEUADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAcARQAMQEUAgYAIAMHABQAGAcQCQcEIANZAgQEGQUYAQwGAAB1AAAMGAEEABwBFAAxARQCBAAkAwUAJAAZBRgBDAYAAHUAAAwYAQQAHAEUADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAcARQAMQEUAgYAJAMHACQAGQUYAQwGAAB1AAAMGAEEABwBFAAxARQCBAAoAwUAKAAZBRgBDAQAAHUAAAwYAQQAHAEUADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAcARQAMQEUAgYAKAMHACgAGAUsAQUELAIsBAAHBgQsAAcILAKRBAAEdQIADBgBBAAcARQAMQEUAgQAMAMFADAAGgUwAQwEAAIHBDAAdQIADBgBBAAcARQAMQEUAgQANAMFADQAGgU0AQcENAIEBDgDBQQ4AAQIOAB1AgAQGAEEADMBBAIGADgDBwA4AHUAAAgYAQQAHwE4ADEBFAIEADwDBQA8ABgFLAEGBDwCLAYABwcEPAAECEABBQhAApEGAAR1AgAMGAEEAB8BOAAxARQCBgBAAwcAQAAaBTABDAQAAhgFRAIdBUQPBgREAnQEAAR1AAAAGAEEAB8BOAAxARQCBwBEAwQASAAZBUgBDAQAAhgFRAIdBUQPBgRIAnQEAAR1AAAAGAEEAB8BOAAxARQCBwBIAwQATAAaBTQBBQRMAgQEOAMFBDgABAg4AHUCABAYAQQAMwEEAgYATAMHAEwAdQAACBgBBAAfAUwAMQEUAgQAUAMFAFAAGQUYAQwGAAB1AAAMGAEEAB8BTAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHwFMADEBFAIGAFADBwAUABgFEAUEBBgDWQIEBBkFGAEMBgAAdQAADBgBBAAfAUwAMQEUAgYAGAMHABgAGAUcAQUEHAB1AAAMGAEEAB8BTAAxARQCBwBQAwcAFAAYBxAFBwQcA1kCBAQZBRgBDAYAAHUAAAwYAQQAHwFMADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAfAUwAMQEUAgQAVAMHABQAGAUQCQUEIANZAgQEGQUYAQwEAAB1AAAMGAEEAB8BTAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHwFMADEBFAIFAFQDBwAUABgHEAkHBCADWQIEBBkFGAEMBgAAdQAADBgBBAAzAQQCBgBUAwcAVAB1AAAIGAEEAB8BVAAxARQCBABYAwcAFAAYBRAFBAQYA1kCBAQYBSwBBQRYAiwEAAsGBFgABwhYAQQIXAIFCFwCkQQACHUCAAwYAQQAHwFUADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAfAVQAMQEUAgYAXAMHABQAGAcQBQcEHANZAgQEGAUsAQUEWAIsBAALBgRYAAcIWAEECFwCBQhcApEEAAh1AgAMGAEEAB8BVAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHwFUADEBFAIHAFwDBwAUABgFEAkFBCADWQIEBBgFLAEEBGACLAQACwYEWAAHCFgBBAhcAgUIXAKRBAAIdQIADBgBBAAfAVQAMQEUAgUAYAMHABQAGAUQDQUEIANZAgQEGQUYAQwEAAB1AAAMGAEEAB8BVAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHwFUADEBFAIGAGADBwBgABoFMAEMBAACGAVEAh0FRA8EBGQCdAQABHUAAAAYAQQAHwFUADEBFAIEAFwDBQBkABoFMAEMBAACGAVEAh0FRA8GBGQCdAQABHUAAAAYAQQAHwFUADEBFAIHAGQDBABoABoFNAEFBGgCBAQ4AwUEOAAECDgAdQIAEBgBBAAzAQQCBgBoAwcAaAB1AAAIGAEEAB8BaAAxARQCBABsAwcAFAAYBRAFBAQYA1kCBAQZBRgBDAYAAHUAAAwYAQQAHwFoADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAfAWgAMQEUAgUAbAMHABQAGAcQBQcEHANZAgQEGQUYAQwGAAB1AAAMGAEEAB8BaAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHwFoADEBFAIGAGwDBwAUABgFEAkFBCADWQIEBBkFGAEMBgAAdQAADBgBBAAfAWgAMQEUAgcAbAMHABQAGAUQDQUEIANZAgQEGQUYAQwEAAB1AAAMGAEEAB8BaAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHwFoADEBFAIEAHADBQBwABoFMAEMBAACGAVEAh0FRA8GBHACdAQABHUAAAAYAQQAHwFoADEBFAIHAHADBAB0ABoFNAEFBGgCBAQ4AwUEOAAECDgAdQIAEBgBBAAzAQQCBQB0AwYAdAB1AAAIGAEEAB4BdAAzAQQCBwB0AwQAeAB1AAAIGgF4AHYCAAAgAgLwGwF4ARkBeAB0AAQEXgAiARsFeAIUBgANdAQEBFwAHgIwCXwIAA4AEnYKAAYcCRAWGggIEmwIAABdABYCGAkEAh4JdBYcCXgWMQkUFBkNfAEwDXwLAA4AEXYOAAUcDxAYdgwABQYMfAIZDXwDHw18CnYMAAcEDIAAGRF8ARgSCBB2EAAFWA4QGhkNGAMMDgACdQgADYoEAAOMB+H8igAAAo4D2fwYAQQAHgF0ADEBFAIFAIADBgCAABgFEAkFBCADWQIEBBkFGAEMBgAAdQAADBgBBAAeAXQAMQEUAgYAGAMHABgAGAUcAQUEHAB1AAAMGAEEAB4BdAAxARQCBwCAAwQAhAAaBTABDAQAAhgFRAIdBUQPBQSEAnQEAAR1AAAAGAEEAB4BdAAxARQCBgCEAwcAFAAYBRAJBQQgA1kCBAQZBRgBDAYAAHUAAAwYAQQAHgF0ADEBFAIHAIQDBwAUABgFEAUEBBgDWQIEBBkFGAEMBgAAdQAADBgBBAAeAXQAMQEUAgYAGAMHABgAGAUcAQUEHAB1AAAMGAEEAB4BdAAxARQCBACIAwUAiAAaBTABDAQAAhgFRAIdBUQPBgSIAnQEAAR1AAAAGAEEADMBBAIHAIgDBACMAHUAAAgYAQQAHAGMADEBFAIFAIwDBgCMABkFGAEMBgAAdQAADBgBBAAcAYwAMQEUAgcAjAMEAJAAGQUYAQwGAAB1AAAMGAEEABwBjAAxARQCBQCQAwYAkAAZBRgBDAYAAHUAAAwYAQQAHAGMADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAcAYwAMQEUAgcAkAMEAJQAGQUYAQwGAAB1AAAMGAEEABwBjAAxARQCBQCUAwYAlAAbBZQBLAQACgQEmAMEBDgABQiYAQQIOAGRBAAIdQAADBgBBAAcAYwAMQEUAgYAGAMHABgAGAUcAQUEHAB1AAAMGAEEABwBjAAxARQCBgCYAwcAmAAZBRgBDAYAAHUAAAwYAQQAHAGMADEBFAIEAJwDBQCcABsFlAEsBAAKBASYAwQEOAAECDgBBAiYAZEEAAh1AAAMGAEEABwBjAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHAGMADEBFAIGAJwDBwCcABkFGAEMBgAAdQAADBgBBAAcAYwAMQEUAgQAoAMFAKAAGwWUASwEAAoEBJgDBASYAAQIOAEECDgBkQQACHUAAAwYAQQAHAGMADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAcAYwAMQEUAgYAoAMHAKAAGQUYAQwGAAB1AAAMGAEEABwBjAAxARQCBACkAwUApAAbBZQBLAQACgQEmAMEBDgABAiYAQQIOAGRBAAIdQAADBgBBAAzAQQCBgCkAwcApAB1AAAIGAEEAB8BpAAxARQCBACoAwUAqAAZBRgBDAQAAHUAAAwYAQQAHwGkADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAfAaQAMQEUAgYAqAMHAKgAGQUYAQwEAAB1AAAMGAEEAB8BpAAxARQCBACsAwUArAAaBTQBBgSsAgUELAMGBKwAdQAAEBgBBAAfAaQAMQEUAgYAGAMHABgAGAUcAQUEHAB1AAAMGAEEAB8BpAAxARQCBwCsAwQAsAAZBRgBDAYAAHUAAAwYAQQAHwGkADEBFAIFALADBgCwABoFNAEHBLACBAQ4AwUEOAAECDgAdQIAEBgBBAAfAaQAMQEUAgQAtAMFALQAGgU0AQYEtAIEBDgDBwS0AAQIOAB1AgAQGAEEAB8BpAAxARQCBgAYAwcAGAAYBRwBBQQcAHUAAAwYAQQAHwGkADEBFAIEALgDBQC4ABkFGAEMBAAAdQAADBgBBAAfAaQAMQEUAgYAuAMHALgAGAUsAQUELAIsBAAPBwQsAAQIvAEFCLwCBgi8AwcIvAAEDMACkQQADHUCAAwYAQQAHwGkADEBFAIGABgDBwAYABgFHAEFBBwAdQAADBgBBAAfAaQAMQEUAgUAwAMGAMAAGAUsAQUELAIsBAAHBQQAAAcIwAKRBAAEdQIADBgBBAAfAaQAMQEUAgQAxAMFAMQAGAUsAQQEYAIsBAAPBgTEAAcIxAEECMgCBQjIAwYIyAAHDMgCkQQADHUCAAwYAQQAHwGkAB4BqABsAAAAXAAOABgBzABsAAAAXQAKABkBzAEFABACGAEEAh8BpAYcAawEdQIABBgBBAAfAaQAHAGsACAAA5wYAQQAHAEUADMBzAIEADAAdQIABBgBBAAfATgAMwHMAgYAQAB1AgAEGAEEAB8BOAAzAcwCBwBEAHUCAAQYAQQAHwGkADMBzAIHAKwAdQIABBgB0AAwAXwCGQHQAHYCAAQcARAAMgHQAgcA0AB2AgAEbAAAAF4AAgAZAdAAJAAAFF8ACgAYAdAAMAF8AhgB1AB2AgAEHAEQADIB0AIHANAAdgIABGwAAABdAAIAGAHUACQAABQZAdQBGwHUAhkB1AMEANgBdgIABCkAA6wZAdQBGQHYACkAA7B8AgADaAAAABAMAAABWUAAEDAAAAFZQcmVkaWN0aW9uAAQFAAAAU09XaQAEBAAAAFNPVwAECQAAAE1lbnVGaXp6AAQNAAAAc2NyaXB0Q29uZmlnAAQNAAAARml6eiBNYXN0ZXIgAAQLAAAAYWRkU3ViTWVudQAECwAAAE9yYndhbGtpbmcABAsAAABMb2FkVG9NZW51AAQQAAAAVGFyZ2V0IHNlbGVjdG9yAAQEAAAAU1RTAAQPAAAAVGFyZ2V0U2VsZWN0b3IABBoAAABUQVJHRVRfTEVTU19DQVNUX1BSSU9SSVRZAAQGAAAAcmFuZ2UABA0AAABEQU1BR0VfTUFHSUMABAUAAABuYW1lAAQFAAAARml6egAEBgAAAGFkZFRTAAQeAAAAW0ZpenogTWFzdGVyXTogQ29tYm8gU2V0dGluZ3MABAwAAABjb21ib0NvbmZpZwAECQAAAGFkZFBhcmFtAAQFAAAAVVNFUQAEBQAAAFVzZSAABAQAAAAoUSkABBMAAABTQ1JJUFRfUEFSQU1fT05PRkYABAQAAABxcXEABDkAAAAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQAEEgAAAFNDUklQVF9QQVJBTV9JTkZPAAQBAAAAAAQFAAAAVVNFVwAEBAAAAChXKQAEBQAAAFVTRUUABAQAAAAoRSkABAUAAABVU0VSAAQEAAAAKFIpAAQIAAAAS2lsYWJsZQAEHwAAAE9ubHkgVXNlIElmIFRhcmdldCBJcyBLaWxsYWJsZQAEBAAAAHVhYQAEEAAAAFVzZSBBQSBpbiBDb21ibwAEAwAAAFNUAAQWAAAARm9jdXMgU2VsZWN0ZWQgVGFyZ2V0AAQDAAAAQ1QABAsAAABDb21ibyBUeXBlAAQSAAAAU0NSSVBUX1BBUkFNX0xJU1QAAwAAAAAAAPA/BAgAAABRPlI+Vz5FAAQIAAAAUj5RPlc+RQAECQAAAENFbmFibGVkAAQLAAAARnVsbCBDb21ibwAEFwAAAFNDUklQVF9QQVJBTV9PTktFWURPV04AAwAAAAAAAEBABAYAAABtYW5hYwAEGAAAAE1pbi4gTWFuYSBUbyBDYXN0IENvbWJvAAQTAAAAU0NSSVBUX1BBUkFNX1NMSUNFAAMAAAAAAAAkQAMAAAAAAAAAAAMAAAAAAABZQAQfAAAAW0ZpenogTWFzdGVyXTogSGFycmFzIFNldHRpbmdzAAQNAAAAaGFycmFzQ29uZmlnAAQDAAAASE0ABA4AAABIYXJyYXNzIE1vZGU6AAMAAAAAAAAAQAQEAAAAfFF8AAQGAAAAfFd8UXwABAgAAAB8V3xRfEV8AAQJAAAASEVuYWJsZWQABAcAAABIYXJhc3MABAcAAABzdHJpbmcABAUAAABieXRlAAQCAAAASwAECgAAAEhURW5hYmxlZAAEDgAAAEhhcmFzcyBUb2dnbGUABBkAAABTQ1JJUFRfUEFSQU1fT05LRVlUT0dHTEUABAIAAABMAAQGAAAAbWFuYWgABBQAAABNaW4uIE1hbmEgVG8gSGFyYXNzAAMAAAAAAABOQAQbAAAAW0ZpenogTWFzdGVyXTogS1MgU2V0dGluZ3MABAkAAABrc0NvbmZpZwAEBAAAAElLUwAEEQAAAFVzZSBJZ25pdGUgVG8gS1MABAQAAABRS1MABAQAAABXS1MABAQAAABFS1MABAQAAABSS1MABB0AAABbRml6eiBNYXN0ZXJdOiBGYXJtIFNldHRpbmdzAAQFAAAAZmFybQAEAwAAAFFGAAMAAAAAAAAQQAQDAAAATm8ABAkAAABGcmVlemluZwAECgAAAExhbmVDbGVhcgAEBQAAAEJvdGgABAMAAABXRgAEAwAAAEVGAAMAAAAAAAAIQAQEAAAARUYyAAQHAAAARnJlZXplAAQOAAAARmFybSBGcmVlemluZwAEAgAAAEMABA8AAABGYXJtIExhbmVDbGVhcgAEAgAAAFYABAYAAABtYW5hZgAEEgAAAE1pbi4gTWFuYSBUbyBGYXJtAAMAAAAAAABEQAQkAAAAW0ZpenogTWFzdGVyXTogSnVuZ2xlIEZhcm0gU2V0dGluZ3MABAMAAABqZgAEBAAAAFFKRgAEBAAAAFdKRgAEBAAAAEVKRgAEBQAAAEVKRjIABAoAAABKRkVuYWJsZWQABAwAAABKdW5nbGUgRmFybQAEAgAAAFgABAcAAABtYW5hamYABBkAAABNaW4uIE1hbmEgVG8gSnVuZ2xlIEZhcm0ABB4AAABbRml6eiBNYXN0ZXJdOiBFeHRyYSBTZXR0aW5ncwAECQAAAGV4Q29uZmlnAAQNAAAARG9kZ2UgU2tpbGxzAAQDAAAARVMABAgAAABFbmVtaWVzAAQPAAAAR2V0RW5lbXlIZXJvZXMABAYAAABwYWlycwAEDQAAAEdldFNwZWxsRGF0YQAECQAAAHRvc3RyaW5nAAQHAAAARG9kZ2UgAAQJAAAAY2hhck5hbWUABAgAAAAgU3BlbGwgAAQDAAAAQUUABBMAAABEb2RnZSBTcGVsbHMgV2l0aCAABAcAAABFU0NBUEUABA0AAABTbWFsbCBFc2NhcGUABAIAAABUAAQEAAAARVVFAAQEAAAARVVRAAQDAAAARlUABBMAAABDYXN0IFVsdCBUbyBUYXJnZXQABAIAAABaAAQdAAAAW0ZpenogTWFzdGVyXTogRHJhdyBTZXR0aW5ncwAECwAAAGRyYXdDb25maWcABAQAAABETEMABBUAAABVc2UgTGFnLUZyZWUgQ2lyY2xlcwAEAwAAAEREAAQOAAAARHJhdyBETUcgVGV4dAAEBAAAAERTVAAEFQAAAERyYXcgU2VsZWN0ZWQgVGFyZ2V0AAQFAAAAREFBUgAEDgAAAERyYXcgQUEgUmFuZ2UABAYAAABEQUFSQwAEFAAAAERyYXcgQUEgUmFuZ2UgQ29sb3IABBMAAABTQ1JJUFRfUEFSQU1fQ09MT1IAAwAAAAAA4G9AAwAAAAAAAGlABAQAAABEUVIABA0AAABEcmF3IFEgUmFuZ2UABAUAAABEUVJDAAQTAAAARHJhdyBRIFJhbmdlIENvbG9yAAQEAAAAREVSAAQNAAAARHJhdyBFIFJhbmdlAAQFAAAAREVSQwAEEwAAAERyYXcgRSBSYW5nZSBDb2xvcgAEBAAAAERSUgAEDQAAAERyYXcgUiBSYW5nZQAEBQAAAERSUkMABBMAAABEcmF3IFIgUmFuZ2UgQ29sb3IABB0AAABbRml6eiBNYXN0ZXJdOiBNaXNjIFNldHRpbmdzAAQJAAAAcHJDb25maWcABAMAAABwYwAEIAAAAFVzZSBQYWNrZXRzIFRvIENhc3QgU3BlbGxzKFZJUCkABAUAAABza2luAAQQAAAAVXNlIGNoYW5nZSBza2luAAQGAAAAc2tpbjEABBEAAABTa2luIGNoYW5nZShWSVApAAMAAAAAAAAUQAQDAAAAQVoABBAAAABVc2UgQXV0byBaaG9ueWEABAUAAABBWkhQAAQWAAAATWluIEhQIFRvIENhc3QgWmhvbnlhAAMAAAAAAAA0QAQFAAAAQVpNUgAEHAAAAE11c3QgSGF2ZSAwIEVuZW15IEluIFJhbmdlOgADAAAAAAAgjEADAAAAAABwl0AEBAAAAEFMUwAEEAAAAEF1dG8gbHZsIHNraWxscwAEAwAAAEFMAAQSAAAAQXV0byBsdmwgc2VxdWVuY2UABAgAAABSPlE+RT5XAAQIAAAAUj5XPlE+RQAECAAAAFI+Vz5FPlEABAgAAABSPkU+UT5XAAQIAAAAUj5FPlc+UQAEBAAAAHBybwAEEwAAAFByb2RpY3Rpb24gVG8gVXNlOgAECwAAAFByb2RpY3Rpb24ABAYAAAB2cGhpdAAEFgAAAFZQcmVkaWN0aW9uIEhpdENoYW5jZQAEEwAAAFswXVRhcmdldCBQb3NpdGlvbgAEEQAAAFsxXUxvdyBIaXRjaGFuY2UABBIAAABbMl1IaWdoIEhpdGNoYW5jZQAEFwAAAFszXVRhcmdldCBzbG93ZWQvY2xvc2UABBMAAABbNF1UYXJnZXQgaW1tb2JpbGUABBIAAABbNV1UYXJnZXQgZGFzaGluZwAECQAAAFZJUF9VU0VSAAQPAAAAR2VuTW9kZWxQYWNrZXQABAkAAABsYXN0U2tpbgAECgAAAHBlcm1hU2hvdwAEBwAAAG15SGVybwAECwAAAFNVTU1PTkVSXzEABAUAAABmaW5kAAQMAAAAc3VtbW9uZXJkb3QABAsAAABTVU1NT05FUl8yAAQDAAAAX0cABA4AAABvbGREcmF3Q2lyY2xlAAQHAAAAcmF3Z2V0AAQLAAAARHJhd0NpcmNsZQAEDAAAAERyYXdDaXJjbGUyAAAAAAALAAAAAAABAQEHAQgBCQELAQoBHQEfAR4BGgAAAAAAAAAAAAAAAAAAAABZAQAAYQEAAAIACxYAAACBAAAAxkBAAAaBQAAdAYAA3QABABfAAoDbAQAAF0ACgAfCwAMbQgAAF4ABgAYCQQBAAgAAgAKAAx2CgAEaQAAEFwAAgI1AQQHigAAAY0H8f58AAAEfAIAABgAAAAMAAAAAAAAAAAQGAAAAcGFpcnMABA8AAABHZXRFbmVteUhlcm9lcwAEBQAAAGRlYWQABAwAAABHZXREaXN0YW5jZQADAAAAAAAA8D8AAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAGMBAABpAQAAAAACEgAAAAYAQAAHQEAAB4BAABsAAAAXwACABsBAAAwAQQAdQAABF8ABgAYAQAAHQEAAB4BAABtAAAAXgACABsBAAAxAQQAdQAABHwCAAAYAAAAECQAAAE1lbnVGaXp6AAQMAAAAY29tYm9Db25maWcABAQAAAB1YWEABAUAAABTT1dpAAQOAAAARW5hYmxlQXR0YWNrcwAEDwAAAERpc2FibGVBdHRhY2tzAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAawEAAHQBAAAAAAI3AAAABgBAAAxAQAAdQAABBoBAAAfAQAAbAAAAF0ACgAaAQAAHwEAABwBBAEZAQQBHAMEAGEAAABeAAIAGgEAAB8BAAB8AAAEGgEAAB4BBABsAAAAXQAeABoBAAAeAQQAHwEEAGwAAABcABoAGgEAAB4BBAAcAQgAbAAAAF8AEgAaAQAAHgEEABwBCAAdAQgAbAAAAF0ADgAaAQAAHgEEABwBCAAdAQgAHAEEARkBBAEcAwQAYQAAAFwABgAaAQAAHgEEABwBCAAdAQgAfAAABBgBAAAdAQgAfAAABHwCAAAoAAAAEDwAAAFRhcmdldFNlbGVjdG9yAAQHAAAAdXBkYXRlAAQDAAAAX0cABAsAAABNTUFfVGFyZ2V0AAQFAAAAdHlwZQAEBwAAAG15SGVybwAECgAAAEF1dG9DYXJyeQAECgAAAENyb3NzaGFpcgAEEQAAAEF0dGFja19Dcm9zc2hhaXIABAcAAAB0YXJnZXQAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAB2AQAAlQEAAAAAA5QAAAAFAAAAGwAAABcAAoAGAMAAB0BAAAeAQAAYwEAAF8AAgAYAwQBGQEEBCkCAgheAAIAGAMEARkDBAQpAgIIGgMEAWMBBABfAAYAGAMIARoDBAB2AAAEbAAAAF4AAgAaAwQBIAICEF4AAgAaAwgAdgIAASACAhAUAAAIbQAAAF4AAgAUAgAIbAAAAF4AAgAbAwgAHAEMACoDDhgbAwgAMwEMAhkDCAB1AgAEGAMQAQUAEAB2AAAEJAAADBQAAA1jAQQAXgAGABoDEAAzARACFAAADHYCAAUYAxQBYQAAAFwAAgANAAAADAIAACQCAAwaAxAAMwEQAhkDFAB2AgAFGAMUAWEAAABcAAIADQAAAAwCAAAkAAAQGgMQADMBEAIaAxQAdgIABRgDFAFhAAAAXAACAA0AAAAMAgAAJAIAEBoDEAAzARACGwMUAHYCAAUYAxQBYQAAAFwAAgANAAAADAIAACQAABQaAxAAMwEQAhgDGAB2AgAFGAMUAWEAAABcAAIADQAAAAwCAAAkAAAAFAAAGWMBBABeAAYAGgMQADMBEAIUAAAYdgIABRgDFAFhAAAAXAACAA0AAAAMAgAAJAIAFBgDAAAdARgAHgEYAGwAAABcABIAGwMYAGwAAABdAA4AGAMcAHYCAABsAAAAXQAKABkDHAEGABwCGAMAAh0BGAYfARwEdQIABBgDAAAdARgAHwEcASAAAkAYAwAAHQEgAB4BIABsAAAAXwACABsDIAEZAyQAKQACSF8AAgAbAyABGwMgAR4DJAApAAJIfAIAAJwAAAAQJAAAATWVudUZpenoABAwAAABjb21ib0NvbmZpZwAEAwAAAENUAAMAAAAAAAAAQAQPAAAAVGFyZ2V0U2VsZWN0b3IABAYAAAByYW5nZQAEDwAAAFNlbGVjdGVkVGFyZ2V0AAAEDAAAAFZhbGlkVGFyZ2V0AAQEAAAAQ2VsAAQQAAAAR2V0Q3VzdG9tVGFyZ2V0AAQFAAAAU09XaQAEBQAAAE1lbnUABAgAAABFbmFibGVkAAEABAwAAABGb3JjZVRhcmdldAAEFQAAAEdldEludmVudG9yeVNsb3RJdGVtAAMAAAAAAKqoQAQHAAAAbXlIZXJvAAQMAAAAQ2FuVXNlU3BlbGwABAYAAABSRUFEWQAEAwAAAF9RAAQDAAAAX1cABAMAAABfRQAEAwAAAF9SAAQJAAAAcHJDb25maWcABAUAAABza2luAAQJAAAAVklQX1VTRVIABAwAAABza2luQ2hhbmdlZAAEDwAAAEdlbk1vZGVsUGFja2V0AAQFAAAARml6egAEBgAAAHNraW4xAAQJAAAAbGFzdFNraW4ABAsAAABkcmF3Q29uZmlnAAQEAAAARExDAAQDAAAAX0cABAsAAABEcmF3Q2lyY2xlAAQMAAAARHJhd0NpcmNsZTIABA4AAABvbGREcmF3Q2lyY2xlAAAAAAANAAAAARAAAAELAQcBEwEUARsBEgENAQ4BDwERARoAAAAAAAAAAAAAAAAAAAAAlwEAAKYBAAABAAkxAAAAWABAABdAC4BGQEAAhQCAAF0AAQEXwAmAhsFAAMcBwQKdgQABSoEBgYeBwAJYAEADFwAIgIdBwQKbAQAAF4ACgIaBQQDAAQAAnYEAAcfBwQIZwAEDFwABgIYBQgDHgcACAAIAAJ1BgAEXgASAh0HBAptBAAAXwAOAhoFBAMABAACdgQABxkFCAAaCQgDdgQABjsEBA8ZBQgAAAgAA3YEAAY7BAQMZwEIDF4AAgIYBQgDHgcACnUEAAWKAAADjQPV/HwCAAAwAAAAABAYAAABwYWlycwAEBQAAAHNsb3QABBUAAABHZXRJbnZlbnRvcnlTbG90SXRlbQAEAwAAAGlkAAQKAAAAcmVxVGFyZ2V0AAQMAAAAR2V0RGlzdGFuY2UABAYAAAByYW5nZQAECgAAAENhc3RTcGVsbAAEEAAAAGdldEhpdEJveFJhZGl1cwAEBwAAAG15SGVybwADAAAAAAAASUAAAAAAAgAAAAAAAQwAAAAAAAAAAAAAAAAAAAAAqAEAAKoBAAABAAQHAAAARgBAAIdAQADHgEAAXYCAAVDAwABfAAABHwCAAAQAAAAEDAAAAEdldERpc3RhbmNlAAQIAAAAbWluQkJveAAECAAAAG1heEJCb3gAAwAAAAAAAABAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAACsAQAAswEAAAAAAhMAAAAGAEAARkBAAB1AAAEGgEAAB8BAAAcAQQAYQEEAF4AAgAaAQQAdQIAAF4ABgAaAQAAHwEAABwBBABjAQQAXQACABgBCAB1AgAAfAIAACQAAAAQJAAAAVXNlSXRlbXMABAQAAABDZWwABAkAAABNZW51Rml6egAEDAAAAGNvbWJvQ29uZmlnAAQDAAAAQ1QAAwAAAAAAAPA/BAoAAABjb21ib1FSV0UAAwAAAAAAAABABAoAAABjb21ib1JRV0UAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAC1AQAA1AEAAAAABnYAAAAGAEAAB0BAAAeAQAAbAAAAFwADgAbAQABGAEEAhkDBAB2AgAEbAAAAF4ABgAYAQQAHgEEAG0AAABeAAIAGwEEARgBBAB1AAAEGAEAAB0BAAAcAQgAbAAAAFwALgAbAQABGAEEAhkBBAR2AgAEbAAAAF4AJgAYAQQAHgEEAG0AAABeACIAGAEAAB0BAAAdAQgAbAAAAF0AFgAaAQgAMwEIAhgBBAMaAQgDMAMMBQUEDAN2AgAHHgMMBz8CAh80AxAEGgUIAB0FEAs0AgQEdgAACRgBBAEeAxAAZAIAAF8ACgEbARACGAEEAXUAAARfAAYAGAEAAB0BAAAdAQgAbQAAAF4AAgAbARABGAEEAHUAAAQYAQAAHQEAABwBFABsAAAAXwAKABsBAAEYAQQCFAIABHYCAARsAAAAXQAGABgBBAAeAQQAbQAAAF0AAgAZARQAdQIAABgBAAAdAQAAHgEUAGwAAABeABoAGwEAARgBBAIZAQQKNwEUBHYCAARsAAAAXgAGABgBBAAeAQQAbQAAAF4AAgAYARgBGAEEAHUAAAQZARgBGAEEAhoBCAB2AgAEZAACNF4ABgAYAQQAHgEEAG0AAABeAAIAGwEYARgBBAB1AAAEfAIAAHAAAAAQJAAAATWVudUZpenoABAwAAABjb21ib0NvbmZpZwAEBQAAAFVTRVEABAwAAABWYWxpZFRhcmdldAAEBAAAAENlbAAEBgAAAHJhbmdlAAQFAAAAZGVhZAAEBgAAAENhc3RRAAQFAAAAVVNFUgAECAAAAEtpbGFibGUABAcAAABteUhlcm8ABAsAAABDYWxjRGFtYWdlAAQNAAAAR2V0U3BlbGxEYXRhAAMAAAAAAAAIQAQGAAAAbGV2ZWwAAwAAAAAAQF9AAwAAAAAAwFJABAMAAABhcAAEBwAAAGhlYWx0aAAEBgAAAENhc3RSAAQFAAAAVVNFVwAEBgAAAENhc3RXAAQFAAAAVVNFRQADAAAAAAAASUAEBgAAAENhc3RFAAQMAAAAR2V0RGlzdGFuY2UAAwAAAAAAoHRABAcAAABDYXN0RTIAAAAAAAUAAAAAAAEHAQsBFwEJAAAAAAAAAAAAAAAAAAAAANYBAAD1AQAAAAAGdgAAAAYAQAAHQEAAB4BAABsAAAAXAAuABsBAAEYAQQCGQMEAHYCAARsAAAAXgAmABgBBAAeAQQAbQAAAF4AIgAYAQAAHQEAAB8BBABsAAAAXQAWABgBCAAxAQgCGAEEAxgBCAMyAwgFBwQIA3YCAAccAwwHPwICGzYDDAQYBQgAHwUMCzQCBAR2AAAJGAEEARwDEABkAgAAXwAKARkBEAIYAQQBdQAABF8ABgAYAQAAHQEAAB8BBABtAAAAXgACABkBEAEYAQQAdQAABBgBAAAdAQAAHgEQAGwAAABcAA4AGwEAARgBBAIZAQQEdgIABGwAAABeAAYAGAEEAB4BBABtAAAAXgACABsBEAEYAQQAdQAABBgBAAAdAQAAHAEUAGwAAABfAAoAGwEAARgBBAIUAgAEdgIABGwAAABdAAYAGAEEAB4BBABtAAAAXQACABkBFAB1AgAAGAEAAB0BAAAeARQAbAAAAF4AGgAbAQABGAEEAhkBBAo3ARQEdgIABGwAAABeAAYAGAEEAB4BBABtAAAAXgACABgBGAEYAQQAdQAABBkBGAEYAQQCGAEIAHYCAARkAAI0XgAGABgBBAAeAQQAbQAAAF4AAgAbARgBGAEEAHUAAAR8AgAAcAAAABAkAAABNZW51Rml6egAEDAAAAGNvbWJvQ29uZmlnAAQFAAAAVVNFUgAEDAAAAFZhbGlkVGFyZ2V0AAQEAAAAQ2VsAAQGAAAAcmFuZ2UABAUAAABkZWFkAAQIAAAAS2lsYWJsZQAEBwAAAG15SGVybwAECwAAAENhbGNEYW1hZ2UABA0AAABHZXRTcGVsbERhdGEAAwAAAAAAAAhABAYAAABsZXZlbAADAAAAAABAX0ADAAAAAADAUkAEAwAAAGFwAAQHAAAAaGVhbHRoAAQGAAAAQ2FzdFIABAUAAABVU0VRAAQGAAAAQ2FzdFEABAUAAABVU0VXAAQGAAAAQ2FzdFcABAUAAABVU0VFAAMAAAAAAABJQAQGAAAAQ2FzdEUABAwAAABHZXREaXN0YW5jZQADAAAAAACgdEAEBwAAAENhc3RFMgAAAAAABQAAAAAAAQsBBwEXAQkAAAAAAAAAAAAAAAAAAAAA9wEAABICAAAAAAR2AAAABkBAAAyAQACGwEAAHYCAAQcAQQAIAACABkBAAAyAQACGgEEAHYCAAQcAQQAIAICCBkBAAAyAQACGAEIAHYCAAQcAQQAIAICDBkBCAAeAQgAHwEIAGABDABdAA4AGQEMARoBDAIbAwwAdgIABGwAAABfAAYAGQEAABwBBAEYAQAAZAIAAF4AAgAYARABGgEMAHUAAAQZAQgAHgEIAB8BCABhARAAXwAWABQAAARsAAAAXAAWABQCAARsAAAAXQASABkBDAEaAQwCGwMMAHYCAARsAAAAXwAKABkBAAAcAQQBGQEEAhgBAAE2AgAAZAIAAFwABgAaARAAdQIAABgBEAEaAQwAdQAABBkBCAAeAQgAHwEIAGMBEABfACIAFAAABGwAAABeABYAFAIABGwAAABfABIAGQEMARoBDAIbAwwAdgIABGwAAABdAA4AGQEAABwBBAEZAQQCGAEAATYCAAIbAQQBNgIAAGQCAABcAAYAGgEQAHUCAAAYARABGgEMAHUAAAQUAAAIbAAAAF4ABgAYARQBGAEIAhkBFAIeARQHGQEUAx8DFAR1AAAIGQEMARoBDAIUAgAIdgIABGwAAABfAAIAGQEAADABGAIaAQwAdQIABHwCAABkAAAAEBgAAAFFNYW5hAAQHAAAAbXlIZXJvAAQNAAAAR2V0U3BlbGxEYXRhAAQDAAAAX1EABAUAAABtYW5hAAQGAAAAV01hbmEABAMAAABfVwAEBgAAAEVNYW5hAAQDAAAAX0UABAkAAABNZW51Rml6egAEDQAAAGhhcnJhc0NvbmZpZwAEAwAAAEhNAAMAAAAAAADwPwQMAAAAVmFsaWRUYXJnZXQABAQAAABDZWwABAYAAAByYW5nZQAEBgAAAENhc3RRAAMAAAAAAAAAQAQGAAAAQ2FzdFcAAwAAAAAAAAhABAoAAABDYXN0U3BlbGwABAkAAABtb3VzZVBvcwAEAgAAAHgABAIAAAB6AAQHAAAAQXR0YWNrAAAAAAAGAAAAAAABBwEOAQ0BDwEXAAAAAAAAAAAAAAAAAAAAABQCAABLAgAAAQAQswAAAEQAAAEGAUAADEFAAoaBQAAdgYABRsFAAEwBwQJdgQABW0EAABcAAIAfAIAARQGAAExBwQJdQQABGIBBABdABYBGwUEARwHCAkdBwgJYgMICFwAAgENAAABDAIAARsFBAEcBwgJHwcICWIDCAhcAAICDQAAAgwCAAEbBQQBHAcICRwHDAliAwgIXAACAw0AAAMMAgAAXgAWAGEBDABcABYBGwUEARwHCAkdBwgJYgMMCFwAAgENAAABDAIAARsFBAEcBwgJHwcICWIDDAhcAAICDQAAAgwCAAEbBQQBHAcICRwHDAliAwwIXAACAw0AAAMMAgABGwUEARwHCAkdBwgJYwMMCF0AAgBdAAIBDQAAAQwCAAEbBQQBHAcICR8HCAljAwwIXQACAF0AAgINAAACDAIAARsFBAEcBwgJHAcMCWMDDAhdAAIAXQACAw0AAAMMAgABbAAAAF8AEgEYBRACGQcQAXQEBARdAA4BYgMQEF8ACgIfCxASbQgAAFwACgIYCRQDAAoAEnYIAAcZCRQEawAIFF4AAgIaCRQDAAoAEnUIAAWKBAADjwft/mwAAABeABIBGAUQAhkHEAF0BAQEXAAOAWIDEBBeAAoCHwsQEm0IAABfAAYCGAkUAwAKABJ2CAAHFAoABGsACBRdAAICGwkUAnUKAAGKBAADjAfx/2wAAABfAC4BGAUQAhkHEAF0BAQEXQAqAhQIAApsCAAAXgAmAWIDEBBcACYCHwsQEm0IAABdACICGAkUAwAKABJ2CAAHGQsUCGsACBRfABoCGAkYAxkLFAgZDxgJGQ8QAncIAAliARAUXAAWAB4NGAhjARgYXAAGABgNHAEaDQACHQ0cFx4NHBR1DAAIGw0EABwNCBgfDRwYbAwAAF8ABgAeDRgIYAEgGFwABgAYDRwBGg0AAh0NHBceDRwUdQwACYoEAAOPB9H8fAIAAIQAAAAQHAAAAbXlIZXJvAAQNAAAAR2V0U3BlbGxEYXRhAAQDAAAAX0UABAUAAABTT1dpAAQIAAAAQ2FuTW92ZQAEBwAAAHVwZGF0ZQAEBwAAAEZyZWV6ZQAECQAAAE1lbnVGaXp6AAQFAAAAZmFybQAEAwAAAFFGAAMAAAAAAAAAQAQDAAAAV0YABAMAAABFRgAECgAAAExhbmVDbGVhcgADAAAAAAAACEADAAAAAAAAEEAEBgAAAHBhaXJzAAQIAAAAb2JqZWN0cwAABAUAAABkZWFkAAQMAAAAR2V0RGlzdGFuY2UABAYAAAByYW5nZQAEBgAAAENhc3RRAAQGAAAAQ2FzdFcABA0AAABCZXN0RUZhcm1Qb3MABAYAAAB3aWR0aAAEBQAAAG5hbWUABAkAAABGaXp6SnVtcAAECgAAAENhc3RTcGVsbAAEAgAAAHgABAIAAAB6AAQEAAAARUYyAAQMAAAAZml6emp1bXB0d28AAAAAAAYAAAAAAAEYAQcBFwEPAQkAAAAAAAAAAAAAAAAAAAAATQIAAFsCAAADAA8fAAAAxAAAAAEBAABGQUAAgAEAAV0BAQEXgASAhoJAAMfCwATbQgAAFwAAgMACgAQAAwAAQAOAAIADAAGdgoACGYACAhfAAYAAAQAFxgJBAAADgATdggABwACABdUCAAFYwAICF0AAgGKBAADjgfp/QAGAAYABAAJfAYABHwCAAAUAAAADAAAAAAAAAAAEBwAAAGlwYWlycwAEFAAAAENvdW50T2JqZWN0c05lYXJQb3MABAoAAAB2aXNpb25Qb3MABAcAAABWZWN0b3IAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAABdAgAAfAIAAAAADGYAAAAFAAAADABAAB1AAAEGQMAADIBAAIbAwAAdgIABRgDBAIZAQQBdAAEBF8AVgIaBwQCHwUEDhwFCA5sBAAAXQAOAWEDCAhfAAoCHgcICm0EAABcAAoCGwcIAwAGAAp2BAAHGAUMBGsABAxeAAICGQcMAwAGAAp1BAAGGgcEAh8FBA4eBQwObAQAAFwADgFhAwgIXgAKAh4HCAptBAAAXwAGAhsHCAMABgAKdgQABxQGAARrAAQMXQACAhsHDAJ1BgACGgcEAh8FBA4cBRAObAQAAF0AKgIUBAAKbAQAAF4AJgFhAwgIXAAmAh4HCAptBAAAXQAiAhsHCAMABgAKdgQABxgHDAhrAAQMXwAaAhkHEAMYBwwIGgsQCRkJBA53BAAJYQEIDFwAFgAfCRAAYAEUEFwABgAZCxQBGwsAAh4JFA8fCRQMdQgACBoLBAAcCRgQHQkYEGwIAABfAAYAHwkQAGIBGBBcAAYAGQsUARsLAAIeCRQPHwkUDHUIAAoZBwACMwUYDAAKAAp1BgAFigAAA40Dpfx8AgAAcAAAABAcAAAB1cGRhdGUABAcAAABteUhlcm8ABA0AAABHZXRTcGVsbERhdGEABAMAAABfRQAEBgAAAHBhaXJzAAQIAAAAb2JqZWN0cwAECQAAAE1lbnVGaXp6AAQDAAAAamYABAQAAABRSkYAAAQFAAAAZGVhZAAEDAAAAEdldERpc3RhbmNlAAQGAAAAcmFuZ2UABAYAAABDYXN0UQAEBAAAAFdKRgAEBgAAAENhc3RXAAQEAAAARUpGAAQNAAAAQmVzdEVGYXJtUG9zAAQGAAAAd2lkdGgABAUAAABuYW1lAAQJAAAARml6ekp1bXAABAoAAABDYXN0U3BlbGwABAIAAAB4AAQCAAAAegAEBQAAAGZhcm0ABAQAAABFRjIABAwAAABmaXp6anVtcHR3bwAEBwAAAEF0dGFjawAAAAAABwAAAAEZAAABBwEXAQ8BCQEYAAAAAAAAAAAAAAAAAAAAAH4CAACDAgAAAAADGgAAAAYAQABGQEAAhoBAAIfAQAGHAEEBHYCAAUUAgABbAAAAF8ADgEZAQABHQMEAhkBAAIeAQQFQgIAAT8DBAIaAQACHwEABhwBCARmAgAAXAAGAGEBCABeAAIBGgEIAhQAAAV1AAAEfAIAACwAAAAQLAAAARW5lbXlDb3VudAAEBwAAAG15SGVybwAECQAAAE1lbnVGaXp6AAQJAAAAcHJDb25maWcABAUAAABBWk1SAAQHAAAAaGVhbHRoAAQKAAAAbWF4SGVhbHRoAAMAAAAAAABZQAQFAAAAQVpIUAADAAAAAAAAAAAECgAAAENhc3RTcGVsbAAAAAAAAwAAAAAAARIBGwAAAAAAAAAAAAAAAAAAAACFAgAArgIAAAAAAnUAAAAGAEAAB0BAAAeAQAAbQAAAFwAAgB8AgAAGwEAABwBBAEUAgAAZAIAAFwAagAUAgAANQEEACQCAAAYAQAAHQEAAB4BBABhAQQAXwAKABsBBAEYAQgAdQAABBsBBAEZAQgAdQAABBsBBAEaAQgAdQAABBsBBAEbAQgAdQAABBgBAAAdAQAAHgEEAGABDABfAAoAGwEEARgBCAB1AAAEGwEEARkBCAB1AAAEGwEEARsBCAB1AAAEGwEEARoBCAB1AAAEGAEAAB0BAAAeAQQAYQEMAF8ACgAbAQQBGAEIAHUAAAQbAQQBGgEIAHUAAAQbAQQBGQEIAHUAAAQbAQQBGwEIAHUAAAQYAQAAHQEAAB4BBABiAQwAXwAKABsBBAEYAQgAdQAABBsBBAEaAQgAdQAABBsBBAEbAQgAdQAABBsBBAEZAQgAdQAABBgBAAAdAQAAHgEEAGMBDABfAAoAGwEEARgBCAB1AAAEGwEEARsBCAB1AAAEGwEEARkBCAB1AAAEGwEEARoBCAB1AAAEGAEAAB0BAAAeAQQAYAEQAF8ACgAbAQQBGAEIAHUAAAQbAQQBGwEIAHUAAAQbAQQBGgEIAHUAAAQbAQQBGQEIAHUAAAR8AgAARAAAABAkAAABNZW51Rml6egAECQAAAHByQ29uZmlnAAQEAAAAQUxTAAQHAAAAbXlIZXJvAAQGAAAAbGV2ZWwAAwAAAAAAAPA/BAMAAABBTAAECwAAAExldmVsU3BlbGwABAMAAABfUgAEAwAAAF9RAAQDAAAAX1cABAMAAABfRQADAAAAAAAAAEADAAAAAAAACEADAAAAAAAAEEADAAAAAAAAFEADAAAAAAAAGEAAAAAAAgAAAAAAARUAAAAAAAAAAAAAAAAAAAAAsAIAAMsCAAAAAAzMAAAABgBAAAdAQAAHgEAAGwAAABeACIAGAEAAB8BAAAcAQQAbAAAAF0AHgAZAQQBYgEEAF4AGgAZAQQAHwEEAG0AAABeABYAGAEIARkBBAEdAwgCGQEEAh4BCAcZAQQDHwMIBAQEDAEZBQwCGAUAAh0FAA4eBQwOHwUMDxgFAAMdBwAPHgcMDxwHEAwYCQAAHQkAEB4JDBAdCRARdAQACHUAAAAYAQAAHQEAAB4BEABsAAAAXgAiABsBEAB1AgAAGAEUARkBFAF0AgAAdAAEAF0AGgEaBRQCAAQACXYEAAVsBAAAXAAWAR8FFAkZBgQBYgMECFwAEgEYBRgCGQUYAx0FCAgeCQgJHwkICnQEAAl2BAACGgUYAx8FFAsbBgQABwgYAR0LCAk4CxwSHgsICjkJHBcGCBwCdQQADIoAAAKPA+H8GAEAAB0BAAAfARwAbAAAAFwAGgAYAQgBGAEgAR0DCAIYASACHgEIBxgBIAMfAwgEGAUgAB0FIAg2BSAJGQUMAhgFAAIdBQAOHwUgDh8FDA8YBQADHQcADx8HIA8cBxAMGAkAAB0JABAfCSAQHQkQEXQEAAh1AAAAGAEAAB0BAAAcASQAbAAAAF0AGgAUAAAEbAAAAF4AFgAYAQgBGAEgAR0DCAIYASACHgEIBxgBIAMfAwgEGQcgBRkFDAIYBQACHQUADh4FDA4fBQwPGAUAAx0HAA8eBwwPHAcQDBgJAAAdCQAQHgkMEB0JEBF0BAAIdQAAABgBAAAdAQAAHQEkAGwAAABdABoAFAAACGwAAABeABYAGAEIARgBIAEdAwgCGAEgAh4BCAcYASADHwMIBBkHIAkZBQwCGAUAAh0FAA4eBSQOHwUMDxgFAAMdBwAPHgckDxwHEAwYCQAAHQkAEB4JJBAdCRARdAQACHUAAAAYAQAAHQEAAB8BJABsAAAAXQAaABQAAAxsAAAAXgAWABgBCAEYASABHQMIAhgBIAIeAQgHGAEgAx8DCAQZByANGQUMAhgFAAIdBQAOHAUoDh8FDA8YBQADHQcADxwHKA8cBxAMGAkAAB0JABAcCSgQHQkQEXQEAAh1AAAAfAIAAKQAAAAQJAAAATWVudUZpenoABAsAAABkcmF3Q29uZmlnAAQEAAAARFNUAAQMAAAAY29tYm9Db25maWcABAMAAABTVAAEDwAAAFNlbGVjdGVkVGFyZ2V0AAAEBQAAAGRlYWQABAsAAABEcmF3Q2lyY2xlAAQCAAAAeAAEAgAAAHkABAIAAAB6AAMAAAAAAABZQAQEAAAAUkdCAAQFAAAARFFSQwADAAAAAAAAAEADAAAAAAAACEADAAAAAAAAEEAEAwAAAEREAAQIAAAARG1nQ2FsYwAEBgAAAHBhaXJzAAQPAAAAR2V0RW5lbXlIZXJvZXMABAwAAABWYWxpZFRhcmdldAAECgAAAG5ldHdvcmtJRAAEDgAAAFdvcmxkVG9TY3JlZW4ABAwAAABEM0RYVkVDVE9SMwAECQAAAERyYXdUZXh0AAMAAAAAAAA0QAMAAAAAAIBBQAMAAAAAAAAkQAMAAADg///vQQQFAAAAREFBUgAEBwAAAG15SGVybwAEBgAAAHJhbmdlAAMAAAAAAEBQQAQGAAAAREFBUkMABAQAAABEUVIABAQAAABERVIABAUAAABERVJDAAQEAAAARFJSAAQFAAAARFJSQwAAAAAACAAAAAAAARwBDQEHAQ8BCQEQAQsAAAAAAAAAAAAAAAAAAAAAzQIAAAEDAAAAAA+qAQAAAQAAAEZAQABHgMAAgQAAACGAaIAGQUAADMFAAoABgAEdgYABRwFBAoZBQQCMgUEDAAIAAkZCQQBMwsEEwQICAF2CgAFHQsIET0IChU7CwgSGQkEAhwJDBY+CgoZNgoIEnYEAAsaBQwABwgMAQAIAAoZCQQDdgQACBkJBAAcCQwQPAkQEEEJEBM0BggMGQkEADIJBBIACAALGQkEAzMLBBUGDBADdgoABx0LCBc/CgonNwsIFBkNBAAcDQwYPAwOKzQKDBR2CAAJGQkEATILBBMACAAIGQ0EADMNBBoFDBQAdg4ABB0NCBg8DA4sNw0UGRkNBAEcDwwYNQwMGXYIAAoaCQwDBAgYAAAMAAkZDQQCdggACWEBGAhcAWIDHgkYCBsNGAAeDRgZYAIMFF8BWgMcCRwLbQgAAFwBWgMdCRwLbAgAAF0BVgBmAgQIXgAOAxoJHAAADAAJGw8cA3YKAAdsCAAAXAAKAxgJIAMdCyAXHgsgF2wIAABfAAIDGwkgAAAMAAt1CAAEXAEyAGcCBAhdABIDGgkcAAAMAAkUDAAHdgoAB2wIAABfAAoDGAkgAx0LIBccCyQXbAgAAF4ABgMZCSQDdQoAAxkJBAMyCyQVAAwAC3UKAARcAR4AZAIICF4ANgMaCRwAAAwACRsPHAU3DxAbdgoAB2wIAABfAC4DGAkgAx0LIBcfCyQXbAgAAF4AKgMUCAALbAgAAF8AEgMaCRwAAAwACRsPHAU3DxAbdgoAB2wIAABcAA4BYQEYCF4ACgMeCRgIGw0YAB4NGBlgAgwUXQAGAxwJHAttCAAAXgACAxgJKAAADAALdQgABxkJKAAADAAJGQ0EA3YKAARnAApUXQDyAWEBGAhfAO4DHgkYCBsNGAAeDRgZYAIMFF4A6gMcCRwLbQgAAF8A5gMbCSgAAAwAC3UIAARfAOIAZQIICF4ADgMaCRwAAAwACRsPHAt2CgAHbAgAAFwACgMYCSADHQsgFxwLLBdsCAAAXwACAxkJLAAADAALdQgABF4A0gM3CAQMZwIICF8AGgMUCAAPbAgAAFwAGgMUCgAPbAgAAF0AFgMaCRwAAAwACRsPHAN2CgAHbAgAAF8ADgMYCSADHQsgFx4LIBdsCAAAXgAKAxgJIAMdCyAXHAskF2wIAABdAAYDGQkkA3UKAAMbCSAAAAwAC3UIAARfALIDNAgIDGcCCAhfAEIDFAgAD2wIAABcAEIDFAgAC2wIAABdAD4DGgkcAAAMAAkbDxwDdgoAB2wIAABfADYDGAkgAx0LIBceCyAXbAgAAF4AMgMYCSADHQsgFx8LJBdsCAAAXQAuAxsJIAAADAALdQgABxQIAAtsCAAAXwASAxoJHAAADAAJGw8cBTcPEBt2CgAHbAgAAFwADgFhARgIXgAKAx4JGAgbDRgAHg0YGWACDBRdAAYDHAkcC20IAABeAAIDGAkoAAAMAAt1CAAHGQkoAAAMAAkZDQQDdgoABGcAClReAHoBYQEYCFwAegMeCRgIGw0YAB4NGBlgAgwUXwByAxwJHAttCAAAXAByAxsJKAAADAALdQgABFwAbgM1CAgMZwIICFwAHgMUCAAPbAgAAF0AGgMUCAATbAgAAF4AFgMaCRwAAAwACRsPHAN2CgAHbAgAAFwAEgMYCSADHQsgFx4LIBdsCAAAXwAKAxgJIAMdCyAXHAssF2wIAABeAAYDGQksAAAMAAt1CAAHGwkgAAAMAAt1CAAEXABOAzUKCAxnAggIXwAeAxQKAA9sCAAAXAAeAxQIABNsCAAAXQAaAxoJHAAADAAJFAwAB3YKAAdsCAAAXwASAxgJIAMdCyAXHAssF2wIAABeAA4DGAkgAx0LIBccCyQXbAgAAF0ACgMZCSwAAAwAC3UIAAcZCSQDdQoAAxkJBAMyCyQVAAwAC3UKAARdACoDNwgEDzUKCBRnAggIXQAmAxQIAA9sCAAAXgAiAxQKAA9sCAAAXwAeAxQIABNsCAAAXAAeAxoJHAAADAAJGw8cA3YKAAdsCAAAXgAWAxgJIAMdCyAXHAssF2wIAABdABIDGAkgAx0LIBceCyAXbAgAAFwADgMYCSADHQsgFxwLJBdsCAAAXwAGAxkJLAAADAALdQgABxkJJAN1CgADGwkgAAAMAAt1CAAHFAoAE2wIAABcABIAagIICF4ADgMYCSADHQsgFx4LLBdsCAAAXQAKAxoJHAAADAAJBwwsA3YKAAdsCAAAXwACAxgJMAAUDAAVAAwAC3UKAASDAln8fAIAAMQAAAAMAAAAAAADwPwQMAAAAaGVyb01hbmFnZXIABAcAAABpQ291bnQABAgAAABnZXRIZXJvAAQHAAAAaGVhbHRoAAQHAAAAbXlIZXJvAAQLAAAAQ2FsY0RhbWFnZQAEDQAAAEdldFNwZWxsRGF0YQADAAAAAAAAAAAEBgAAAGxldmVsAAMAAAAAAAA+QAMAAAAAAAA0QAQDAAAAYXAAAzMzMzMzM+M/BAcAAABnZXREbWcABAIAAABXAAMAAAAAAAAkQAMAAAAAAABZQAMAAAAAAAAAQAMAAAAAAABJQAMAAAAAAADoPwMAAAAAAAAIQAMAAAAAAEBfQAMAAAAAAMBSQAQHAAAASUdOSVRFAAAEBQAAAHRlYW0ABAcAAABwbGF5ZXIABAUAAABkZWFkAAQIAAAAdmlzaWJsZQAEDAAAAFZhbGlkVGFyZ2V0AAQGAAAAcmFuZ2UABAkAAABNZW51Rml6egAECQAAAGtzQ29uZmlnAAQEAAAAUUtTAAQGAAAAQ2FzdFEABAQAAABXS1MABAYAAABDYXN0VwAEBwAAAEF0dGFjawAEBAAAAEVLUwAEBgAAAENhc3RFAAQMAAAAR2V0RGlzdGFuY2UAAwAAAAAAoHRABAcAAABDYXN0RTIABAQAAABSS1MABAYAAABDYXN0UgAEBAAAAElLUwADAAAAAADAgkAECgAAAENhc3RTcGVsbAAAAAAACwAAAAAAAQcBFwEJAQ8BCwENAQ4BEAERARoAAAAAAAAAAAAAAAAAAAAAAwMAACQDAAAAAA6SAAAAAQAAAEZAQABHgMAAgQAAACGAIoAGQUAADMFAAoABgAEdgYABRwFBAltBAAAXwCCAR0FBAlsBAAAXACCARoFBAEzBwQLAAQACBoJBAAwCQgSBQgIAHYKAAQeCQgQPAoKFDgJDBEaCQQBHQsMET0IChw1CAgRdgQAChsFDAMEBBAAAAgACRoJBAJ2BAALGgUEAx0HDA89BxAPQgcQDjcEBA8aBQQDMwcEDQAIAAoaCQQCMAkIFAcMEAJ2CgAGHgkIFj4ICio0CQwXGgkEAx0LDBc/CgoqNwgIF3YEAAgaCQQAMwkEEgAIAAsaCQQDMAsIFQYMFAN2CgAHHgsIFz8KCi80CxgUGg0EAB0NDBs0CgwUdggACR0JGAo2CgQKNAgIFGUACBReAAIBHgkYCSMDGBBeAEIBHQkYCGUCBBBeAAIBHgkYCSADHBBcAD4BHQkYCGYCBBBeAAIBHgkYCSEDHBBeADYBHQkYCGcCBBBeAAIBHgkYCSIDHBBcADIBHQkYCGQCCBBeAAIBHgkYCSMDHBBeACoBHQkYCjYKBAhmAggQXgACAR4JGAkgAyAQXwAiAR0JGAo3CgQIZgIIEF4AAgEeCRgJIQMgEFwAHgEdCRgKNAoICGYCCBBeAAIBHgkYCSIDIBBdABYBHQkYCjcIBAxmAggQXgACAR4JGAkjAyAQXgAOAR0JGAo0CAgMZgIIEF4AAgEeCRgJIAMkEF8ABgEdCRgKNgoECjcIBBY0CAgUZgIIEF0AAgEeCRgJIQMkEIMDcfx8AgAAmAAAAAwAAAAAAAPA/BAwAAABoZXJvTWFuYWdlcgAEBwAAAGlDb3VudAAECAAAAEdldEhlcm8ABAUAAABkZWFkAAQIAAAAdmlzaWJsZQAEBwAAAG15SGVybwAECwAAAENhbGNEYW1hZ2UABA0AAABHZXRTcGVsbERhdGEAAwAAAAAAAAAABAYAAABsZXZlbAADAAAAAAAAPkADAAAAAAAANEAEAwAAAGFwAAMzMzMzMzPjPwQHAAAAZ2V0RG1nAAQCAAAAVwADAAAAAAAAJEADAAAAAAAAWUADAAAAAAAAAEADAAAAAAAASUADAAAAAAAA6D8DAAAAAAAACEADAAAAAABAX0ADAAAAAADAUkAEBwAAAGhlYWx0aAAECgAAAG5ldHdvcmtJRAAEDgAAAEhhcmFzcyBIaW0hISEABAgAAABRIEtpbGwhAAQIAAAAVyBLaWxsIQAECAAAAEUgS2lsbCEABAgAAABSIEtpbGwhAAQKAAAAUStXIEtpbGwhAAQKAAAAUStFIEtpbGwhAAQKAAAAUStSIEtpbGwhAAQKAAAAVytFIEtpbGwhAAQKAAAAVytSIEtpbGwhAAQOAAAAUStXK0UrUiBLaWxsIQAAAAAAAgAAAAAAARwAAAAAAAAAAAAAAAAAAAAAJgMAAC4DAAABAAUbAAAARQAAAFsAAAAXgAWARgDAAFsAAAAXwAOARkDAAEeAwABHwMAAWwAAABeAAoBGAMEAgUABAMuAAAAGwcEAygABgwdBQgDKAAGEXYCAAUyAwgBdQAABF8AAgEbAwgCGwMEAwAAAAF1AgAEfAIAADAAAAAQJAAAAVklQX1VTRVIABAkAAABNZW51Rml6egAECQAAAHByQ29uZmlnAAQDAAAAcGMABAcAAABQYWNrZXQABAcAAABTX0NBU1QABAgAAABzcGVsbElkAAQDAAAAX1EABBAAAAB0YXJnZXROZXR3b3JrSWQABAoAAABuZXR3b3JrSUQABAUAAABzZW5kAAQKAAAAQ2FzdFNwZWxsAAAAAAACAAAAAQ0AAAAAAAAAAAAAAAAAAAAAAAAwAwAAOAMAAAAABBgAAAAFAAAAGwAAABfABIAGAMAAGwAAABdAA4AGQMAAB4BAAAfAQAAbAAAAFwACgAYAwQBBQAEAi0AAAMbAwQCKwACDHYCAAQwAQgAdQAABF4AAgAZAwgBGwMEAHUAAAR8AgAAKAAAABAkAAABWSVBfVVNFUgAECQAAAE1lbnVGaXp6AAQJAAAAcHJDb25maWcABAMAAABwYwAEBwAAAFBhY2tldAAEBwAAAFNfQ0FTVAAECAAAAHNwZWxsSWQABAMAAABfVwAEBQAAAHNlbmQABAoAAABDYXN0U3BlbGwAAAAAAAIAAAABDgAAAAAAAAAAAAAAAAAAAAAAADoDAABUAwAAAQALbQAAAEUAAABbAAAAFwAagEYAwABMQMAAxoDAAF2AgAGHwMAAGABBARdAGICGQMEAh4BBAYfAQQEYAEIBF0AKgIZAwgCMgEIBAAEAAEbBQgGGAUMBxkFDAQaCQwFGAsAAgwIAAJ0AgQQawICHF0AHgEYBxABbAQAAF0AFgEZBwQBHgcECR0HEAlsBAAAXAASARoHEAIHBBADLQQEABoLAAMoBAooHgkUBygGCigcCRgHKAYKLB4JFAcoBgowHAkYBygECjV2BgAFMwcYCXUEAARcAAYBGAccAhoHAAMeBRQEHAkYBXUEAAoZAwQCHgEEBh8BBARhARwEXQAuAhgDEAJsAAAAXgAqAhQCAAZsAAAAXwAmAhoDHAIfARwHAAAAABkFDAUaBQwGGwUIBxgFDAZ3AAANYAEgBF0AHgAYBxAAbAQAAF0AFgAZBwQAHgUECB0FEAhsBAAAXAASABoHEAEHBBACLQQEAxoHAAIrBAYrHgUUBisGBiscBRgGKwYGLx4FFAYrBgYzHAUYBisEBjR2BgAEMwUYCHUEAARcAAYAGAccARoHAAIeBRQHHAUYBHUEAAh8AgAAhAAAABAcAAABteUhlcm8ABA0AAABHZXRTcGVsbERhdGEABAMAAABfRQAEBQAAAG5hbWUABAkAAABGaXp6SnVtcAAECQAAAE1lbnVGaXp6AAQJAAAAcHJDb25maWcABAQAAABwcm8AAwAAAAAAAPA/BAMAAABWUAAEGAAAAEdldENpcmN1bGFyQ2FzdFBvc2l0aW9uAAQGAAAAZGVsYXkABAYAAAB3aWR0aAAEBgAAAHJhbmdlAAQGAAAAc3BlZWQAAwAAAAAAAAAABAkAAABWSVBfVVNFUgAEAwAAAHBjAAQHAAAAUGFja2V0AAQHAAAAU19DQVNUAAQIAAAAc3BlbGxJZAAEBgAAAGZyb21YAAQCAAAAeAAEBgAAAGZyb21ZAAQCAAAAegAEBAAAAHRvWAAEBAAAAHRvWQAEBQAAAHNlbmQABAoAAABDYXN0U3BlbGwAAwAAAAAAAABABAsAAABQcm9kaWN0aW9uAAQOAAAAR2V0UHJlZGljdGlvbgAAAAAAAAQAAAABDwAAAQkBBQAAAAAAAAAAAAAAAAAAAABWAwAAcAMAAAEAC20AAABFAAAAWwAAABcAGoBGAMAATEDAAMaAwABdgIABh8DAABgAQQEXQBiAhkDBAIeAQQGHwEEBGABCARdACoCGQMIAjIBCAQABAABGwUIBhgFDAcZBQwEGgkMBRgLAAIMCAACdAIEEGsCAhxdAB4BGAcQAWwEAABdABYBGQcEAR4HBAkdBxAJbAQAAFwAEgEaBxACBwQQAy0EBAAaCwADKAQKKB4JFAcoBgooHAkYBygGCiweCRQHKAYKMBwJGAcoBAo1dgYABTMHGAl1BAAEXAAGARgHHAIaBwADHgUUBBwJGAV1BAAKGQMEAh4BBAYfAQQEYQEcBF0ALgIYAxACbAAAAF4AKgIUAgAGbAAAAF8AJgIaAxwCHwEcBwAAAAAZBQwFGgUMBhsFCAcYBQwGdwAADWABIARdAB4AGAcQAGwEAABdABYAGQcEAB4FBAgdBRAIbAQAAFwAEgAaBxABBwQQAi0EBAMaBwACKwQGKx4FFAYrBgYrHAUYBisGBi8eBRQGKwYGMxwFGAYrBAY0dgYABDMFGAh1BAAEXAAGABgHHAEaBwACHgUUBxwFGAR1BAAIfAIAAIQAAAAQHAAAAbXlIZXJvAAQNAAAAR2V0U3BlbGxEYXRhAAQDAAAAX0UABAUAAABuYW1lAAQMAAAAZml6emp1bXB0d28ABAkAAABNZW51Rml6egAECQAAAHByQ29uZmlnAAQEAAAAcHJvAAMAAAAAAADwPwQDAAAAVlAABBgAAABHZXRDaXJjdWxhckNhc3RQb3NpdGlvbgAEBgAAAGRlbGF5AAQGAAAAd2lkdGgABAYAAAByYW5nZQAEBgAAAHNwZWVkAAMAAAAAAAAAAAQJAAAAVklQX1VTRVIABAMAAABwYwAEBwAAAFBhY2tldAAEBwAAAFNfQ0FTVAAECAAAAHNwZWxsSWQABAYAAABmcm9tWAAEAgAAAHgABAYAAABmcm9tWQAEAgAAAHoABAQAAAB0b1gABAQAAAB0b1kABAUAAABzZW5kAAQKAAAAQ2FzdFNwZWxsAAMAAAAAAAAAQAQLAAAAUHJvZGljdGlvbgAEDgAAAEdldFByZWRpY3Rpb24AAAAAAAAEAAAAAQ8AAAEKAQUAAAAAAAAAAAAAAAAAAAAAcgMAAIkDAAABAAprAAAARQAAAFsAAAAXgBmARgDAAEdAwABHgMAAGMDAABeAC4BGAMEATEDBAMAAAAAGgUEBRsFBAYYBQgGOQUIDxoFCAQbCwgBDAgAAXQCBBAYBwAAHQUACBwFDAg7BQAIagAACF0AHgAZBwwAbAQAAF0AFgAYBwAAHQUACB4FDAhsBAAAXAASABsHDAEEBBACLQQEAxoHEAIrBgYjHAcUAisGBiceBxQCKwYGKxwHFAIrBgYvHgcUAisEBjB2BgAEMQUYCHUEAARcAAYAGgcYARoHEAIcBxQDHgcUAHUEAAkYAwABHQMAAR4DAABjAxgAXQAuARkDDAFsAAAAXgAqARQCAAVsAAAAXwAmARgDHAEdAxwCAAAAAxgBCAQaBQgFGgUEBhsFBAV3AAANYgMcAF0AHgMZAwwDbAAAAF0AFgMYAwADHQMABx4DDAdsAAAAXAASAxsDDAAEBBABLQQEAhoHEAEqBgYiHAcUASoGBiYeBxQBKgYGKhwHFAEqBgYuHgcUASoEBjN2AgAHMQMYB3UAAARcAAYDGgMYABoHEAEcBxQCHgcUA3UAAAh8AgAAfAAAABAkAAABNZW51Rml6egAECQAAAHByQ29uZmlnAAQEAAAAcHJvAAMAAAAAAADwPwQDAAAAVlAABBQAAABHZXRMaW5lQ2FzdFBvc2l0aW9uAAQGAAAAZGVsYXkABAYAAAB3aWR0aAAEBgAAAHJhbmdlAAMAAAAAAABZQAQGAAAAc3BlZWQABAcAAABteUhlcm8ABAYAAAB2cGhpdAAECQAAAFZJUF9VU0VSAAQDAAAAcGMABAcAAABQYWNrZXQABAcAAABTX0NBU1QABAgAAABzcGVsbElkAAQDAAAAX1IABAYAAABmcm9tWAAEAgAAAHgABAYAAABmcm9tWQAEAgAAAHoABAQAAAB0b1gABAQAAAB0b1kABAUAAABzZW5kAAQKAAAAQ2FzdFNwZWxsAAMAAAAAAAAAQAQLAAAAUHJvZGljdGlvbgAEFQAAAEdldExpbmVBT0VQcmVkaWN0aW9uAAAAAAAABAAAAAEQAAABCwEFAAAAAAAAAAAAAAAAAAAAAIsDAACkAwAAAgAOawAAAIYAQACHQEABh4BAAZsAAAAXABmAGwAAABeAGICHwEAAxgBBAMfAwAFYwAABF0AXgIdAQQDGAEEAx0DBARjAAAEXABaAWwAAABeAFYCHgMEAhoCAAJsAAAAXgBSAhgBAAIdAQAGHwEEBx4DBAIfAAAGbAAAAF8ASgIeAwQCGgIAAhwBCARhAQgEXQAOAhQAAAZsAAAAXgAKAh4DCAMYAQQAYwAABF4ABgIbAQgDGAEMABkFDAAeBQwJGQUMAR8HDAp1AAAKHgMEAhoCAAIcAQgEYAEQBF8AMgIZARADHgMQAx4DDAQeBxAAHwUMCnYCAAcZARAAHwcQAB4FDAkfBxABHwcMC3YCAAQeBwQAGAYEABwFFAk6BgAFMQcUCXYEAAY1BAQHPAYECzcEBAQZCRABGAkEAR4LDBIYCQQCHwkMFHYKAAUaCRQCGQkQAx4JDAwfDRQOdgoABxkJEAAeDwwNHw8UD3QKAAV2CAACMAsYEAAMABJ2CgAEaQEYFF0ACgIUCAAGbAgAAF4ABgIbCQgDGAkMABkNDAAeDQwZGQ0MAR8PDBp1CAAIfAIAAGgAAAAQJAAAATWVudUZpenoABAkAAABleENvbmZpZwAEAwAAAEFFAAQFAAAAdGVhbQAEBwAAAG15SGVybwAEBQAAAHR5cGUABAUAAABuYW1lAAQDAAAARVMABAoAAABTcGVsbFR5cGUABAgAAABjYXN0Y2VsAAQHAAAAdGFyZ2V0AAQKAAAAQ2FzdFNwZWxsAAQDAAAAX0UABAkAAABtb3VzZVBvcwAEAgAAAHgABAIAAAB6AAQKAAAAc2tpbGxzaG90AAQGAAAAUG9pbnQABAkAAABzdGFydFBvcwAEBwAAAGVuZFBvcwAEBgAAAHJhbmdlAAQLAAAAbm9ybWFsaXplZAAEDAAAAExpbmVTZWdtZW50AAQCAAAAeQAECQAAAGRpc3RhbmNlAAMAAAAAAABpQAAAAAADAAAAAAABHwEPAAAAAAAAAAAAAAAAAAAAAKYDAAC1AwAAAAAIOgAAAAYAQAAHQEAAB4BAABsAAAAXQAKABQCAABsAAAAXgAGABsBAAEYAQQCGQEEAh4BBAcZAQQDHwMEBHUAAAgYAQAAHQEAABwBCABsAAAAXQAeABQAAARsAAAAXgAaABQCAAQxAQgAdQAABBoBCAEbAwgEdAAEBF0AEgEYBQwCAAQACxkFDAl2BgAFbAQAAF8ACgFiAQwIXQAKARsFDAIABAALGQUEAXYGAAYZBQwIagIECF4AAgEYBRACAAQACXUEAASKAAACjwPp/BkBEAAyARACGQEEAh4BBAcZAQQDHwMEBHUAAAh8AgAATAAAABAkAAABNZW51Rml6egAECQAAAGV4Q29uZmlnAAQEAAAARVVFAAQKAAAAQ2FzdFNwZWxsAAQDAAAAX0UABAkAAABtb3VzZVBvcwAEAgAAAHgABAIAAAB6AAQEAAAARVVRAAQHAAAAdXBkYXRlAAQGAAAAcGFpcnMABAgAAABvYmplY3RzAAQMAAAAVmFsaWRUYXJnZXQABAYAAAByYW5nZQAABAwAAABHZXREaXN0YW5jZQAEBgAAAENhc3RRAAQHAAAAbXlIZXJvAAQHAAAATW92ZVRvAAAAAAAFAAAAAAABDwENARgBBwAAAAAAAAAAAAAAAAAAAAC3AwAAzQMAAAIADVcAAACGQEAAwYAAAJ2AAAEIgACAhgBAAIzAQAEGAUEAB0FBAp1AgAGGAEAAisBBg4YAQACMQEIBnYAAAQiAAISGAEAAjEBCAZ2AAAEIgACFhgBAAIxAQgGdgAABCICAhYYAQACMQEIBnYAAAQiAAIaGAEAAjEBDAQYBQgCdQIABhgBAAIxAQwEGgUIAnUCAAYYAQACMQEMBBsFCAJ1AgAGGAEAAjEBDAQaBQwAHwUMCRgFDAIEBBAAdAYABnUAAAIYAQACMQEMBAcEBAJ1AgAGGAEAAjEBEAQABgACdQIABgcABANUAAAABwQEAoUACgIYBQACMQUMDBoJEAAfCRARMAkUAwAKAAgADgAJdAgACHQIAAJ1BAACgAP1/lQAAAI3AQQHBQAUAAcEBAKHAAICGAUAAjEFDAwGCBQCdQYABoID+f4YAQACMwEUBnUAAAYYARgDGAEAAnUAAAR8AgAAZAAAABAIAAABwAAQLAAAAQ0xvTFBhY2tldAADAAAAAADgYkAECAAAAEVuY29kZUYABAcAAABteUhlcm8ABAoAAABuZXR3b3JrSUQABAQAAABwb3MAAwAAAAAAAPA/BAMAAAB0MQAECAAAAERlY29kZTEABAMAAAB0MgAEAwAAAHQzAAQDAAAAdDQABAgAAABFbmNvZGUxAAQGAAAAYml0MzIABAUAAABiYW5kAAMAAAAAAAAmQAQIAAAARW5jb2RlNAAEBwAAAHN0cmluZwAEBQAAAGJ5dGUABAQAAABzdWIAAwAAAAAAAFBAAwAAAAAAAAAABAUAAABIaWRlAAQLAAAAUmVjdlBhY2tldAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAM8DAADpAwAAAgAMSAAAAIYAQAAYgAAAF8AQgIZAQACHgEABh8BAAZsAAAAXgA+AgQABAMQAAAAGQUEARoFBAF0BgAAdAQEAF4AEgEbCQQCAAgAEXYIAAVsCAAAXQAOARgJCAIACAATGQkIAXYKAAVqAgAQXQACAGIDCARdAAYBGAkIAgAIABMZCQgBdgoABgACABMAAAAQigQAAo4H6f9sAAAAXAAiAGcBCAReAB4AGAUMAGwEAABcABIAHQcMBRgFDAEdBwwIYQAECF8ACgAiAQoYGQUAAB4FAAgfBQAIbAQAAFwAEgAaBQwBBwQMAh0HDAVaBgQIdQQABF4ACgAjAAIYGQUAAB4FAAgfBQAIbAQAAFwABgAaBQwBBAQQAh0HDAVaBgQIdQQABHwCAABEAAAAEDwAAAFdNX0xCVVRUT05ET1dOAAQJAAAATWVudUZpenoABAwAAABjb21ib0NvbmZpZwAEAwAAAFNUAAMAAAAAAAAAAAQHAAAAaXBhaXJzAAQPAAAAR2V0RW5lbXlIZXJvZXMABAwAAABWYWxpZFRhcmdldAAEDAAAAEdldERpc3RhbmNlAAQJAAAAbW91c2VQb3MAAAMAAAAAAMByQAQPAAAAU2VsZWN0ZWRUYXJnZXQABAkAAABjaGFyTmFtZQAEBgAAAHByaW50AAQUAAAAVGFyZ2V0IHVuc2VsZWN0ZWQ6IAAEFgAAAE5ldyB0YXJnZXQgc2VsZWN0ZWQ6IAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAOsDAAD4AwAABwASRgAAANtAAAAXAACAwQAAAMaBQADHwcADAQIBAEZCQQCGgkAAh4JBBcaCQADHwsEFD8MAhBADAwPdggABnYIAAZCCgoRdAgAB3YEAAAjAgYDGgUAAx4HCA8/BAYQGQkAA0AGCAwjAgYDPwMIBywEAAAECAwBGgkAAR4LCBE9CAoSGQkAATYKCBIZCQAAhwgWABkNDAEaDQwCGg0AAh8NDB8ADgAWdgwABj4ODAY2DAwDAA4AABoRAAAcERAhABIAFHYQAAQ8EhAEOBAQBXQMAAh2DAABVA4ADTUPEBoaDRADHw0QGBwRFBp2DgAHKgYMGIIL5fwZCRQBAAoADnEIAAhcAAICBQgQA3EKAAhcAAIDBggUAHUIAAh8AgAAXAAAAAwAAAAAAwHJABAgAAABxdWFsaXR5AAQFAAAAbWF0aAAEBAAAAG1heAADAAAAAAAAIEAEBgAAAHJvdW5kAAQEAAAAZGVnAAQFAAAAYXNpbgADAAAAAAAAAEADAAAAAACAZkAEAwAAAHBpAANxPQrXo3DtPwMAAAAAAAAAAAQOAAAAV29ybGRUb1NjcmVlbgAEDAAAAEQzRFhWRUNUT1IzAAQEAAAAY29zAAQEAAAAc2luAAMAAAAAAADwPwQMAAAARDNEWFZFQ1RPUjIABAIAAAB4AAQCAAAAeQAECwAAAERyYXdMaW5lczIAAwAA4P///+9BAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAD6AwAA/AMAAAEAAw4AAAAaAACAF0ABgEZAQABHgMAAjcBAAF4AAAFfAAAAFwABgEZAQABHAMEAjsBAAF4AAAFfAAAAHwCAAAUAAAADAAAAAAAAAAAEBQAAAG1hdGgABAYAAABmbG9vcgADAAAAAAAA4D8EBQAAAGNlaWwAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAD+AwAABwQAAAUAETEAAABGAUAAgAEAAMABgAAAAgABXYEAAoYBQADGQUAAx4HAAwZCQAAHwkAERkJAAEcCwQSdgQACzoGBAsxBwQPdgQABz8GAA87BgQIGgkEARsJBAIeCwAPHwsADBwPBA10CAAIdggAARgJCAIuCAADHgkAEisICgcfCQASKwoKBy4IAAAeDQATKAgOBB8NABMoCg4FdgoABWwIAABcAAoBGQkIAgAIAAMACgAAAAwABQAOAAYGDAgDAAwACAcQCAF1CAAQfAIAADAAAAAQHAAAAVmVjdG9yAAQKAAAAY2FtZXJhUG9zAAQCAAAAeAAEAgAAAHkABAIAAAB6AAQLAAAAbm9ybWFsaXplZAAEDgAAAFdvcmxkVG9TY3JlZW4ABAwAAABEM0RYVkVDVE9SMwAECQAAAE9uU2NyZWVuAAQSAAAARHJhd0NpcmNsZU5leHRMdmwAAwAAAAAAAPA/AwAAAAAAwFJAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAA"), nil, "bt", _ENV))()
+function DmgCalc()
+	for _, enemy in pairs(GetEnemyHeroes()) do
+        if not enemy.dead and enemy.visible then
+			local hp = enemy.health
+			local QDMG = getDmg("Q", enemy, myHero, 1)
+			local WDMG = getDmg("W", enemy, myHero, 3)
+			local EDMG = getDmg("E", enemy, myHero, 1)
+			local RDMG = getDmg("R", enemy, myHero, 1)
+			if hp > (QDMG+WDMG+EDMG+RDMG) then
+				killstring[enemy.networkID] = "Harass Him!!!"
+			elseif hp < QDMG then
+				killstring[enemy.networkID] = "Q Kill!"
+			elseif hp < WDMG then
+				killstring[enemy.networkID] = "W Kill!"
+			elseif hp < EDMG then
+				killstring[enemy.networkID] = "E Kill!"
+            elseif hp < RDMG then
+				killstring[enemy.networkID] = "R Kill!"
+            elseif hp < (QDMG+WDMG) then
+                killstring[enemy.networkID] = "Q+W Kill!"
+			elseif hp < (QDMG+EDMG) then
+                killstring[enemy.networkID] = "Q+E Kill!"
+			elseif hp < (QDMG+RDMG) then
+                killstring[enemy.networkID] = "Q+R Kill!"
+			elseif hp < (WDMG+EDMG) then
+                killstring[enemy.networkID] = "E+W Kill!"
+			elseif hp < (WDMG+RDMG) then
+                killstring[enemy.networkID] = "R+W Kill!"
+			elseif hp < (QDMG+WDMG+EDMG+RDMG) then
+                killstring[enemy.networkID] = "Q+W+E+R Kill!"
+            end
+        end
+    end
+end
+
+function CastQ(unit)
+	if QReady then
+		if VIP_USER and MenuFizz.prConfig.pc then
+			Packet("S_CAST", {spellId = _Q, targetNetworkId = unit.networkID}):send()
+		else
+			CastSpell(_Q, unit)
+		end
+	end
+end
+
+function CastW()
+	if WReady then
+		if VIP_USER and MenuFizz.prConfig.pc then
+			Packet("S_CAST", {spellId = _W}):send()
+		else
+			CastSpell(_W)
+		end
+	end
+end
+
+function CastE(unit)
+	if EReady then
+		local myE = myHero:GetSpellData(_E)
+		if myE.name == "FizzJump" then
+			if MenuFizz.prConfig.pro == 1 then
+				local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, E.delay, E.width, E.range, E.speed, myHero, false)
+				if HitChance >= 0 then
+					if VIP_USER and MenuFizz.prConfig.pc then
+						Packet("S_CAST", {spellId = _E, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
+					else
+						CastSpell(_E, CastPosition.x, CastPosition.z)
+					end
+				end
+			end
+			if MenuFizz.prConfig.pro == 2 and VIP_USER and prodstatus then
+				local Position, info = Prodiction.GetPrediction(unit, E.range, E.speed, E.delay, E.width)
+				if Position ~= nil then
+					if VIP_USER and MenuFizz.prConfig.pc then
+						Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+					else
+						CastSpell(_E, Position.x, Position.z)
+					end	
+				end
+			end
+		end
+	end
+end
+
+function CastE2(unit)
+	if EReady then
+		local myE = myHero:GetSpellData(_E)
+		if myE.name == "fizzjumptwo" then
+			if MenuFizz.prConfig.pro == 1 then
+				local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, E2.delay, E2.width, E2.range, E2.speed, myHero, false)
+				if HitChance >= 0 then
+					if VIP_USER and MenuFizz.prConfig.pc then
+						Packet("S_CAST", {spellId = _E, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
+					else
+						CastSpell(_E, CastPosition.x, CastPosition.z)
+					end
+				end
+			end
+			if MenuFizz.prConfig.pro == 2 and VIP_USER and prodstatus then
+				local Position, info = Prodiction.GetPrediction(unit, E2.range, E2.speed, E2.delay, E2.width)
+				if Position ~= nil then
+					if VIP_USER and MenuFizz.prConfig.pc then
+						Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+					else
+						CastSpell(_E, Position.x, Position.z)
+					end	
+				end
+			end
+		end
+	end
+end
+
+function CastR(unit)
+	if RReady then
+		if MenuFizz.prConfig.pro == 1 then
+			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range - 100, R.speed, myHero, false)
+			if HitChance >= MenuFizz.prConfig.vphit - 1 then
+				if VIP_USER and MenuFizz.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
+				else
+					CastSpell(_R, CastPosition.x, CastPosition.z)
+				end
+			end
+		end
+		if MenuFizz.prConfig.pro == 2 and VIP_USER and prodstatus then
+			local Position, info = Prodiction.GetLineAOEPrediction(unit, R.range, R.speed, R.delay, R.width)
+			if Position ~= nil then
+				if VIP_USER and MenuFizz.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_R, Position.x, Position.z)
+				end	
+			end
+		end
+	end
+end
+	
+function OnProcessSpell(unit, spell)
+	if MenuFizz.exConfig.AE then
+		if unit and unit.team ~= myHero.team and not myHero.dead and unit.type == myHero.type and spell then
+		    shottype,radius,maxdistance = 0,0,0
+		    if unit.type == "obj_AI_Hero" and DodgeSpells[spell.name] and MenuMorg.exConfig.ES[spell.name]then
+			    spelltype, casttype = getSpellType(unit, spell.name)
+			    if casttype == 4 or casttype == 5 or casttype == 6 then return end
+			    if (spelltype == "Q" or spelltype == "W" or spelltype == "E" or spelltype == "R") then
+				    shottype = skillData[unit.charName][spelltype]["type"]
+				    radius = skillData[unit.charName][spelltype]["radius"]
+				    maxdistance = skillData[unit.charName][spelltype]["maxdistance"]
+			    end
+		    end
+			allytarget = myHero
+			if allytarget.team == myHero.team and not allytarget.dead and allytarget.health > 0 then
+				hitchampion = false
+				local allyHitBox = allytarget.boundingRadius
+				if shottype == 0 then hitchampion = spell.target and spell.target.networkID == allytarget.networkID
+					elseif shottype == 1 then hitchampion = checkhitlinepass(unit, spell.endPos, radius, maxdistance, allytarget, allyHitBox)
+					elseif shottype == 2 then hitchampion = checkhitlinepoint(unit, spell.endPos, radius, maxdistance, allytarget, allyHitBox)
+					elseif shottype == 3 then hitchampion = checkhitaoe(unit, spell.endPos, radius, maxdistance, allytarget, allyHitBox)
+					elseif shottype == 4 then hitchampion = checkhitcone(unit, spell.endPos, radius, maxdistance, allytarget, allyHitBox)
+					elseif shottype == 5 then hitchampion = checkhitwall(unit, spell.endPos, radius, maxdistance, allytarget, allyHitBox)
+					elseif shottype == 6 then hitchampion = checkhitlinepass(unit, spell.endPos, radius, maxdistance, allytarget, allyHitBox) or checkhitlinepass(unit, Vector(unit)*2-spell.endPos, radius, maxdistance, allytarget, allyHitBox)
+					elseif shottype == 7 then hitchampion = checkhitcone(spell.endPos, unit, radius, maxdistance, allytarget, allyHitBox)
+				end
+				if hitchampion then
+					if EReady and DodgeSpells[spell.name] and MenuFizz.exConfig.ES[spell.name] then
+						CastSpell(_E, mousePos.x, mousePos.z)
+				    end
+			    end
+		    end	
+		end
+	end
+end
+
+function Escape()
+	if MenuFizz.exConfig.EUE and EReady then
+		CastSpell(_E, mousePos.x, mousePos.z)
+	end
+	if MenuFizz.exConfig.EUQ and QReady then
+		EnemyMinions:update()
+		for i, minion in pairs(EnemyMinions.objects) do
+			if ValidTarget(minion, Q.range) and minion ~= nil then
+				if GetDistance(minion, mousePos) <= Q.range then
+					CastQ(minion)
+				end
+			end
+		end
+	end
+	myHero:MoveTo(mousePos.x, mousePos.z)
+end
+
+function GenModelPacket(champ, skinId)
+	p = CLoLPacket(0x97)
+	p:EncodeF(myHero.networkID)
+	p.pos = 1
+	t1 = p:Decode1()
+	t2 = p:Decode1()
+	t3 = p:Decode1()
+	t4 = p:Decode1()
+	p:Encode1(t1)
+	p:Encode1(t2)
+	p:Encode1(t3)
+	p:Encode1(bit32.band(t4,0xB))
+	p:Encode1(1)--hardcode 1 bitfield
+	p:Encode4(skinId)
+	for i = 1, #champ do
+		p:Encode1(string.byte(champ:sub(i,i)))
+	end
+	for i = #champ + 1, 64 do
+		p:Encode1(0)
+	end
+	p:Hide()
+	RecvPacket(p)
+end
+
+function OnWndMsg(Msg, Key)
+	if Msg == WM_LBUTTONDOWN and MenuFizz.comboConfig.ST then
+		local dist = 0
+		local Selecttarget = nil
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy) then
+				if GetDistance(enemy, mousePos) <= dist or Selecttarget == nil then
+					dist = GetDistance(enemy, mousePos)
+					Selecttarget = enemy
+				end
+			end
+		end
+		if Selecttarget and dist < 300 then
+			if SelectedTarget and Selecttarget.charName == SelectedTarget.charName then
+				SelectedTarget = nil
+				if MenuFizz.comboConfig.ST then 
+					print("Target unselected: "..Selecttarget.charName) 
+				end
+			else
+				SelectedTarget = Selecttarget
+				if MenuFizz.comboConfig.ST then 
+					print("New target selected: "..Selecttarget.charName) 
+				end
+			end
+		end
+	end
+end
+
+function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
+  radius = radius or 300
+  quality = math.max(8,round(180/math.deg((math.asin((chordlength/(2*radius)))))))
+  quality = 2 * math.pi / quality
+  radius = radius*.92
+  
+  local points = {}
+  for theta = 0, 2 * math.pi + quality, quality do
+    local c = WorldToScreen(D3DXVECTOR3(x + radius * math.cos(theta), y, z - radius * math.sin(theta)))
+    points[#points + 1] = D3DXVECTOR2(c.x, c.y)
+  end
+  
+  DrawLines2(points, width or 1, color or 4294967295)
+end
+
+function round(num) 
+  if num >= 0 then return math.floor(num+.5) else return math.ceil(num-.5) end
+end
+
+function DrawCircle2(x, y, z, radius, color)
+  local vPos1 = Vector(x, y, z)
+  local vPos2 = Vector(cameraPos.x, cameraPos.y, cameraPos.z)
+  local tPos = vPos1 - (vPos1 - vPos2):normalized() * radius
+  local sPos = WorldToScreen(D3DXVECTOR3(tPos.x, tPos.y, tPos.z))
+  
+  if OnScreen({ x = sPos.x, y = sPos.y }, { x = sPos.x, y = sPos.y }) then
+    DrawCircleNextLvl(x, y, z, radius, 1, color, 75) 
+  end
+end
