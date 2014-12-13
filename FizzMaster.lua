@@ -2,7 +2,7 @@
 
 	Script Name: FIZZ MASTER 
     	Author: kokosik1221
-	Last Version: 1.3
+	Last Version: 1.31
 	13.12.2014
 	
 ]]--
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 1.3
+local version = 1.31
 local SCRIPT_NAME = "FizzMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -895,7 +895,7 @@ function OnProcessSpell(unit, spell)
 	if MenuFizz.exConfig.AE then
 		if unit and unit.team ~= myHero.team and not myHero.dead and unit.type == myHero.type and spell then
 		    shottype,radius,maxdistance = 0,0,0
-		    if unit.type == "obj_AI_Hero" and DodgeSpells[spell.name] and MenuMorg.exConfig.ES[spell.name]then
+		    if unit.type == "obj_AI_Hero" and DodgeSpells[spell.name] and MenuFizz.exConfig.ES[spell.name]then
 			    spelltype, casttype = getSpellType(unit, spell.name)
 			    if casttype == 4 or casttype == 5 or casttype == 6 then return end
 			    if (spelltype == "Q" or spelltype == "W" or spelltype == "E" or spelltype == "R") then
