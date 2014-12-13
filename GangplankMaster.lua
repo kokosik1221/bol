@@ -2,22 +2,22 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.73
-	29.11.2014
-
+	Last Version: 1.74
+	13.12.2014
 	
 ]]--
 
 if myHero.charName ~= "Gangplank" then return end
 
-local AUTOUPDATE = true
+_G.AUTOUPDATE = true
+_G.USESKINHACK = false
 
 
 --AUTO UPDATE--
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local SCRIPT_NAME = "GangplankMaster"
-local version = 1.73
+local version = 1.74
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -25,7 +25,7 @@ else
 	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
 end
 if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
-if AUTOUPDATE then
+if _G.AUTOUPDATE then
 	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 local RequireI = Require("SourceLib")
@@ -82,10 +82,6 @@ function OnDeleteObj(object)
 	if object.name:find("TeleportHome") or (Recall == nil and object.name == Recall.name) then
 		Recall = false
 	end
-end
-
-function skinChanged()
-	return MenuGP.prConfig.skin1 ~= lastSkin
 end
 
 function OnTick()
@@ -191,10 +187,6 @@ function Menu()
 	MenuGP.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuGP.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
-	if MenuGP.prConfig.skin and VIP_USER then
-		GenModelPacket("Gangplank", MenuGP.prConfig.skin1)
-		lastSkin = MenuGP.prConfig.skin1
-	end
 	MenuGP.comboConfig:permaShow("CEnabled")
 	MenuGP.harrasConfig:permaShow("HEnabled")
 	MenuGP.harrasConfig:permaShow("HTEnabled")
@@ -239,9 +231,11 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuGP.prConfig.skin and VIP_USER and skinChanged() then
-		GenModelPacket("Gangplank", MenuGP.prConfig.skin1)
-		lastSkin = MenuGP.prConfig.skin1
+	if MenuGP.prConfig.skin and VIP_USER and _G.USESKINHACK then
+		if MenuGP.prConfig.skin1 ~= lastSkin then
+			GenModelPacket("Gangplank", MenuGP.prConfig.skin1)
+			lastSkin = MenuGP.prConfig.skin1
+		end
 	end
 	if MenuGP.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
