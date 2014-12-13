@@ -2,21 +2,23 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 1.8
-	08.12.2014
+	Last Version: 1.81
+	13.12.2014
+	
 	
 ]]--
 
 if myHero.charName ~= "Galio" then return end
 
-local AUTOUPDATE = true
+_G.AUTOUPDATE = true
+_G.USESKINHACK = false
 
 
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.8
+local version = 1.81
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -24,7 +26,7 @@ else
 	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
 end
 if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
-if AUTOUPDATE then
+if _G.AUTOUPDATE then
 	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 local RequireI = Require("SourceLib")
@@ -69,10 +71,6 @@ function OnLoad()
 		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
 	end
-end
-
-function skinChanged()
-	return MenuGalio.prConfig.skin1 ~= lastSkin
 end
 
 function CheckUlt()
@@ -203,10 +201,6 @@ function Menu()
 	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuGalio.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
-	if MenuGalio.prConfig.skin and VIP_USER then
-		GenModelPacket("Galio", MenuGalio.prConfig.skin1)
-		lastSkin = MenuGalio.prConfig.skin1
-	end
 	MenuGalio.comboConfig:permaShow("CEnabled")
 	MenuGalio.harrasConfig:permaShow("HEnabled")
 	MenuGalio.harrasConfig:permaShow("HTEnabled")
@@ -254,9 +248,11 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuGalio.prConfig.skin and VIP_USER and skinChanged() then
-		GenModelPacket("Galio", MenuGalio.prConfig.skin1)
-		lastSkin = MenuGalio.prConfig.skin1
+	if MenuGalio.prConfig.skin and VIP_USER and _G.USESKINHACK then
+		if MenuGalio.prConfig.skin1 ~= lastSkin then
+			GenModelPacket("Galio", MenuGalio.prConfig.skin1)
+			lastSkin = MenuGalio.prConfig.skin1
+		end
 	end
 	if lasttickchecked <= GetTickCount() - 500 then
 		lasthealthchecked = myHero.health
