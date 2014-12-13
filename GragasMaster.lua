@@ -2,19 +2,19 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.51
-	12.12.2014
-
+	Last Version: 0.52
+	13.12.2014
 	
 ]]--
 
 
 if myHero.charName ~= "Gragas" then return end
 
-local AUTOUPDATE = true
+_G.AUTOUPDATE = true
+_G.USESKINHACK = false
 
 
-local version = 0.51
+local version = 0.52
 local SCRIPT_NAME = "GragasMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -27,7 +27,7 @@ else
 	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
 end
 if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
-if AUTOUPDATE then
+if _G.AUTOUPDATE then
 	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 local RequireI = Require("SourceLib")
@@ -221,10 +221,6 @@ function Menu()
 	MenuGragy.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	MenuGragy.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
-	if MenuGragy.prConfig.skin and VIP_USER then
-		GenModelPacket("Gragas", MenuGragy.prConfig.skin1)
-		lastSkin = MenuGragy.prConfig.skin1
-	end
 	MenuGragy.comboConfig:permaShow("CEnabled")
 	MenuGragy.harrasConfig:permaShow("HEnabled")
 	MenuGragy.harrasConfig:permaShow("HTEnabled")
@@ -294,9 +290,11 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuGragy.prConfig.skin and VIP_USER and skinChanged() then
-		GenModelPacket("Gragas", MenuGragy.prConfig.skin1)
-		lastSkin = MenuGragy.prConfig.skin1
+	if MenuGragy.prConfig.skin and VIP_USER and _G.USESKINHACK then
+		if MenuGragy.prConfig.skin1 ~= lastSkin then
+			GenModelPacket("Gragas", MenuGragy.prConfig.skin1)
+			lastSkin = MenuGragy.prConfig.skin1
+		end
 	end
 	if MenuGragy.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
@@ -740,10 +738,6 @@ function EnemyCount(point, range)
 		end
 	end            
 	return count
-end
-
-function skinChanged()
-	return MenuGragy.prConfig.skin1 ~= lastSkin
 end
 
 function GenModelPacket(champ, skinId)
