@@ -2,7 +2,7 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.5
+	Last Version: 0.51
 	15.12.2014
 	
 ]]--
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.5
+local version = 0.51
 local SCRIPT_NAME = "AnnieMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -358,11 +358,7 @@ function Combo()
 		end
 		if MenuAnnie.comboConfig.rConfig.RM == 4 then
 			for _, enemy in pairs(GetEnemyHeroes()) do
-				if MenuAnnie.prConfig.pro == 2 and VIP_USER and prodstatus then
-					rPos, HitChance, maxHit, Positions = Prodiction:GetCircularAOEPrediction(enemy, R.range, R.speed, R.delay, R.width, myHero)
-				else
-					rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
-				end
+				local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
 				if RReady and ValidTarget(enemy) and rPos ~= nil and maxHit >= MenuAnnie.comboConfig.rConfig.HXC then		
 					if VIP_USER and MenuAnnie.prConfig.pc then
 						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
