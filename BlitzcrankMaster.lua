@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.65
-	13.12.2014
+	Last Version: 0.66
+	16.12.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.65
+local version = 0.66
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -77,7 +77,7 @@ function Vars()
 	abilitylvl, lastskin = 0, 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, SmiteKey, zhonyaslot, qPos = nil, nil, nil
+	IgniteKey, SmiteKey, zhonyaslot = nil, nil, nil
 	killstring = {}
 	Spells = {_Q,_W,_E,_R}
 	Spells2 = {"Q","W","E","R"}
@@ -507,14 +507,13 @@ function OnDraw()
 end
 
 function KillSteall()
-	for i = 1, heroManager.iCount do
-		local Enemy = heroManager:getHero(i)
+	for _, Enemy in pairs(GetEnemyHeroes()) do
 		local health = Enemy.health
-		local qDmg = myHero:CalcDamage(Enemy, (55 * myHero:GetSpellData(0).level + 25 + myHero.ap))
-		local eDmg = getDmg("E", Enemy, myHero) + myHero.totalDamage
-		local rDmg = getDmg("R", Enemy, myHero) + ((myHero.ap*90)/100)
+		local qDmg = getDmg("Q", Enemy, myHero, 1)
+		local eDmg = getDmg("E", Enemy, myHero, 1)
+		local rDmg = getDmg("R", Enemy, myHero, 3)
 		local iDmg = (50 + (20 * myHero.level))
-		if ValidTarget(Enemy) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+		if ValidTarget(Enemy, Q.range) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health < qDmg and MenuBlitz.ksConfig.QKS and GetDistance(Enemy) < Q.range then
 				CastQ(Enemy)
 			elseif health < eDmg and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < E.range then
@@ -542,13 +541,12 @@ function KillSteall()
 end
 
 function DmgCalc()
-	for i=1, heroManager.iCount do
-		local enemy = heroManager:GetHero(i)
+	for _, enemy in pairs(GetEnemyHeroes()) do
         if not enemy.dead and enemy.visible then
-			local qDmg = myHero:CalcDamage(enemy, (55 * myHero:GetSpellData(0).level + 25 + myHero.ap))
-			local eDmg = getDmg("E", enemy, myHero) + myHero.totalDamage
-			local rDmg = getDmg("R", enemy, myHero) + ((myHero.ap*90)/100)
-			local iDmg = getDmg("IGNITE", enemy, myHero) 
+			local qDmg = getDmg("Q", enemy, myHero, 1)
+			local eDmg = getDmg("E", enemy, myHero, 1)
+			local rDmg = getDmg("R", enemy, myHero, 3)
+			local iDmg = (50 + (20 * myHero.level))
             if enemy.health > (qDmg + eDmg + rDmg) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < qDmg then
@@ -573,9 +571,11 @@ end
 function CastQ(unit)
 	if QReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < Q.range then
 		if MenuBlitz.prConfig.pro == 1 then
-			local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
-			if #ColTable2 == 1 and MenuBlitz.comboConfig.USEQS and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
-				CastSpell(SmiteKey, ColTable2[1])
+			if MenuBlitz.comboConfig.USEQS then
+				local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
+				if #ColTable2 == 1 and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
+					CastSpell(SmiteKey, ColTable2[1])
+				end
 			end
 			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
 			if HitChance >= MenuBlitz.prConfig.vphit - 1 then
@@ -587,10 +587,12 @@ function CastQ(unit)
 			end
 		end
 		if MenuBlitz.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position = ProdictQ:GetPrediction(unit)
-			local willCollide, ColTable = ProdictQCol:GetMinionCollision(Position, myHero)
-			if #ColTable == 1 and MenuBlitz.comboConfig.USEQS and SReady and GetDistance(myHero, ColTable[1]) < 800 then
-				CastSpell(SmiteKey, ColTable[1])
+			if MenuBlitz.comboConfig.USEQS then
+				local Position = ProdictQ:GetPrediction(unit)
+				local willCollide, ColTable = ProdictQCol:GetMinionCollision(Position, myHero)
+				if #ColTable == 1 and SReady and GetDistance(myHero, ColTable[1]) < 800 then
+					CastSpell(SmiteKey, ColTable[1])
+				end
 			end
 			if Position ~= nil and not willCollide then
 				if VIP_USER and MenuBlitz.prConfig.pc then
