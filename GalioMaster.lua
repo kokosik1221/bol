@@ -2,8 +2,8 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 1.81
-	13.12.2014
+	Last Version: 1.82
+	17.12.2014
 	
 	
 ]]--
@@ -18,7 +18,7 @@ local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 local prodstatus = false
 local SCRIPT_NAME = "GalioMaster"
-local version = 1.81
+local version = 1.82
 if FileExist(SOURCELIB_PATH) then
 	require("SourceLib")
 else
@@ -80,7 +80,7 @@ function CheckUlt()
 		 oc = false
     else
          ultbuff = false
-		 if oc == false then
+		 if (oc == false) and (not sac or mma) then
 			SOWi.Menu.Enabled = true
 			oc = true
 		 end
@@ -231,7 +231,21 @@ function GetCustomTarget()
 	return TargetSelector.target
 end
 
+function GetRange()
+	if QReady and not EReady then
+		x = Q.range
+	elseif EReady and not QReady then
+		x = E.range
+	elseif not EReady and not QReady then
+		x = R.range
+	else
+		x = E.range
+	end
+	return x
+end
+
 function Check()
+	TargetSelector.range = GetRange()
 	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
 		Cel = SelectedTarget
 	else
