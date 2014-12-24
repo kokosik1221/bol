@@ -2,8 +2,8 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.52
-	13.12.2014
+	Last Version: 0.53
+	24.12.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.52
+local version = 0.53
 local SCRIPT_NAME = "GragasMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -48,19 +48,17 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local Q = {name = "Barrel Roll", range = 850, speed = 1100, delay = 0.250, width = 330}
-local W = {name = "Drunken Rage"}
-local E = {name = "Body Slam", range = 650, speed = 1000, delay = 0.250, width = 100}
-local R = {name = "Explosive Cask", range = 1150, speed = 1300, delay = 0.5, width = 400}
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
-local abilitylvl, lastskin, aarange = 0, 0, 125
-local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, zhonyaslot = nil, nil
-local killstring = {}
-
-function OnLoad()
-	Menu()
+function Vars()
+	Q = {name = "Barrel Roll", range = 850, speed = 1100, delay = 0.250, width = 330}
+	W = {name = "Drunken Rage"}
+	E = {name = "Body Slam", range = 650, speed = math.huge, delay = 0.250, width = 100}
+	R = {name = "Explosive Cask", range = 1150, speed = 1300, delay = 0.5, width = 400}
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
+	abilitylvl, lastskin, aarange = 0, 0, 125
+	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	IgniteKey, zhonyaslot = nil, nil
+	killstring = {}
 	print("<b><font color=\"#6699FF\">Gragas Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Gragas Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -70,6 +68,11 @@ function OnLoad()
 		print("<b><font color=\"#6699FF\">Gragas Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
 	end
+end
+
+function OnLoad()
+	Vars()
+	Menu()
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
@@ -110,18 +113,6 @@ function OnTick()
 			CastRBehind(Cel)
 		end
 	end
-	if RReady and Cel ~= nil and MenuGragy.comboConfig.rConfig.AHX then
-		local rPos = GetAoESpellPosition(450, Cel)
-        if rPos and GetDistance(rPos) <= R.range then
-            if EnemyCount(rPos, 450) >= MenuGragy.comboConfig.rConfig.HXC then
-				if VIP_USER and MenuGragy.prConfig.pc then
-					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
-				else
-					CastSpell(_R, rPos.x, rPos.z)
-				end	
-            end
-        end
-	end
 	KillSteall()
 end
 
@@ -145,12 +136,9 @@ function Menu()
 	MenuGragy.comboConfig:addSubMenu("[Gragas Master]: E Settings", "eConfig")
 	MenuGragy.comboConfig.eConfig:addParam("USEE", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.comboConfig:addSubMenu("[Gragas Master]: R Settings", "rConfig")
-	MenuGragy.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, false)
-	MenuGragy.comboConfig.rConfig:addParam("Kilable", "Use Only If Target Is Killable", SCRIPT_PARAM_ONOFF, true)
-	MenuGragy.comboConfig.rConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGragy.comboConfig.rConfig:addParam("AHX", "Use Automatically Without Combo", SCRIPT_PARAM_ONOFF, false)
-	MenuGragy.comboConfig.rConfig:addParam("HX", "Use Only If Can Hit X Enemy", SCRIPT_PARAM_ONOFF, true)
-	MenuGragy.comboConfig.rConfig:addParam("HXC", "Min. Enemy To Hit", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
+	MenuGragy.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
+	MenuGragy.comboConfig.rConfig:addParam("RMODE", "Cast Mode:", SCRIPT_PARAM_LIST, 2, {"Normal", "Killable", "Can Hit X"}) 
+	MenuGragy.comboConfig.rConfig:addParam("HXC", "X = ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
 	MenuGragy.comboConfig.rConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.comboConfig.rConfig:addParam("CBE", "Cast Behind Enemy", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.comboConfig.rConfig:addParam("qqq", "OFF (Cast To Target POS)", SCRIPT_PARAM_INFO,"")
@@ -168,6 +156,12 @@ function Menu()
 	MenuGragy.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
 	MenuGragy.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuGragy.harrasConfig:addParam("manah", "Min. Mana To Harass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuGragy:addSubMenu("[Gragas Master]: Extra Settings", "exConfig")
+	MenuGragy.exConfig:addParam("ARF", "Auto (R) If Can Hit X", SCRIPT_PARAM_ONOFF, true)
+	MenuGragy.exConfig:addParam("ARX", "X = ", SCRIPT_PARAM_SLICE, 4, 1, 5, 0)
+	MenuGragy.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuGragy.exConfig:addParam("AQF", "Auto (Q) If Can Hit X", SCRIPT_PARAM_ONOFF, true)
+	MenuGragy.exConfig:addParam("AQX", "X = ", SCRIPT_PARAM_SLICE, 4, 1, 5, 0)
 	MenuGragy:addSubMenu("[Gragas Master]: Interrupt Settings", "iConfig")
     Interrupter(MenuGragy.iConfig, Interrup)
 	MenuGragy:addSubMenu("[Gragas Master]: KS Settings", "ksConfig")
@@ -175,9 +169,9 @@ function Menu()
 	MenuGragy.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.ksConfig:addParam("QKS", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGragy.ksConfig:addParam("EKS", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, false)
+	MenuGragy.ksConfig:addParam("EKS", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGragy.ksConfig:addParam("RKS", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
+	MenuGragy.ksConfig:addParam("RKS", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, false)
 	MenuGragy:addSubMenu("[Gragas Master]: Farm Settings", "farm")
 	MenuGragy.farm:addParam("QF", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear"})
 	MenuGragy.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -347,33 +341,31 @@ function Combo()
 		CastE(Cel)
 	end
 	if RReady and MenuGragy.comboConfig.rConfig.USER and GetDistance(Cel) < R.range then
-		if not MenuGragy.comboConfig.rConfig.CBE then
-			CastR(Cel)
-		else
-			CastRBehind(Cel)
-		end
-	end
-	if RReady and MenuGragy.comboConfig.rConfig.USER and MenuGragy.comboConfig.Kilable and GetDistance(Cel) < R.range then
-		local r = myHero:CalcDamage(Cel, (100 * myHero:GetSpellData(3).level + 100 + 0.7 * myHero.ap))
-		if Cel.health < r then
+		if MenuGragy.comboConfig.rConfig.RMODE == 1 then
 			if not MenuGragy.comboConfig.rConfig.CBE then
 				CastR(Cel)
 			else
 				CastRBehind(Cel)
 			end
-		end
-	end
-	if RReady and MenuGragy.comboConfig.rConfig.USER and MenuGragy.comboConfig.rConfig.HX and GetDistance(Cel) < R.range then
-		local rPos = GetAoESpellPosition(500, Cel)
-        if rPos and GetDistance(rPos) <= R.range then
-            if EnemyCount(rPos, 500) >= MenuGragy.comboConfig.rConfig.HXC then
+		elseif MenuGragy.comboConfig.rConfig.RMODE == 2 then
+			local r = myHero:CalcDamage(Cel, (100 * myHero:GetSpellData(3).level + 100 + 0.7 * myHero.ap))
+			if Cel.health < r then
+				if not MenuGragy.comboConfig.rConfig.CBE then
+					CastR(Cel)
+				else
+					CastRBehind(Cel)
+				end
+			end
+		elseif MenuGragy.comboConfig.rConfig.RMODE == 3 then
+			local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(Cel, R.delay, R.width, R.range, R.speed, myHero)
+			if ValidTarget(Cel) and rPos ~= nil and maxHit >= MenuGragy.comboConfig.rConfig.HXC then		
 				if VIP_USER and MenuGragy.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
 				else
 					CastSpell(_R, rPos.x, rPos.z)
 				end	
-            end
-        end
+			end
+		end
 	end
 end
 
@@ -561,8 +553,7 @@ function OnDraw()
 end
 
 function KillSteall()
-	for i = 1, heroManager.iCount do
-		local enemy = heroManager:getHero(i)
+	for _, enemy in pairs(GetEnemyHeroes()) do
 		local health = enemy.health
 		local QDMG = myHero:CalcDamage(enemy, (40 * myHero:GetSpellData(0).level + 40 + 0.6 * myHero.ap))
 		local EDMG = myHero:CalcDamage(enemy, (50 * myHero:GetSpellData(2).level + 30 + 0.6 * myHero.ap))
@@ -590,6 +581,32 @@ function KillSteall()
 				CastR(enemy)
 			elseif health < IDMG and MenuGragy.ksConfig.IKS and GetDistance(enemy) <= 600 and IReady then
 				CastSpell(IgniteKey, enemy)
+			end
+		end
+	end
+	for _, enemy in pairs(GetEnemyHeroes()) do
+		if MenuGragy.exConfig.AQF then
+			if QReady and ValidTarget(enemy) and GetDistance(enemy) < Q.range then
+				local qPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, Q.delay, Q.width, Q.range, Q.speed, myHero)
+				if qPos ~= nil and maxHit >= MenuGragy.exConfig.AQX and HitChance >=2 then		
+					if VIP_USER and MenuGragy.prConfig.pc then
+						Packet("S_CAST", {spellId = _Q, fromX = qPos.x, fromY = qPos.z, toX = qPos.x, toY = qPos.z}):send()
+					else
+						CastSpell(_Q, qPos.x, qPos.z)
+					end
+				end
+			end
+		end
+		if MenuGragy.exConfig.ARF then
+			if RReady and ValidTarget(enemy) and GetDistance(enemy) < R.range then
+				local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
+				if rPos ~= nil and maxHit >= MenuGragy.exConfig.ARX and HitChance >=2 then		
+					if VIP_USER and MenuGragy.prConfig.pc then
+						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
+					else
+						CastSpell(_R, rPos.x, rPos.z)
+					end
+				end
 			end
 		end
 	end
