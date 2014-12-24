@@ -2,8 +2,8 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.21
-	13.12.2014
+	Last Version: 0.22
+	24.12.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.21
+local version = 0.22
 local SCRIPT_NAME = "LuxMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -54,7 +54,7 @@ end
 
 function Vars()
 	Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, width = 80}
-	W = {name = "Prismatic Barrier", range = 1175, speed = 1400, delay = 0.25, width = 110}
+	W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25, width = 110}
 	E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.15, width = 275}
 	R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1.35, width = 190}
 	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma, recall = false, false, false, false, false, false, false, false, false
@@ -174,6 +174,7 @@ function Menu()
 	MenuLux.jsConfig:addParam("JSD", "Steal Dragon With (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.jsConfig:addParam("JSBL", "Steal Blue With (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.jsConfig:addParam("JSR", "Steal Red With (R)", SCRIPT_PARAM_ONOFF, true)
+	MenuLux.jsConfig:addParam("JST", "Steal Team:", SCRIPT_PARAM_LIST, 1, { "Enemy", "My Team", "Both"})
 	MenuLux:addSubMenu("[Lux Master]: KS Settings", "ksConfig")
 	MenuLux.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -551,8 +552,18 @@ function StealJungle()
 	if not recall then
 		if MenuLux.jsConfig.JSR then
 			for i, minion in pairs(KSMinions.objects) do
-				if minion.name == "SRU_Red4.1.1" or minion.name == "SRU_Red10.1.1" then
-					red = minion
+				if MenuLux.jsConfig.JST == 3 then
+					if minion.name == "SRU_Red4.1.1" or minion.name == "SRU_Red10.1.1" then
+						red = minion
+					end
+				elseif MenuLux.jsConfig.JST == 2 then
+					if (minion.name == "SRU_Red4.1.1" or minion.name == "SRU_Red10.1.1") and minion.team == myHero.team then
+						red = minion
+					end
+				elseif MenuLux.jsConfig.JST == 1 then
+					if (minion.name == "SRU_Red4.1.1" or minion.name == "SRU_Red10.1.1") and minion.team ~= myHero.team then
+						red = minion
+					end
 				end
 			end
 			if ValidTarget(red) then
@@ -563,8 +574,18 @@ function StealJungle()
 		end
 		if MenuLux.jsConfig.JSBL then
 			for i, minion in pairs(KSMinions.objects) do
-				if minion.name == "SRU_Blue1.1.1" or minion.name == "SRU_Blue7.1.1" then
-					blue = minion
+				if MenuLux.jsConfig.JST == 3 then
+					if minion.name == "SRU_Blue1.1.1" or minion.name == "SRU_Blue7.1.1" then
+						blue = minion
+					end
+				elseif MenuLux.jsConfig.JST == 2 then
+					if (minion.name == "SRU_Blue1.1.1" or minion.name == "SRU_Blue7.1.1") and minion.team == myHero.team then
+						blue = minion
+					end
+				elseif MenuLux.jsConfig.JST == 1 then
+					if (minion.name == "SRU_Blue1.1.1" or minion.name == "SRU_Blue7.1.1") and minion.team ~= myHero.team then
+						blue = minion
+					end
 				end
 			end
 			if ValidTarget(blue) then
@@ -612,7 +633,7 @@ function KSandAUTO()
 				local QDMG = getDmg("Q", enemy, myHero, 1)
 				local EDMG = getDmg("E", enemy, myHero, 1)
 				local RDMG = getDmg("R", enemy, myHero, 1)
-				local IDMG = getDmg("IGNITE", enemy, myHero) 
+				local IDMG = (50 + (20 * myHero.level))
 				if enemy.health < QDMG and QReady and GetDistance(enemy) < Q.range and MenuLux.ksConfig.QKS then
 					CastQ(enemy)
 				elseif enemy.health < EDMG and EReady and GetDistance(enemy) < E.range and MenuLux.ksConfig.EKS then
@@ -657,7 +678,7 @@ function DmgCalc()
 			local QDMG = getDmg("Q", enemy, myHero, 1)
 			local EDMG = getDmg("E", enemy, myHero, 1)
 			local RDMG = getDmg("R", enemy, myHero, 1)
-			local IDMG = getDmg("IGNITE", enemy, myHero) 
+			local IDMG = (50 + (20 * myHero.level))
 			if enemy.health > (QDMG + EDMG + RDMG + IDMG) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < QDMG then
