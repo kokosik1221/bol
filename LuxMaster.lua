@@ -1,8 +1,8 @@
 --[[
 
 	Script Name: LUX MASTER 
-    	Author: kokosik1221
-	Last Version: 0.22
+    Author: kokosik1221
+	Last Version: 0.221
 	24.12.2014
 	
 ]]--
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.22
+local version = 0.221
 local SCRIPT_NAME = "LuxMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -557,11 +557,15 @@ function StealJungle()
 						red = minion
 					end
 				elseif MenuLux.jsConfig.JST == 2 then
-					if (minion.name == "SRU_Red4.1.1" or minion.name == "SRU_Red10.1.1") and minion.team == myHero.team then
+					if myHero.team == 100 and minion.name == "SRU_Red4.1.1" then
+						red = minion
+					elseif myHero.team == 200 and minion.name == "SRU_Red10.1.1" then
 						red = minion
 					end
 				elseif MenuLux.jsConfig.JST == 1 then
-					if (minion.name == "SRU_Red4.1.1" or minion.name == "SRU_Red10.1.1") and minion.team ~= myHero.team then
+					if myHero.team == 100 and minion.name == "SRU_Red10.1.1" then
+						red = minion
+					elseif myHero.team == 200 and minion.name == "SRU_Red4.1.1" then
 						red = minion
 					end
 				end
@@ -579,11 +583,15 @@ function StealJungle()
 						blue = minion
 					end
 				elseif MenuLux.jsConfig.JST == 2 then
-					if (minion.name == "SRU_Blue1.1.1" or minion.name == "SRU_Blue7.1.1") and minion.team == myHero.team then
+					if myHero.team == 100 and minion.name == "SRU_Blue1.1.1" then
+						blue = minion
+					elseif myHero.team == 200 and minion.name == "SRU_Blue7.1.1" then
 						blue = minion
 					end
 				elseif MenuLux.jsConfig.JST == 1 then
-					if (minion.name == "SRU_Blue1.1.1" or minion.name == "SRU_Blue7.1.1") and minion.team ~= myHero.team then
+					if myHero.team == 100 and minion.name == "SRU_Blue7.1.1" then
+						blue = minion
+					elseif myHero.team == 200 and minion.name == "SRU_Blue1.1.1" then
 						blue = minion
 					end
 				end
