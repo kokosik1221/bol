@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.66
-	16.12.2014
+	Last Version: 0.67
+	24.12.2014
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.66
+local version = 0.67
 local SCRIPT_NAME = "BlitzcrankMaster"
 local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
@@ -150,6 +150,7 @@ function Menu()
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Combo Settings", "comboConfig")
 	MenuBlitz.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("USEQS", "Use Smite If See Collision", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.comboConfig:addParam("QMINR", "Min. Q Range", SCRIPT_PARAM_SLICE, 300, 0, 900, 0) 
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("USEW", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -193,6 +194,7 @@ function Menu()
 	MenuBlitz.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.drawConfig:addParam("DT", "Draw Current Target Name", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.drawConfig:addParam("DQL", "Draw Q Collision Line", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DQR", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
@@ -358,7 +360,9 @@ function Combo()
 	if Cel ~= nil and ValidTarget(Cel) and Cel ~= blacktarget then
 		UseItems(Cel)
 		if MenuBlitz.comboConfig.USEQ then
-			CastQ(Cel)
+			if GetDistance(Cel) >= MenuBlitz.comboConfig.QMINR then
+				CastQ(Cel)
+			end
 		end
 		if MenuBlitz.comboConfig.USEW then
 			CastW()
@@ -383,7 +387,9 @@ function Harrass()
 	blacktarget = FindBL()
 	if Cel ~= nil and ValidTarget(Cel) and Cel ~= blacktarget then
 		if MenuBlitz.harrasConfig.HM == 1 then
-			CastQ(Cel)
+			if GetDistance(Cel) > MenuBlitz.comboConfig.QMINR then
+				CastQ(Cel)
+			end
 		end
 		if MenuBlitz.harrasConfig.HM == 2 then
 			CastE(Cel)
@@ -481,6 +487,10 @@ function autolvl()
 end
 
 function OnDraw()
+	if MenuBlitz.drawConfig.DT and Cel ~= nil then
+		local pos = WorldToScreen(D3DXVECTOR3(myHero.x, myHero.y + 300, myHero.z))
+		DrawText("Current Target:" .. Cel.charName, 20, pos.x - 100, pos.y + 300, 0xFFFFFF00)
+	end
 	if MenuBlitz.drawConfig.DST and MenuBlitz.comboConfig.ST then
 		if SelectedTarget ~= nil and not SelectedTarget.dead then
 			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
