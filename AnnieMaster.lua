@@ -2,7 +2,7 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.51
+	Last Version: 0.52
 	30.12.2014
 	
 ]]--
