@@ -3,7 +3,7 @@
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
 	Last Version: 0.51
-	15.12.2014
+	30.12.2014
 	
 ]]--
 
@@ -14,30 +14,57 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.51
-local SCRIPT_NAME = "AnnieMaster"
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
-local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local prodstatus = false
-if FileExist(SOURCELIB_PATH) then
-	require("SourceLib")
-else
-	DOWNLOADING_SOURCELIB = true
-	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
-end
-if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+local version = "0.52"
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>AnnieMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if _G.AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/AnnieMaster.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available "..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
-local RequireI = Require("SourceLib")
-RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-if VIP_USER then
-	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	prodstatus = true
+local REQUIRED_LIBS = {
+	["vPrediction"] = "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua",
+	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+}
+local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
+function AfterDownload()
+	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
+	if DOWNLOAD_COUNT == 0 then
+		DOWNLOADING_LIBS = false
+		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
+	end
 end
-RequireI:Check()
-if RequireI.downloadNeeded == true then return end
+for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
+	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
+		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+			prodstatus = true 
+		end
+	else
+		DOWNLOADING_LIBS = true
+		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
+		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
+	end
+end
 
 local Items = {
 	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
@@ -49,7 +76,7 @@ local Items = {
 function OnLoad()
 	Vars()
 	Menu()
-	print("<b><font color=\"#6699FF\">Annie Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 end
 
 function Vars()
@@ -109,12 +136,6 @@ function OnTick()
 	if MenuAnnie.prConfig.ALS then
 		autolvl()
 	end
-	if MenuAnnie.exConfig.AW then
-		AutoW()
-	end
-	if MenuAnnie.exConfig.AR then
-		AutoR()
-	end
 	if MenuAnnie.exConfig.SP then
 		stackp()
 	end
@@ -125,6 +146,7 @@ function OnTick()
 		FlashR()
 	end
 	KillSteall()
+	AutoWR()
 end
 
 function Menu()
@@ -147,7 +169,13 @@ function Menu()
 	MenuAnnie.comboConfig:addSubMenu("[Annie Master]: R Settings", "rConfig")
 	MenuAnnie.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuAnnie.comboConfig.rConfig:addParam("RM", "Cast (R) Mode", SCRIPT_PARAM_LIST, 3, {"Don't Use", "Normal", "Killable", "Can Hit X"})
-	MenuAnnie.comboConfig.rConfig:addParam("HXC", "Min. Enemy To Hit", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
+	MenuAnnie.comboConfig.rConfig:addParam("HXC", "Hit X = ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
+	MenuAnnie.comboConfig.rConfig:addParam("qqq", "Use Ultimate On:", SCRIPT_PARAM_INFO,"")
+	for _,hero in pairs(GetEnemyHeroes()) do
+		if hero.team ~= myHero.team then
+			MenuAnnie.comboConfig.rConfig:addParam(hero.charName, hero.charName, SCRIPT_PARAM_ONOFF, true)
+		end
+	end
 	MenuAnnie.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAnnie.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuAnnie.comboConfig:addParam("uaa2", "Use AA Only If Enemy Is In Q Range", SCRIPT_PARAM_ONOFF, true)
@@ -239,15 +267,15 @@ function Menu()
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
 	if _G.MMA_Loaded then
-		print("<b><font color=\"#6699FF\">Annie Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 		mma = true
 	end	
 	if _G.AutoCarry then
-		print("<b><font color=\"#6699FF\">Annie Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
 	end
 	if heroManager.iCount < 10 then
-		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
+		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
 		arrangePrioritysTT()
     else
@@ -337,16 +365,7 @@ end
 
 function Combo()
 	UseItems(Cel)
-	if QReady and MenuAnnie.comboConfig.qConfig.USEQ and GetDistance(Cel) <= Q.range then
-		CastQ(Cel)
-	end
-	if WReady and MenuAnnie.comboConfig.wConfig.USEW and GetDistance(Cel) < W.range then
-		CastW(Cel)
-	end
-	if MenuAnnie.comboConfig.eConfig.USEE then
-		CastE()
-	end
-	if RReady and GetDistance(Cel) <= R.range then
+	if RReady and ValidTarget(Cel, R.range) and MenuAnnie.comboConfig.rConfig[Cel.charName] then
 		if MenuAnnie.comboConfig.rConfig.RM == 2 then
 			CastR(Cel)
 		end
@@ -358,7 +377,7 @@ function Combo()
 		end
 		if MenuAnnie.comboConfig.rConfig.RM == 4 then
 			for _, enemy in pairs(GetEnemyHeroes()) do
-				local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
+				local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
 				if RReady and ValidTarget(enemy) and rPos ~= nil and maxHit >= MenuAnnie.comboConfig.rConfig.HXC then		
 					if VIP_USER and MenuAnnie.prConfig.pc then
 						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
@@ -369,16 +388,25 @@ function Combo()
 			end
 		end
 	end
+	if QReady and MenuAnnie.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
+		CastQ(Cel)
+	end
+	if WReady and MenuAnnie.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
+		CastW(Cel)
+	end
+	if MenuAnnie.comboConfig.eConfig.USEE then
+		CastE()
+	end
 end
 
 function Harrass()
 	if MenuAnnie.harrasConfig.HM == 1 then
-		if QReady and GetDistance(Cel) <= Q.range and not recall then
+		if QReady and ValidTarget(Cel, Q.range) and not recall then
 			CastQ(Cel)
 		end
 	end
 	if MenuAnnie.harrasConfig.HM == 2 then
-		if WReady and GetDistance(Cel) < W.range and not recall then
+		if WReady and ValidTarget(Cel, W.range) and not recall then
 			CastW(Cel)
 		end
 	end
@@ -427,43 +455,42 @@ function JungleFarm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuAnnie.jf.WJF then
-			if WReady and minion ~= nil and not minion.dead and GetDistance(minion) < W.range then
+			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				CastW(minion)
 			end
 		end
 		if MenuAnnie.jf.QJF then
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastSpell(_Q, minion)
 			end
 		end
 	end
 end
 
-function AutoW()
+function AutoWR()
 	for _, enemy in pairs(GetEnemyHeroes()) do
-		local wPos, HitChance, maxHit, Positions = VP:GetConeAOECastPosition(enemy, W.delay, W.width, W.range, W.speed, myHero)
-		if ValidTarget(enemy, W.range) and wPos ~= nil and maxHit >= MenuAnnie.exConfig.AWX then	
-			if stun and WReady and not recall then
-				if VIP_USER and MenuAnnie.prConfig.pc then
-					Packet("S_CAST", {spellId = _W, fromX = wPos.x, fromY = wPos.z, toX = wPos.x, toY = wPos.z}):send()
-				else
-					CastSpell(_W, wPos.x, wPos.z)
-				end	
+		if MenuAnnie.exConfig.AW then
+			local wPos, HitChance, maxHit, Positions = VP:GetConeAOECastPosition(enemy, W.delay, W.width, W.range, W.speed, myHero)
+			if ValidTarget(enemy, W.range) and wPos ~= nil and maxHit >= MenuAnnie.exConfig.AWX then	
+				if stun and WReady and not recall then
+					if VIP_USER and MenuAnnie.prConfig.pc then
+						Packet("S_CAST", {spellId = _W, fromX = wPos.x, fromY = wPos.z, toX = wPos.x, toY = wPos.z}):send()
+					else
+						CastSpell(_W, wPos.x, wPos.z)
+					end	
+				end
 			end
 		end
-	end
-end
-
-function AutoR()
-	for _, enemy in pairs(GetEnemyHeroes()) do
-		local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
-		if ValidTarget(enemy, R.range) and rPos ~= nil and maxHit >= MenuAnnie.exConfig.ARX then	
-			if stun and RReady and not recall then
-				if VIP_USER and MenuAnnie.prConfig.pc then
-					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
-				else
-					CastSpell(_R, rPos.x, rPos.z)
-				end		
+		if MenuAnnie.exConfig.AR then
+			local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
+			if ValidTarget(enemy, R.range) and rPos ~= nil and maxHit >= MenuAnnie.exConfig.ARX then	
+				if stun and RReady and not recall then
+					if VIP_USER and MenuAnnie.prConfig.pc then
+						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
+					else
+						CastSpell(_R, rPos.x, rPos.z)
+					end		
+				end
 			end
 		end
 	end
@@ -572,57 +599,65 @@ function OnDraw()
 end
 
 function KillSteall()
-	for i = 1, heroManager.iCount do
-		local enemy = heroManager:getHero(i)
+	for _,enemy in pairs(GetEnemyHeroes()) do
 		local health = enemy.health
-		local QDMG = myHero:CalcDamage(enemy, (35 * myHero:GetSpellData(0).level + 45 + 0.8 * myHero.ap))
-		local WDMG = myHero:CalcDamage(enemy, (45 * myHero:GetSpellData(1).level + 25 + 0.85 * myHero.ap))
-		local RDMG = getDmg("R", enemy, myHero, 3)
 		local IDMG = (50 + (20 * myHero.level))
-		if ValidTarget(enemy) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
-			if health < QDMG and MenuAnnie.ksConfig.QKS and GetDistance(enemy) <= Q.range and QReady then
+		local dfgslot = GetInventorySlotItem(3128)
+		local dfgready = (DFGSlot ~= nil and myHero:CanUseSpell(DFGSlot) == READY)
+		local DFGDMG = ((dfgslot and dfgready and getDmg("DFG", enemy, myHero)) or 0)
+		if DFGDMG > 0 then
+			QDMG = getDmg("Q", enemy, myHero, 3) * 1.2
+			WDMG = getDmg("W", enemy, myHero, 3) * 1.2
+			RDMG = getDmg("R", enemy, myHero, 3) * 1.2
+		elseif DFGDMG == 0 then
+			QDMG = getDmg("Q", enemy, myHero, 3)
+			WDMG = getDmg("W", enemy, myHero, 3)
+			RDMG = getDmg("R", enemy, myHero, 3)
+		end
+		if ValidTarget(enemy, 700) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
+			if health < QDMG and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, Q.range) and QReady then
 				CastQ(enemy)
-			elseif health < QDMG and MenuAnnie.ksConfig.WKS and GetDistance(enemy) < W.range and WReady then
+			elseif health < WDMG and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, W.range) and WReady then
 				CastW(enemy)
-			elseif health < RDMG and MenuAnnie.ksConfig.RKS and GetDistance(enemy) <= R.range and RReady then
+			elseif health < RDMG and MenuAnnie.ksConfig.RKS and ValidTarget(enemy, R.range) and RReady then
 				CastR(enemy)
-			elseif health < IDMG and MenuAnnie.ksConfig.IKS and GetDistance(enemy) <= 600 and IReady then
+			elseif health < IDMG and MenuAnnie.ksConfig.IKS and ValidTarget(enemy, 600) and IReady then
 				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+WDMG) and MenuAnnie.ksConfig.WKS and MenuAnnie.ksConfig.QKS and GetDistance(enemy) < W.range and WReady and QReady then
-				CastW(enemy)
-				CastQ(enemy)
-			elseif health < (QDMG+RDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.QKS and GetDistance(enemy) <= R.range and RReady and QReady then
-				CastR(enemy)
-				CastQ(enemy)
-			elseif health < (WDMG+RDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and GetDistance(enemy) <= R.range and RReady and WReady then
-				CastR(enemy)
-				CastW(enemy)
-			elseif health < (QDMG+WDMG+RDMG) and MenuAnnie.ksConfig.QKS and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and GetDistance(enemy) <= R.range and RReady and WReady and QReady then
-				CastR(enemy)
-				CastQ(enemy)
-				CastW(enemy)
-			elseif health < (QDMG+IDMG) and MenuAnnie.ksConfig.QKS and GetDistance(enemy) <= Q.range and QReady and MenuAnnie.ksConfig.IKS and IReady then
-				CastQ(enemy)
-				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+IDMG) and MenuAnnie.ksConfig.WKS and GetDistance(enemy) < W.range and WReady and MenuAnnie.ksConfig.IKS and IReady then
-				CastW(enemy)
-				CastSpell(IgniteKey, enemy)
-			elseif health < (RDMG+IDMG) and MenuAnnie.ksConfig.RKS and GetDistance(enemy) <= R.range and RReady and MenuAnnie.ksConfig.IKS and IReady then
-				CastR(enemy)
-				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+WDMG+IDMG) and MenuAnnie.ksConfig.WKS and MenuAnnie.ksConfig.QKS and GetDistance(enemy) < W.range and WReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
+			elseif health < (QDMG+WDMG) and MenuAnnie.ksConfig.WKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, W.range) and WReady and QReady then
 				CastW(enemy)
 				CastQ(enemy)
+			elseif health < (QDMG+RDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, R.range) and RReady and QReady then
+				CastR(enemy)
+				CastQ(enemy)
+			elseif health < (WDMG+RDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and RReady and WReady then
+				CastR(enemy)
+				CastW(enemy)
+			elseif health < (QDMG+WDMG+RDMG) and MenuAnnie.ksConfig.QKS and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and RReady and WReady and QReady then
+				CastR(enemy)
+				CastQ(enemy)
+				CastW(enemy)
+			elseif health < (QDMG+IDMG) and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, Q.range) and QReady and MenuAnnie.ksConfig.IKS and IReady then
+				CastQ(enemy)
 				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+RDMG+IDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.QKS and GetDistance(enemy) <= R.range and RReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
+			elseif health < (QDMG+IDMG) and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, W.range) and WReady and MenuAnnie.ksConfig.IKS and IReady then
+				CastW(enemy)
+				CastSpell(IgniteKey, enemy)
+			elseif health < (RDMG+IDMG) and MenuAnnie.ksConfig.RKS and ValidTarget(enemy, R.range) and RReady and MenuAnnie.ksConfig.IKS and IReady then
+				CastR(enemy)
+				CastSpell(IgniteKey, enemy)
+			elseif health < (QDMG+WDMG+IDMG) and MenuAnnie.ksConfig.WKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, W.range) and WReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
+				CastW(enemy)
+				CastQ(enemy)
+				CastSpell(IgniteKey, enemy)
+			elseif health < (QDMG+RDMG+IDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, R.range) and RReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
 				CastR(enemy)
 				CastQ(enemy)
 				CastSpell(IgniteKey, enemy)
-			elseif health < (WDMG+RDMG+IDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and GetDistance(enemy) <= R.range and RReady and WReady and MenuAnnie.ksConfig.IKS and IReady then
+			elseif health < (WDMG+RDMG+IDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and RReady and WReady and MenuAnnie.ksConfig.IKS and IReady then
 				CastR(enemy)
 				CastW(enemy)
 				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+WDMG+RDMG+IDMG) and MenuAnnie.ksConfig.QKS and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and GetDistance(enemy) <= R.range and RReady and WReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
+			elseif health < (QDMG+WDMG+RDMG+IDMG) and MenuAnnie.ksConfig.QKS and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and RReady and WReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
 				CastR(enemy)
 				CastQ(enemy)
 				CastW(enemy)
@@ -633,43 +668,68 @@ function KillSteall()
 end
 
 function DmgCalc()
-	for i=1, heroManager.iCount do
-		local enemy = heroManager:GetHero(i)
-        if not enemy.dead and enemy.visible then
-			local QDMG = myHero:CalcDamage(enemy, (35 * myHero:GetSpellData(0).level + 45 + 0.8 * myHero.ap))
-			local WDMG = myHero:CalcDamage(enemy, (45 * myHero:GetSpellData(1).level + 25 + 0.85 * myHero.ap))
+	for _,enemy in pairs(GetEnemyHeroes()) do
+        if not enemy.dead and enemy.visible and GetDistance(enemy) < 3000 then
+			local QDMG = getDmg("Q", enemy, myHero, 3)
+			local WDMG = getDmg("W", enemy, myHero, 3)
 			local RDMG = getDmg("R", enemy, myHero, 3)
 			local IDMG = (50 + (20 * myHero.level))
-			if enemy.health > (QDMG + WDMG + RDMG + IDMG) then
+			local dfgslot = GetInventorySlotItem(3128)
+			local dfgready = (dfgslot ~= nil and myHero:CanUseSpell(dfgslot) == READY)
+			local DFGDMG = ((dfgslot and dfgready and getDmg("DFG", enemy, myHero)) or 0)
+			if DFGDMG > 0 then
+				QDMG2 = getDmg("Q", enemy, myHero, 3) * 1.2
+				WDMG2 = getDmg("W", enemy, myHero, 3) * 1.2
+				RDMG2 = getDmg("R", enemy, myHero, 3) * 1.2
+			else
+				QDMG2 = 0
+				WDMG2 = 0
+				RDMG2 = 0
+			end
+			if enemy.health > (QDMG + WDMG + RDMG + IDMG + DFGDMG) then
 				killstring[enemy.networkID] = "Harass Him!!!"
-			elseif enemy.health < QDMG then
+			elseif enemy.health < QDMG and (enemy.health > (QDMG + IDMG) or enemy.health > (QDMG2 + DFGDMG)) then
 				killstring[enemy.networkID] = "Q Kill!"
-			elseif enemy.health < WDMG then
+			elseif enemy.health < (QDMG + IDMG) and (enemy.health > QDMG or enemy.health > (QDMG2 + DFGDMG)) then
+				killstring[enemy.networkID] = "Q+Ignite Kill!"
+			elseif enemy.health < (QDMG2 + DFGDMG) and (enemy.health > (QDMG + IDMG) or enemy.health > QDMG) then
+				killstring[enemy.networkID] = "DFG+Q Kill!"	
+			elseif enemy.health < WDMG and (enemy.health > (WDMG + IDMG) or enemy.health > (WDMG2 + DFGDMG)) then
 				killstring[enemy.networkID] = "W Kill!"
-			elseif enemy.health < RDMG then
+			elseif enemy.health < (WDMG + IDMG) and (enemy.health > WDMG or enemy.health > (WDMG2 + DFGDMG)) then
+				killstring[enemy.networkID] = "W+Ignite Kill!"	
+			elseif enemy.health < (WDMG2 + DFGDMG) and (enemy.health > (WDMG + IDMG) or enemy.health > WDMG) then
+				killstring[enemy.networkID] = "DFG+W Kill!"
+			elseif enemy.health < RDMG and (enemy.health > (RDMG + IDMG) or enemy.health > (RDMG2 + DFGDMG)) then
 				killstring[enemy.networkID] = "R Kill!"
+			elseif enemy.health < (RDMG + IDMG) and (enemy.health > RDMG or enemy.health > (RDMG2 + DFGDMG)) then
+				killstring[enemy.networkID] = "R+Ignite Kill!"	
+			elseif enemy.health < (RDMG2 + DFGDMG) and (enemy.health > (RDMG + IDMG) or enemy.health > RDMG) then
+				killstring[enemy.networkID] = "DFG+R Kill!"	
 			elseif enemy.health < (QDMG + WDMG) then
 				killstring[enemy.networkID] = "Q+W Kill!"
+			elseif enemy.health < (QDMG + WDMG + IDMG) then
+				killstring[enemy.networkID] = "Q+W+Ignite Kill!"	
+			elseif enemy.health < (QDMG2 + WDMG2 + DFGDMG) then
+				killstring[enemy.networkID] = "DFG+Q+W Kill!"
 			elseif enemy.health < (QDMG + RDMG) then
 				killstring[enemy.networkID] = "Q+R Kill!"
+			elseif enemy.health < (QDMG + RDMG + IDMG) then
+				killstring[enemy.networkID] = "Q+R+Ignite Kill!"	
+			elseif enemy.health < (QDMG2 + RDMG2 + DFGDMG) then
+				killstring[enemy.networkID] = "DFG+Q+R Kill!"
 			elseif enemy.health < (WDMG + RDMG) then
 				killstring[enemy.networkID] = "W+R Kill!"
+			elseif enemy.health < (WDMG + RDMG + IDMG) then
+				killstring[enemy.networkID] = "W+R+Ignite Kill!"	
+			elseif enemy.health < (WDMG2 + RDMG2 + DFGDMG) then
+				killstring[enemy.networkID] = "DFG+W+R Kill!"	
 			elseif enemy.health < (QDMG + WDMG + RDMG) then
 				killstring[enemy.networkID] = "Q+W+R Kill!"
-			elseif enemy.health < (QDMG + IDMG) then
-				killstring[enemy.networkID] = "Q+Ignite Kill!"
-			elseif enemy.health < (WDMG + IDMG) then
-				killstring[enemy.networkID] = "W+Ignite Kill!"
-			elseif enemy.health < (RDMG + IDMG) then
-				killstring[enemy.networkID] = "R+Ignite Kill!"
-			elseif enemy.health < (QDMG + WDMG + IDMG) then
-				killstring[enemy.networkID] = "Q+W+Ignite Kill!"
-			elseif enemy.health < (QDMG + RDMG + IDMG) then
-				killstring[enemy.networkID] = "Q+R+Ignite Kill!"
-			elseif enemy.health < (WDMG + RDMG + IDMG) then
-				killstring[enemy.networkID] = "W+R+Ignite Kill!"
 			elseif enemy.health < (QDMG + WDMG + RDMG + IDMG) then
 				killstring[enemy.networkID] = "Q+W+R+Ignite Kill!"
+			elseif enemy.health < (QDMG2 + WDMG2 + RDMG + DFGDMG) then
+				killstring[enemy.networkID] = "DFG+Q+W+R Kill!"
 			end
 		end
 	end
