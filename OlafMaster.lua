@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: OLAF MASTER 
-    Author: kokosik1221
-	Last Version: 0.31
-	13.12.2014
+    	Author: kokosik1221
+	Last Version: 0.32
+	30.12.2014
 	
 ]]--
 
@@ -14,36 +14,58 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-
-local version = 0.31
-local SCRIPT_NAME = "OlafMaster"
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
-local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local prodstatus = false
-if FileExist(SOURCELIB_PATH) then
-	require("SourceLib")
-else
-	DOWNLOADING_SOURCELIB = true
-	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
-end
-if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+local version = "0.32"
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kokosik1221/bol/master/OlafMaster.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>OlafMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if _G.AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/OlafMaster.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available "..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
-local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-RequireI:Add("SxOrbWalk", "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua")
-if VIP_USER then
-	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	prodstatus = true
+local REQUIRED_LIBS = {
+	["vPrediction"] = "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua",
+	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+}
+local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
+function AfterDownload()
+	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
+	if DOWNLOAD_COUNT == 0 then
+		DOWNLOADING_LIBS = false
+		print("<b><font color=\"#6699FF\">Required libraries downloaded successfully, please reload (double F9).</font>")
+	end
 end
-RequireI:Check()
-if RequireI.downloadNeeded == true then return end
+for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
+	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
+		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+			prodstatus = true 
+		end
+	else
+		DOWNLOADING_LIBS = true
+		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
+		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
+	end
+end
 
-local Q = {name = "Undertow", range = 1000, speed = 1500, delay = 0.25, width = 60}
-local W = {name = "Vicious Strikes"}
-local E = {name = "Reckless Swing", range = 325}
-local R = {name = "Ragnarok"}
 local Items = {
 	BRK = { id = 3153, range = 450, reqTarget = true, slot = nil },
 	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
@@ -53,14 +75,7 @@ local Items = {
 	YGB = { id = 3142, range = 350, reqTarget = false, slot = nil },
 	RND = { id = 3143, range = 275, reqTarget = false, slot = nil },
 }
-local QReady, WReady, EReady, RReady, IReady, pickaxe = false, false, false, false, false, false
-local abilitylvl, lastskin = 0, 0
-local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, axe = nil
-local killstring = {}
-local Spells = {_Q,_W,_E,_R}
-local Spells2 = {"Q","W","E","R"}
+
 local ccspells = {
 	['GalioIdolOfDurand'] = {charName = "Galio", spellSlot = "R", SpellType = "skillshot"},
     ['GnarBigW'] = {charName = "Gnar", spellSlot = "W", SpellType = "skillshot"},
@@ -138,20 +153,25 @@ local ccspells = {
 	['AlZaharNetherGrasp'] = {charName = "Malzahar", spellSlot = "R", SpellType = "castcel"},
 }
  
-function OnLoad()
-	print("<b><font color=\"#6699FF\">Olaf Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-	Menu()
-	if heroManager.iCount < 10 then
-		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
-	elseif heroManager.iCount == 6 then
-		arrangePrioritysTT()
-    else
-		arrangePrioritys()
-	end
+function Vars()
+	Q = {name = "Undertow", range = 1000, speed = 1600, delay = 0.25, width = 60}
+	W = {name = "Vicious Strikes"}
+	E = {name = "Reckless Swing", range = 325}
+	R = {name = "Ragnarok"}
+	QReady, WReady, EReady, RReady, IReady, pickaxe = false, false, false, false, false, false
+	abilitylvl, lastskin = 0, 0
+	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	IgniteKey, axe = nil
+	killstring = {}
+	Spells = {_Q,_W,_E,_R}
+	Spells2 = {"Q","W","E","R"}
+	print("<b><font color=\"#FF0000\">Olaf Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 end
 
-function skinChanged()
-	return MenuOlaf.prConfig.skin1 ~= lastSkin
+function OnLoad()
+	Vars()
+	Menu()
 end
 
 function OnTick()
@@ -184,7 +204,7 @@ function Menu()
 	MenuOlaf:addSubMenu("Orbwalking", "Orbwalking")
 	SxOrb:LoadToMenu(MenuOlaf.Orbwalking)
 	MenuOlaf:addSubMenu("Target selector", "STS")
-	TargetSelector = TargetSelector(TARGET_NEAR_MOUSE, Q.range, DAMAGE_PHYSICAL)
+	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Olaf"
 	MenuOlaf.STS:addTS(TargetSelector)
 	MenuOlaf:addSubMenu("[Olaf Master]: Combo Settings", "comboConfig")
@@ -244,7 +264,7 @@ function Menu()
 	MenuOlaf:addSubMenu("[Olaf Master]: Draw Settings", "drawConfig")
 	MenuOlaf.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuOlaf.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
-	MenuOlaf.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
+	MenuOlaf.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, false)
 	MenuOlaf.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuOlaf.drawConfig:addParam("DAAR", "Draw AA Range", SCRIPT_PARAM_ONOFF, true)
 	MenuOlaf.drawConfig:addParam("DAARC", "Draw AA Range Color", SCRIPT_PARAM_COLOR, {255,0,200,0})
@@ -298,6 +318,13 @@ function Menu()
 			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
 		}
 	}
+	if heroManager.iCount < 10 then
+		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
+	elseif heroManager.iCount == 6 then
+		arrangePrioritysTT()
+    else
+		arrangePrioritys()
+	end
 end
 
 function caa()
@@ -305,6 +332,20 @@ function caa()
 		SxOrb:EnableAttacks()
 	elseif not MenuOlaf.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
+end
+
+function GetRange()
+	if QReady and EReady then
+		return Q.range
+	elseif not QReady and EReady then
+		return E.range
+	elseif QReady and not EReady then
+		return Q.range
+	elseif not QReady and not EReady then
+		return 250
+	else
+		return Q.range
 	end
 end
 
@@ -320,7 +361,7 @@ function GetCustomTarget()
 end
 
 function Check()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
@@ -460,22 +501,29 @@ end
 function CastQ(unit)
 	if QReady and ValidTarget(unit, Q.range) then
 		if MenuOlaf.prConfig.pro == 1 then
-			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, false)
+			CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range - 30, Q.speed, myHero, false)
 			if HitChance >= 2 then
+				local x,y,z = (Vector(CastPosition) - Vector(myHero)):normalized():unpack()
+				posX = CastPosition.x + (x * 150)
+				posY = CastPosition.y + (y * 150)
+				posZ = CastPosition.z + (z * 150)
 				if VIP_USER and MenuOlaf.prConfig.pc then
-					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
+					Packet("S_CAST", {spellId = _Q, fromX = posX, fromY = posZ, toX = posX, toY = posZ}):send()
 				else
-					CastSpell(_Q, CastPosition.x, CastPosition.z)
-				end
+					CastSpell(_Q, posX, posZ)
+				end	
 			end
-		end
-		if MenuOlaf.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range, Q.speed, Q.delay, Q.width)
-			if Position ~= nil then
+		elseif MenuOlaf.prConfig.pro == 2 and VIP_USER and prodstatus then
+			CastPosition, info = Prodiction.GetLineAOEPrediction(unit, Q.range - 30, Q.speed, Q.delay, Q.width)
+			if CastPosition ~= nil then
+				local x,y,z = (Vector(CastPosition) - Vector(myHero)):normalized():unpack()
+				posX = CastPosition.x + (x * 150)
+				posY = CastPosition.y + (y * 150)
+				posZ = CastPosition.z + (z * 150)
 				if VIP_USER and MenuOlaf.prConfig.pc then
-					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+					Packet("S_CAST", {spellId = _Q, fromX = posX, fromY = posZ, toX = posX, toY = posZ}):send()
 				else
-					CastSpell(_Q, Position.x, Position.z)
+					CastSpell(_Q, posX, posZ)
 				end	
 			end
 		end
@@ -493,7 +541,7 @@ function CastW(unit)
 end
 
 function CastE(unit)
-	if EReady and GetDistance(unit) <= E.range then
+	if EReady and ValidTarget(unit, E.range) then
 		if VIP_USER and MenuOlaf.prConfig.pc then
 			Packet("S_CAST", {spellId = _E, targetNetworkId = unit.networkID}):send()
 		else
@@ -503,14 +551,13 @@ function CastE(unit)
 end
 
 function KillSteall()
-	for i = 1, heroManager.iCount do
-		local enemy = heroManager:getHero(i)
+	for _, enemy in pairs(GetEnemyHeroes()) do
 		local health = enemy.health
 		local QDMG = myHero:CalcDamage(enemy, (45 * myHero:GetSpellData(0).level + 25 + myHero.addDamage)) 
 		local EDMG = myHero:CalcDamage(enemy, (45 * myHero:GetSpellData(2).level + 25 + 0.4 * myHero.totalDamage))
-		local IDMG = getDmg("IGNITE", enemy, myHero) 
-		if ValidTarget(enemy) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
-			if health < QDMG and MenuOlaf.ksConfig.QKS and GetDistance(enemy) < Q.range and QReady then
+		local IDMG = (50 + (20 * myHero.level))
+		if ValidTarget(enemy, 1100) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
+			if health < QDMG and MenuOlaf.ksConfig.QKS and GetDistance(enemy) < Q.range - 30 and QReady then
 				CastQ(enemy)
 			elseif health < EDMG and MenuOlaf.ksConfig.EKS and GetDistance(enemy) <= E.range and EReady then
 				CastE(enemy)
@@ -604,12 +651,11 @@ function OnDraw()
 end
 
 function DmgCalc()
-	for i=1, heroManager.iCount do
-		local enemy = heroManager:GetHero(i)
-        if not enemy.dead and enemy.visible then
+	for _, enemy in pairs(GetEnemyHeroes()) do
+        if not enemy.dead and enemy.visible and GetDistance(enemy) < 3000 then
 			local QDMG = myHero:CalcDamage(enemy, (45 * myHero:GetSpellData(0).level + 25 + myHero.addDamage)) 
 			local EDMG = myHero:CalcDamage(enemy, (45 * myHero:GetSpellData(2).level + 25 + 0.4 * myHero.totalDamage))
-			local IDMG = getDmg("IGNITE", enemy, myHero) 
+			local IDMG = (50 + (20 * myHero.level))
 			if enemy.health > (QDMG + EDMG + IDMG) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < QDMG then
@@ -633,7 +679,7 @@ end
 
 function OnProcessSpell(unit, spell)
 	if MenuOlaf.exConfig.AUCC then
-        if unit.team ~= myHero.team and not myHero.dead and not (unit.name:find("Minion_") or unit.name:find("Odin")) then
+		if unit and unit.team ~= myHero.team and not myHero.dead and unit.type == myHero.type and spell then
 		    shottype,radius,maxdistance = 0,0,0
 		    if unit.type == "obj_AI_Hero" then
 			    spelltype, casttype = getSpellType(unit, spell.name)
