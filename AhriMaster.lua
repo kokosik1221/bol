@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: AHRI MASTER 
-    Author: kokosik1221
-	Last Version: 0.1
-	23.12.2014
+    	Author: kokosik1221
+	Last Version: 0.2
+	30.12.2014
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Ahri" then return end
 _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
-local version = "0.1"
+local version = "0.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AhriMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -133,6 +133,7 @@ function Vars()
 	E = {name = "Charm", range = 975, speed = 1200, delay = 0.25, width = 100}
 	R = {name = "Spirit Rush", range = 450}
 	QReady, WReady, EReady, RReady, IReady, zhonyaready, recall, aa = false, false, false, false, false, false, true
+	sac, mma = false, false
 	abilitylvl, lastskin, LastAttack, BaseWindupTime, BaseAnimationTime = 0, 0, 0, 3, 0.65
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -160,10 +161,18 @@ function Vars()
 			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
 		}
 	}
+	print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		mma = true
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		sac = true
+	end
 end
 
 function OnLoad()
-	print("<b><font color=\"#6699FF\">Ahri Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	Vars()
 	Menu()
 end
@@ -177,7 +186,7 @@ function OnTick()
 	if MenuAhri.Orbwalkingf.LastHit then
 		_OrbWalk(Lasthit())
 	end
-	if (MenuAhri.Orbwalkingf.Mixed or MenuAhri.Orbwalkingf.MixedT) and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.harrasConfig.manah then
+	if (MenuAhri.Orbwalkingf.Mixed or MenuAhri.Orbwalkingf.MixedT) then
 		Harrass()
 	end
 	if MenuAhri.Orbwalkingf.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.farm.manaf then
@@ -199,6 +208,7 @@ function Menu()
 	VP = VPrediction()
 	MenuAhri = scriptConfig("Ahri Master "..version, "Ahri Master "..version)
 	MenuAhri:addSubMenu("Orbwalking", "Orbwalkingf")
+	MenuAhri.Orbwalkingf:addParam("USEORB", "Enable Orbwalk", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.Orbwalkingf:addParam("Combo", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	MenuAhri.Orbwalkingf:addParam("LastHit", "Last Hit ", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))	
 	MenuAhri.Orbwalkingf:addParam("Mixed", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
@@ -318,7 +328,7 @@ function Menu()
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
 	if heroManager.iCount < 10 then
-		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
+		print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
 		arrangePrioritysTT()
     else
@@ -375,6 +385,9 @@ function Check()
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
+	end
+	if (sac == true) or (mma == true) then
+		MenuAhri.Orbwalkingf.USEORB = false
 	end
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
@@ -446,11 +459,15 @@ function Combo()
 end
 
 function Harrass()
+	m = Lasthit()
 	if Cel == nil then
-		_OrbWalk(Lasthit())
+		_OrbWalk(m)
+	elseif GetDistance(Cel) < GetDistance(m) then
+			_OrbWalk(Cel)
+	else 
+		_OrbWalk(m)
 	end
-	if Cel ~= nil then
-		_OrbWalk(Cel)
+	if Cel ~= nil and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.harrasConfig.manah then
 		if MenuAhri.harrasConfig.QH then
 			if QReady and ValidTarget(Cel, Q.range - 30) then
 				CastQ(Cel)
@@ -645,8 +662,8 @@ function KillSteall()
 		local health = Enemy.health
 		local qDmg = getDmg("Q", Enemy, myHero, 1)
 		local wDmg = getDmg("W", Enemy, myHero, 3) 
-		local eDmg = getDmg("E", Enemy, myHero, 1)
-		local rDmg = getDmg("R", Enemy, myHero, 1)
+		local eDmg = getDmg("E", Enemy, myHero, 3)
+		local rDmg = getDmg("R", Enemy, myHero, 3)
 		local iDmg = getDmg("IGNITE", Enemy, myHero) 
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health <= qDmg and QReady and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS then
@@ -690,8 +707,8 @@ function DmgCalc()
         if not enemy.dead and enemy.visible and GetDistance(enemy) < 3000 then
             local qDmg = getDmg("Q", enemy, myHero, 1)
             local wDmg = getDmg("W", enemy, myHero, 3)
-			local eDmg = getDmg("E", enemy, myHero, 1)
-			local rDmg = getDmg("R", enemy, myHero, 1)
+			local eDmg = getDmg("E", enemy, myHero, 3)
+			local rDmg = getDmg("R", enemy, myHero, 3)
             if enemy.health > (qDmg + wDmg + rDmg) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < qDmg then
@@ -945,12 +962,14 @@ function OnProcessSpell(unit, spell)
 end
 
 function _OrbWalk(target) 
-	if aa and CanAA() and ValidTarget(target, myHero.range + VP:GetHitBox(myHero)) then
-		LastAttack = os.clock() + (GetLatency()/4000)
- 		myHero:Attack(target)
-	elseif CanMove() then
-		MouseMove = Vector(myHero) + (Vector(mousePos) - Vector(myHero)):normalized() * 500
- 		myHero:MoveTo(MouseMove.x, MouseMove.z)
+	if MenuAhri.Orbwalkingf.USEORB then
+		if aa and CanAA() and ValidTarget(target, myHero.range + VP:GetHitBox(myHero)) then
+			LastAttack = os.clock() + (GetLatency()/4000)
+			myHero:Attack(target)
+		elseif CanMove() then
+			MouseMove = Vector(myHero) + (Vector(mousePos) - Vector(myHero)):normalized() * 500
+			myHero:MoveTo(MouseMove.x, MouseMove.z)
+		end
 	end
 end
 
