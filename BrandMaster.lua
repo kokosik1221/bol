@@ -2,8 +2,8 @@
 
 	Script Name: BRAND MASTER 
     	Author: kokosik1221
-	Last Version: 1.26
-	13.12.2014
+	Last Version: 1.27
+	30.12.2014
 	
 ]]--
 	
@@ -13,60 +13,91 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 1.26
-local SCRIPT_NAME = "BrandMaster"
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
-local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local prodstatus = false
-if FileExist(SOURCELIB_PATH) then
-	require("SourceLib")
-else
-	DOWNLOADING_SOURCELIB = true
-	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
-end
-if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+local version = "1.27"
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kokosik1221/bol/master/BrandMaster.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>BrandMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if _G.AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/BrandMaster.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available "..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
-local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
-require "AoE_Skillshot_Position"
-if VIP_USER then
-	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	prodstatus = true
+local REQUIRED_LIBS = {
+	["vPrediction"] = "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua",
+	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+}
+local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
+function AfterDownload()
+	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
+	if DOWNLOAD_COUNT == 0 then
+		DOWNLOADING_LIBS = false
+		print("<b><font color=\"#6699FF\">Required libraries downloaded successfully, please reload (double F9).</font>")
+	end
 end
-RequireI:Check()
-if RequireI.downloadNeeded == true then return end
+for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
+	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
+		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+			prodstatus = true 
+		end
+	else
+		DOWNLOADING_LIBS = true
+		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
+		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
+	end
+end
 
+local Items = {
+	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
+	DFG = { id = 3128, range = 750, reqTarget = true, slot = nil },
+	HGB = { id = 3146, range = 400, reqTarget = true, slot = nil },
+	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
+}
 
-local Q = {name = "Sear", range = 1100, speed = 1600, delay = 0.25, width = 60}
-local W = {name = "Pillar of Flame", range = 900, speed = math.huge, delay = 1, width = 240}
-local E = {name = "Conflagration", range = 625}
-local R = {name = "Pyroclasm", range = 750}
-local QReady, WReady, EReady, RReady, IReady, sac, mma = false, false, false, false, false, false, false
-local abilitylvl, lastskin = 0, 0
-local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey = nil
-local killstring = {}
-local cclist = {'Stun', 'BandageToss', 'CurseoftheSadMummy', 'FlashFrostSpell', 'EnchantedCrystalArrow', 'braumstundebuff', 'caitlynyordletrapdebuff', 'CassiopeiaPetrifyingGaze', 'EliseHumanE', 'GragasBodySlam', 'HeimerdingerE', 'IreliaEquilibriumStrike', 'JaxCounterStrike', 'JinxE', 'karmaspiritbindroot', 'LeonaShieldOfDaybreak', 'LeonaZenithBladeMissle', 'lissandraenemy2', 'LuxLightBindingMis', 'AlZaharNetherGrasp', 'maokaiunstablegrowthroot', 'DarkBindingMissile', 'namiqdebuff', 'Pantheon_LeapBash', 'RenektonPreExecute', 'RengarE', 'RivenMartyr', 'RunePrison', 'sejuaniglacialprison', 'CrypticGaze', 'SonaR', 'swainshadowgrasproot', 'Dazzle', 'TFW', 'udyrbearstuncheck', 'VarusR', 'VeigarStun', 'velkozestun', 'viktorgravitonfieldstun', 'infiniteduresssound', 'XerathMageSpear', 'zyragraspingrootshold', 'zhonyasringshield'}
-
-function OnLoad()
-	print("<b><font color=\"#6699FF\">Brand Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-	Menu()
+function Vars()
+	Q = {name = "Sear", range = 1100, speed = 1600, delay = 0.25, width = 60}
+	W = {name = "Pillar of Flame", range = 900, speed = math.huge, delay = 1, width = 240}
+	E = {name = "Conflagration", range = 625}
+	R = {name = "Pyroclasm", range = 750}
+	QReady, WReady, EReady, RReady, IReady, sac, mma = false, false, false, false, false, false, false
+	abilitylvl, lastskin = 0, 0
+	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	IgniteKey = nil
+	killstring = {}
+	cclist = {'Stun', 'BandageToss', 'CurseoftheSadMummy', 'FlashFrostSpell', 'EnchantedCrystalArrow', 'braumstundebuff', 'caitlynyordletrapdebuff', 'CassiopeiaPetrifyingGaze', 'EliseHumanE', 'GragasBodySlam', 'HeimerdingerE', 'IreliaEquilibriumStrike', 'JaxCounterStrike', 'JinxE', 'karmaspiritbindroot', 'LeonaShieldOfDaybreak', 'LeonaZenithBladeMissle', 'lissandraenemy2', 'LuxLightBindingMis', 'AlZaharNetherGrasp', 'maokaiunstablegrowthroot', 'DarkBindingMissile', 'namiqdebuff', 'Pantheon_LeapBash', 'RenektonPreExecute', 'RengarE', 'RivenMartyr', 'RunePrison', 'sejuaniglacialprison', 'CrypticGaze', 'SonaR', 'swainshadowgrasproot', 'Dazzle', 'TFW', 'udyrbearstuncheck', 'VarusR', 'VeigarStun', 'velkozestun', 'viktorgravitonfieldstun', 'infiniteduresssound', 'XerathMageSpear', 'zyragraspingrootshold', 'zhonyasringshield'}
+	print("<b><font color=\"#FF0000\">Brand Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
-		print("<b><font color=\"#6699FF\">Brand Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Brand Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 		mma = true
 	end	
 	if _G.AutoCarry then
-		print("<b><font color=\"#6699FF\">Brand Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Brand Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
 	end
 end
 
-function Havepasive(target)
-	return HasBuff(target, "brandablaze")
+function OnLoad()
+	Vars()
+	Menu()
 end
 
 function OnTick()
@@ -98,16 +129,16 @@ function OnTick()
 		AutoQ()
 	end
 	if WReady and Cel ~= nil and MenuBrand.exConfig.AW2 then
-		local wPos = GetAoESpellPosition(W.width, Cel, W.delay)
-        if wPos and GetDistance(wPos) <= W.range then
-            if EnemyCount(wPos, 450) >= MenuBrand.exConfig.AW2C then
-				if VIP_USER and MenuBrand.prConfig.pc then
+		for _, enemy in pairs(GetEnemyHeroes()) do
+			local wPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, W.delay, W.width, W.range, W.speed, myHero)
+			if ValidTarget(enemy) and wPos ~= nil and maxHit >= MenuBrand.exConfig.AW2C then		
+				if VIP_USER and MenuAnnie.prConfig.pc then
 					Packet("S_CAST", {spellId = _W, fromX = wPos.x, fromY = wPos.z, toX = wPos.x, toY = wPos.z}):send()
 				else
 					CastSpell(_W, wPos.x, wPos.z)
 				end	
-            end
-        end
+			end
+		end
 	end	
 	KillSteall()
 end
@@ -241,7 +272,7 @@ function GetCustomTarget()
 end
 
 function Check()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
@@ -298,6 +329,7 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
+	UseItems(Cel)
 	if GetDistanceSqr(Cel) <= E.range then
 		if EReady and ValidTarget(Cel, E.range) then
 			CastSpell(_E, Cel)
@@ -305,7 +337,7 @@ function Combo()
 		if WReady then
 			CastW(Cel)
 		end
-		if QReady and GetDistance(Cel) - getHitBoxRadius(Cel)/2 < Q.range then
+		if QReady and ValidTarget(Cel, Q.range) then
 			if MenuBrand.comboConfig.qConfig.USEQS then
 				if TargetHaveBuff("brandablaze", Cel) then
 					CastQ(Cel)
@@ -319,7 +351,7 @@ function Combo()
 			if WReady then
 				CastW(Cel)
 			end
-			if QReady and GetDistance(Cel) - getHitBoxRadius(Cel)/2 < Q.range then
+			if QReady and ValidTarget(Cel, Q.range) then
 				if MenuBrand.comboConfig.qConfig.USEQS then
 					if TargetHaveBuff("brandablaze", Cel) then
 						CastQ(Cel)
@@ -340,7 +372,7 @@ function CastRC()
 	local enemyCount = EnemyCount(myHero, R.range)
 	if RReady and ValidTarget(Cel, R.range) and MenuBrand.comboConfig.rConfig.USER and enemyCount >= MenuBrand.comboConfig.rConfig.ENEMYTOR then
 		if MenuBrand.comboConfig.rConfig.Ablazed then
-			if Havepasive(Cel) then
+			if TargetHaveBuff("brandablaze", Cel) then
 				CastSpell(_R, Cel)
 			end
 		elseif MenuBrand.comboConfig.rConfig.Kilable then
@@ -356,9 +388,9 @@ end
 
 function Harrass()
 	if MenuBrand.harrasConfig.QH then
-		if QReady and GetDistance(Cel) - getHitBoxRadius(Cel)/2 < Q.range and Cel ~= nil then
+		if QReady and ValidTarget(Cel, Q.range) and Cel ~= nil then
 			if MenuBrand.harrasConfig.QHS then
-				if Havepasive(Cel) then
+				if TargetHaveBuff("brandablaze", Cel) then
 					CastQ(Cel)
 				end
 			elseif not MenuBrand.harrasConfig.QHS then
@@ -415,7 +447,7 @@ function Farm(Mode)
 		end
 		if UseE then
 			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
-				if Havepasive(minion) then
+				if TargetHaveBuff("brandablaze", minion) then
 					CastSpell(_E, minion)
 				end
 			end
@@ -457,7 +489,7 @@ function JungleFarmm()
 		end
 		if MenuBrand.jf.EJF then
 			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
-				if Havepasive(minion) then
+				if TargetHaveBuff("brandablaze", minion) then
 					CastSpell(_E, minion)
 				end
 			end
@@ -469,11 +501,9 @@ function JungleFarmm()
 end
 
 function AutoQ()
-	players = heroManager.iCount
-    for i = 1, players, 1 do
-        targetq = heroManager:getHero(i)
+	for _, targetq in pairs(GetEnemyHeroes()) do
         if targetq ~= nil and targetq.team ~= player.team and targetq.visible and not targetq.dead then
-            if GetDistance(targetq) - getHitBoxRadius(targetq)/2 < Q.range and WReady and TargetHaveBuff(cclist, targetq) then
+            if ValidTarget(targetq, Q.range - 30) and QReady and TargetHaveBuff(cclist, targetq) then
                 CastQ(targetq)
             end
         end
@@ -481,11 +511,9 @@ function AutoQ()
 end
 
 function AutoW()
-	players = heroManager.iCount
-    for i = 1, players, 1 do
-        target = heroManager:getHero(i)
+	for _, target in pairs(GetEnemyHeroes()) do
         if target ~= nil and target.team ~= player.team and target.visible and not target.dead then
-            if WReady and TargetHaveBuff(cclist, target) then
+            if ValidTarget(target, W.range - 30) and WReady and TargetHaveBuff(cclist, target) then
                 CastW(target)
             end
         end
@@ -576,11 +604,10 @@ function OnDraw()
 end
 
 function KillSteall()
-	for i = 1, heroManager.iCount do
-		local Enemy = heroManager:getHero(i)
+	for _,Enemy in pairs(GetEnemyHeroes()) do
 		local health = Enemy.health
 		local qDmg = getDmg("Q", Enemy, myHero,1)
-		if Havepasive(Enemy) then
+		if TargetHaveBuff("brandablaze", Enemy) then
 			wDmg = getDmg("W", Enemy, myHero,3)
 		else
 			wDmg = getDmg("W", Enemy, myHero,1)
@@ -619,11 +646,10 @@ function KillSteall()
 end
 
 function DmgCalc()
-	for i=1, heroManager.iCount do
-		local enemy = heroManager:GetHero(i)
-        if not enemy.dead and enemy.visible then
+	for _,enemy in pairs(GetEnemyHeroes()) do
+        if not enemy.dead and enemy.visible and GetDistance(enemy) < 3000 then
 			local qDmg = getDmg("Q", enemy, myHero,1)
-			if Havepasive(enemy) then
+			if TargetHaveBuff("brandablaze", enemy) then
 				wDmg = getDmg("W", enemy, myHero,3)
 			else
 				wDmg = getDmg("W", enemy, myHero,1)
@@ -667,13 +693,13 @@ end
 
 function CastQ(unit)
 	if MenuBrand.prConfig.pro == 1 then
-		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
+		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range - 30, Q.speed, myHero, true)
 		if HitChance >= MenuBrand.prConfig.vphit - 1 then
 			SpellCast(_Q, CastPosition)
 		end
 	end
 	if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range, Q.speed, Q.delay, Q.width)
+		local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range - 30, Q.speed, Q.delay, Q.width)
 		if Position ~= nil and not info.mCollision() then
 			SpellCast(_Q, Position)	
 		end
@@ -683,13 +709,13 @@ end
 function CastW(unit)
 	if GetDistance(unit) <= W.range then
 		if MenuBrand.prConfig.pro == 1 then
-			local CastPosition,  HitChance,  Position = VP:GetCircularAOECastPosition(unit, W.delay, W.width, W.range, W.speed, myHero)
+			local CastPosition,  HitChance,  Position = VP:GetPredictedPos(unit, W.delay, W.speed, myHero)
 			if CastPosition and HitChance >= MenuBrand.prConfig.vphit - 1 then
 				SpellCast(_W, CastPosition)
 			end
 		end
 		if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position, info = Prodiction.GetCircularAOEPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
+			local Position, info = Prodiction.GetPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
 			if Position ~= nil then
 				SpellCast(_W, Position)
 			end
