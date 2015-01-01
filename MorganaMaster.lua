@@ -2,8 +2,8 @@
 
 	Script Name: MORGANA MASTER 
     	Author: kokosik1221
-	Last Version: 2.13
-	13.12.2014
+	Last Version: 2.14
+	01.01.2015
 	
 ]]--
 
@@ -13,30 +13,57 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 2.13
-local SCRIPT_NAME = "MorganaMaster"
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
-local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local prodstatus = false
-if FileExist(SOURCELIB_PATH) then
-	require("SourceLib")
-else
-	DOWNLOADING_SOURCELIB = true
-	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
-end
-if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+local version = "2.14"
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kokosik1221/bol/master/MorganaMaster.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>MorganaMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if _G.AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/MorganaMaster.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available "..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
-local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
-if VIP_USER then
-	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	prodstatus = true
+local REQUIRED_LIBS = {
+	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
+	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+}
+local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
+function AfterDownload()
+	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
+	if DOWNLOAD_COUNT == 0 then
+		DOWNLOADING_LIBS = false
+		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
+	end
 end
-RequireI:Check()
-if RequireI.downloadNeeded == true then return end
+for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
+	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
+		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+			prodstatus = true 
+		end
+	else
+		DOWNLOADING_LIBS = true
+		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
+		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
+	end
+end
 
 
 local Shieldspells = {
@@ -969,7 +996,7 @@ end
 
 function OnProcessSpell(unit,spell)
 	if MenuMorg.exConfig.UAS then
-        if unit.team ~= myHero.team and not myHero.dead and not (unit.name:find("Minion_") or unit.name:find("Odin")) then
+        if unit and unit.team ~= myHero.team and not myHero.dead and unit.type == myHero.type and spell then
 		    shottype,radius,maxdistance = 0,0,0
 		    if unit.type == "obj_AI_Hero" and Shieldspells[spell.name] and MenuMorg.exConfig.ES[spell.name]then
 			    spelltype, casttype = getSpellType(unit, spell.name)
