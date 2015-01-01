@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: LUX MASTER 
-    Author: kokosik1221
-	Last Version: 0.221
-	24.12.2014
+    	Author: kokosik1221
+	Last Version: 0.222
+	01.01.2015
 	
 ]]--
 
@@ -14,30 +14,57 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.221
-local SCRIPT_NAME = "LuxMaster"
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
-local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local prodstatus = false
-if FileExist(SOURCELIB_PATH) then
-	require("SourceLib")
-else
-	DOWNLOADING_SOURCELIB = true
-	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
-end
-if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+local version = "0.222"
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>LuxMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if _G.AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/LuxMaster.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available "..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
-local RequireI = Require("SourceLib")
-RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-if VIP_USER then
-	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	prodstatus = true
+local REQUIRED_LIBS = {
+	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
+	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+}
+local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
+function AfterDownload()
+	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
+	if DOWNLOAD_COUNT == 0 then
+		DOWNLOADING_LIBS = false
+		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
+	end
 end
-RequireI:Check()
-if RequireI.downloadNeeded == true then return end
+for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
+	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
+		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+			prodstatus = true 
+		end
+	else
+		DOWNLOADING_LIBS = true
+		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
+		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
+	end
+end
 
 local Items = {
 	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
@@ -858,16 +885,16 @@ function OnProcessSpell(unit,spell)
 	end
 end
 
-function OnGainBuff(unit, buff)
-	if unit.isMe and (buff.name == "recallimproved") then
-		recall = true
-	end 
-end
-
-function OnLoseBuff(unit, buff)
-	if unit.isMe and (buff.name == "recallimproved") then
-		recall = false
-	end 
+function CechkRecal()
+	for i = 1, myHero.buffCount do
+		tBuff = myHero:getBuff(i)
+		if BuffIsValid(tBuff) then
+			recall = false 
+			if tBuff.name == "recallimproved" then
+				recall = true
+			end	
+		end
+	end
 end
 
 function OnCreateObj(object)
