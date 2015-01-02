@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: MORGANA MASTER 
-    	Author: kokosik1221
-	Last Version: 2.14
-	01.01.2015
+	Author: kokosik1221
+	Last Version: 2.141
+	02.01.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "2.14"
+local version = "2.141"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MorganaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -448,6 +448,38 @@ local Shieldspells = {
   ['ZyraBrambleZone'] = {charName = "Zyra", spellSlot = "R", SpellType = "skillshot"},
 }
 
+local GapCloserList = {
+	{charName = "Aatrox", spellName = "AatroxQ"},
+	{charName = "Akali", spellName = "AkaliShadowDance"},
+	{charName = "Alistar", spellName = "Headbutt"},
+	{charName = "Fiora", spellName = "FioraQ"},
+	{charName = "Diana", spellName = "DianaTeleport"},
+	{charName = "Elise", spellName = "EliseSpiderQCast"},
+	{charName = "Fizz", spellName = "FizzPiercingStrike"},
+	{charName = "Gragas", spellName = "GragasE"},
+	{charName = "Hecarim", spellName = "HecarimUlt"},
+	{charName = "JarvanIV", spellName = "JarvanIVDragonStrike"},
+	{charName = "Irelia", spellName = "IreliaGatotsu"},
+	{charName = "Jax", spellName = "JaxLeapStrike"},
+	{charName = "Khazix", spellName = "KhazixE"},
+	{charName = "Khazix", spellName = "khazixelong"},
+	{charName = "LeBlanc", spellName = "LeblancSlide"},
+	{charName = "LeBlanc", spellName = "LeblancSlideM"},
+	{charName = "LeeSin", spellName = "BlindMonkQTwo"},
+	{charName = "Leona", spellName = "LeonaZenithBlade"},
+	{charName = "Malphite", spellName = "UFSlash"},
+	{charName = "Pantheon", spellName = "Pantheon_LeapBash"},
+	{charName = "Poppy", spellName = "PoppyHeroicCharge"},
+	{charName = "Renekton", spellName = "RenektonSliceAndDice"},
+	{charName = "Riven", spellName = "RivenTriCleave"},
+	{charName = "Sejuani", spellName = "SejuaniArcticAssault"},
+	{charName = "Tryndamere", spellName = "slashCast"},
+	{charName = "Vi", spellName = "ViQ"},
+	{charName = "MonkeyKing", spellName = "MonkeyKingNimbus"},
+	{charName = "XinZhao", spellName = "XenZhaoSweep"},
+	{charName = "Yasuo", spellName = "YasuoDashWrapper"},
+}
+
 local skills = {
 	skillQ = {name = "Dark Binding", range = 1200, speed = 1200, delay = 0, width = 60},
 	skillW = {name = "Tormented Soil", range = 900, speed = 1200, delay = 0.150, width = 105},
@@ -592,7 +624,15 @@ function Menu()
 	end
 	--[[ Gapcloser ]]--
 	MenuMorg:addSubMenu("[Morgana Master]: GapCloser Settings", "gpConfig")
-    AntiGapcloser(MenuMorg.gpConfig, Gapcloser)
+	MenuMorg.exConfig:addSubMenu("GapCloser Spells", "ES2")
+	for i, enemy in ipairs(GetEnemyHeroes()) do
+		for _, champ in pairs(GapCloserList) do
+			if enemy.charName == champ.charName then
+				MenuMorg.exConfig.ES2:addParam(champ.spellName, "GapCloser "..champ.charName.." "..champ.spellName, SCRIPT_PARAM_ONOFF, true)
+			end
+		end
+	end
+	MenuMorg.exConfig:addParam("UG", "Use GapCloser (E)", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Drawing --]]--
 	MenuMorg:addSubMenu("[Morgana Master]: Draw Settings", "drawConfig")
 	MenuMorg.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
@@ -1033,6 +1073,23 @@ function OnProcessSpell(unit,spell)
 				    end
 			    end
 		    end	
+		end
+	end
+	if MenuMorg.exConfig.UG and EReady then
+		for _, x in pairs(GapCloserList) do
+			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
+				if spell.name == x.spellName and MenuMorg.exConfig.ES2[x.spellName] and ValidTarget(unit, Q.range - 30) then
+					if spell.target and spell.target.isMe then
+						CastQ(unit)
+					elseif not spell.target then
+						local endPos1 = Vector(unit.visionPos) + 300 * (Vector(spell.endPos) - Vector(unit.visionPos)):normalized()
+						local endPos2 = Vector(unit.visionPos) + 100 * (Vector(spell.endPos) - Vector(unit.visionPos)):normalized()
+						if (GetDistanceSqr(myHero.visionPos, unit.visionPos) > GetDistanceSqr(myHero.visionPos, endPos1) or GetDistanceSqr(myHero.visionPos, unit.visionPos) > GetDistanceSqr(myHero.visionPos, endPos2))  then
+							CastQ(unit)
+						end
+					end
+				end
+			end
 		end
 	end
 end
