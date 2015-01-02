@@ -2,8 +2,8 @@
 
 	Script Name: BRAND MASTER 
     	Author: kokosik1221
-	Last Version: 1.27
-	30.12.2014
+	Last Version: 1.28
+	02.01.2015
 	
 ]]--
 	
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.27"
+local version = "1.28"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BrandMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -109,9 +109,8 @@ function OnTick()
 	if Cel ~= nil and (MenuBrand.harrasConfig.HEnabled or MenuBrand.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBrand.harrasConfig.manah then
 		Harrass()
 	end
-	if MenuBrand.farm.Freeze or MenuBrand.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBrand.farm.manaf then
-		local Mode = MenuBrand.farm.Freeze and "Freeze" or "LaneClear"
-		Farm(Mode)
+	if MenuBrand.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBrand.farm.manaf then
+		Farm()
 	end
 	if MenuBrand.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBrand.jf.manajf then
 		JungleFarmm()
@@ -140,6 +139,9 @@ function OnTick()
 			end
 		end
 	end	
+	if MenuBrand.comboConfig.rConfig.CRKD and Cel and RReady then
+		CastSpell(_R, Cel)
+	end
 	KillSteall()
 end
 
@@ -163,9 +165,8 @@ function Menu()
 	MenuBrand.comboConfig.eConfig:addParam("USEE", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBrand.comboConfig:addSubMenu(R.name .. " (R) Options", "rConfig")
 	MenuBrand.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
-	MenuBrand.comboConfig.rConfig:addParam("ENEMYTOR", "Min Enemies to Cast R: ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
-	MenuBrand.comboConfig.rConfig:addParam("Ablazed", "Only Use If Target Is Ablazed", SCRIPT_PARAM_ONOFF, false)
-	MenuBrand.comboConfig.rConfig:addParam("Kilable", "Only Use If Target Is Killable", SCRIPT_PARAM_ONOFF, true)
+	MenuBrand.comboConfig.rConfig:addParam("RM", "R Cast Mode:", SCRIPT_PARAM_LIST, 4, {"Normal", "Target Ablazed", "Target Killable", "Target Ablazed&Killable"})
+	MenuBrand.comboConfig.rConfig:addParam("CRKD", "Cast (R) Key Down", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 	MenuBrand.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBrand.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuBrand.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
@@ -190,10 +191,9 @@ function Menu()
 	MenuBrand.ksConfig:addParam("EKS", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
 	MenuBrand.ksConfig:addParam("RKS", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, false)
 	MenuBrand:addSubMenu("[Brand Master]: Farm Settings", "farm")
-	MenuBrand.farm:addParam("QF", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
-	MenuBrand.farm:addParam("WF", "Use " .. W.name .. " (W)", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
-	MenuBrand.farm:addParam("EF", "Use " .. E.name .. " (E)", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
-	MenuBrand.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
+	MenuBrand.farm:addParam("QF", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear"})
+	MenuBrand.farm:addParam("WF", "Use " .. W.name .. " (W)", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear"})
+	MenuBrand.farm:addParam("EF", "Use " .. E.name .. " (E)", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear"})
 	MenuBrand.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
 	MenuBrand.farm:addParam("manaf", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuBrand:addSubMenu("[Brand Master]: Jungle Farm Settings", "jf")
@@ -260,7 +260,26 @@ function caa()
 	end
 end
 
+function GetRange()
+	if QReady and WReady then
+		return Q.range
+	elseif not QReady and WReady then
+		return W.range
+	elseif QReady and not WReady then
+		return Q.range
+	elseif not QReady and not WReady then
+		return E.range	
+	elseif not QReady and not WReady and RReady then
+		return R.range
+	elseif not QReady and not WReady and not RReady then
+		return E.range
+	else
+		return Q.range
+	end
+end
+
 function GetCustomTarget()
+	TargetSelector.range = GetRange()
  	TargetSelector:update()	
 	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then
 		return _G.MMA_Target
@@ -330,125 +349,106 @@ end
 
 function Combo()
 	UseItems(Cel)
-	if GetDistanceSqr(Cel) <= E.range then
-		if EReady and ValidTarget(Cel, E.range) then
-			CastSpell(_E, Cel)
-		end
-		if WReady then
-			CastW(Cel)
-		end
-		if QReady and ValidTarget(Cel, Q.range) then
-			if MenuBrand.comboConfig.qConfig.USEQS then
-				if TargetHaveBuff("brandablaze", Cel) then
-					CastQ(Cel)
-				end
-			elseif not MenuBrand.comboConfig.qConfig.USEQS then
+	CastRC()
+	if WReady and MenuBrand.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
+		CastW(Cel)
+	end
+	if QReady and MenuBrand.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
+		if MenuBrand.comboConfig.qConfig.USEQS then
+			if TargetHaveBuff("brandablaze", Cel) then
 				CastQ(Cel)
 			end
+		elseif not MenuBrand.comboConfig.qConfig.USEQS then
+			CastQ(Cel)
 		end
-		CastRC()
-	else if GetDistanceSqr(Cel) > E.range then
-			if WReady then
-				CastW(Cel)
-			end
-			if QReady and ValidTarget(Cel, Q.range) then
-				if MenuBrand.comboConfig.qConfig.USEQS then
-					if TargetHaveBuff("brandablaze", Cel) then
-						CastQ(Cel)
-					end
-				elseif not MenuBrand.comboConfig.qConfig.USEQS then
-					CastQ(Cel)
-				end
-			end
-			if EReady and ValidTarget(Cel, E.range) then
-				CastSpell(_E, Cel)
-			end
-			CastRC()
-		end
+	end
+	if EReady and MenuBrand.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
+		CastSpell(_E, Cel)
 	end
 end
 
 function CastRC()
-	local enemyCount = EnemyCount(myHero, R.range)
-	if RReady and ValidTarget(Cel, R.range) and MenuBrand.comboConfig.rConfig.USER and enemyCount >= MenuBrand.comboConfig.rConfig.ENEMYTOR then
-		if MenuBrand.comboConfig.rConfig.Ablazed then
+	if RReady and MenuBrand.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
+		if MenuBrand.comboConfig.rConfig.RM == 1 then
+			CastSpell(_R, Cel)
+		elseif MenuBrand.comboConfig.rConfig.RM == 2 then
 			if TargetHaveBuff("brandablaze", Cel) then
 				CastSpell(_R, Cel)
 			end
-		elseif MenuBrand.comboConfig.rConfig.Kilable then
+		elseif MenuBrand.comboConfig.rConfig.RM == 3 then
 			local rdmg = getDmg("R", Cel, myHero,3)
 			if Cel.health < rdmg then
 				CastSpell(_R, Cel)
 			end
-		elseif not MenuBrand.comboConfig.rConfig.Ablazed or not MenuBrand.comboConfig.rConfig.Kilable then
-			CastSpell(_R, Cel)
+		elseif MenuBrand.comboConfig.rConfig.RM == 4 then
+			local rdmg = getDmg("R", Cel, myHero,3)
+			if TargetHaveBuff("brandablaze", Cel) and Cel.health < rdmg then
+				CastSpell(_R, Cel)
+			end
 		end
 	end
 end
 
 function Harrass()
-	if MenuBrand.harrasConfig.QH then
-		if QReady and ValidTarget(Cel, Q.range) and Cel ~= nil then
-			if MenuBrand.harrasConfig.QHS then
-				if TargetHaveBuff("brandablaze", Cel) then
-					CastQ(Cel)
-				end
-			elseif not MenuBrand.harrasConfig.QHS then
+	if MenuBrand.harrasConfig.QH and QReady and ValidTarget(Cel, Q.range) then
+		if MenuBrand.harrasConfig.QHS then
+			if TargetHaveBuff("brandablaze", Cel) then
 				CastQ(Cel)
 			end
+		elseif not MenuBrand.harrasConfig.QHS then
+			CastQ(Cel)
 		end
 	end
-	if MenuBrand.harrasConfig.WH then
-		if WReady and Cel ~= nil then
-			CastW(Cel)
-		end
+	if WReady and MenuBrand.harrasConfig.WH then
+		CastW(Cel)
 	end
-	if MenuBrand.harrasConfig.EH then
-		if EReady and ValidTarget(Cel, E.range) and Cel ~= nil then
-			CastSpell(_E, Cel)
-		end
+	if MenuBrand.harrasConfig.EH and EReady and ValidTarget(Cel, E.range)then
+		CastSpell(_E, Cel)
 	end
 end
 
-function Farm(Mode)
-	local UseQ
-	local UseW
-	local UseE
-	if not SOWi:CanMove() then return end
-
+function Farm()
 	EnemyMinions:update()
-	if Mode == "Freeze" then
-		UseQ =  MenuBrand.farm.QF == 2
-		UseW =  MenuBrand.farm.WF == 2 
-		UseE =  MenuBrand.farm.EF == 2 
-	elseif Mode == "LaneClear" then
-		UseQ =  MenuBrand.farm.QF == 3
-		UseW =  MenuBrand.farm.WF == 3 
-		UseE =  MenuBrand.farm.EF == 3
-	end
-	
-	UseQ =  MenuBrand.farm.QF == 4 or UseQ
-	UseW =  MenuBrand.farm.WF == 4  or UseW
-	UseE =  MenuBrand.farm.EF == 4 or UseE
-	
+	if not SOWi:CanMove() then return end
+	QMode =  MenuBrand.farm.QF
+	WMode =  MenuBrand.farm.WF
+	EMode =  MenuBrand.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
-		if UseQ then
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
+		if QMode == 3 then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
+		elseif QMode == 2 then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+				if minion.health <= getDmg("Q", minion, myHero) then
+					CastQ(minion)
+				end
+			end
 		end
-		if UseW then
-			if WReady and minion ~= nil and not minion.dead and GetDistance(minion) <= W.range then
+		if EMode == 3 then
+			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+				if TargetHaveBuff("brandablaze", minion) then
+					CastSpell(_E, minion)
+				end
+			end
+		elseif EMode == 2 then
+			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+				if minion.health <= getDmg("E", minion, myHero) then
+					CastSpell(_E, minion)
+				end
+			end
+		end
+		if WMode == 3 then
+			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				local Pos, Hit = BestWFarmPos(W.range, W.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_W, Pos.x, Pos.z)
 				end
 			end
-		end
-		if UseE then
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
-				if TargetHaveBuff("brandablaze", minion) then
-					CastSpell(_E, minion)
+		elseif WMode == 2 then
+			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+				if minion.health <= getDmg("W", minion, myHero) then
+					CastSpell(_W, minion.x, minion.z)
 				end
 			end
 		end
@@ -469,6 +469,16 @@ function BestWFarmPos(range, radius, objects)
          end
     end
     return Pos, BHit
+end
+
+function CountObjectsNearPos(pos, range, radius, objects)
+    local n = 0
+    for i, object in ipairs(objects) do
+        if GetDistanceSqr(pos, object) <= radius * radius then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function JungleFarmm()
@@ -707,18 +717,16 @@ function CastQ(unit)
 end
 
 function CastW(unit)
-	if GetDistance(unit) <= W.range then
-		if MenuBrand.prConfig.pro == 1 then
-			local CastPosition,  HitChance,  Position = VP:GetPredictedPos(unit, W.delay, W.speed, myHero)
-			if CastPosition and HitChance >= MenuBrand.prConfig.vphit - 1 then
-				SpellCast(_W, CastPosition)
-			end
+	if MenuBrand.prConfig.pro == 1 then
+		local CastPosition,  HitChance,  Position = VP:GetPredictedPos(unit, W.delay, W.speed, myHero, false)
+		if Position and HitChance >= MenuBrand.prConfig.vphit - 1 then
+			SpellCast(_W, Position)
 		end
-		if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position, info = Prodiction.GetPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
-			if Position ~= nil then
-				SpellCast(_W, Position)
-			end
+	end
+	if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
+		local Position, info = Prodiction.GetPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
+		if Position ~= nil then
+			SpellCast(_W, Position)
 		end
 	end
 end
