@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: MORGANA MASTER 
-	Author: kokosik1221
-	Last Version: 2.141
-	02.01.2015
+    	Author: kokosik1221
+	Last Version: 2.142
+	01.01.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "2.141"
+local version = "2.142"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MorganaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -624,15 +624,15 @@ function Menu()
 	end
 	--[[ Gapcloser ]]--
 	MenuMorg:addSubMenu("[Morgana Master]: GapCloser Settings", "gpConfig")
-	MenuMorg.exConfig:addSubMenu("GapCloser Spells", "ES2")
+	MenuMorg.gpConfig:addSubMenu("GapCloser Spells", "ES2")
 	for i, enemy in ipairs(GetEnemyHeroes()) do
 		for _, champ in pairs(GapCloserList) do
 			if enemy.charName == champ.charName then
-				MenuMorg.exConfig.ES2:addParam(champ.spellName, "GapCloser "..champ.charName.." "..champ.spellName, SCRIPT_PARAM_ONOFF, true)
+				MenuMorg.gpConfig.ES2:addParam(champ.spellName, "GapCloser "..champ.charName.." "..champ.spellName, SCRIPT_PARAM_ONOFF, true)
 			end
 		end
 	end
-	MenuMorg.exConfig:addParam("UG", "Use GapCloser (E)", SCRIPT_PARAM_ONOFF, true)
+	MenuMorg.gpConfig:addParam("UG", "Use GapCloser (E)", SCRIPT_PARAM_ONOFF, true)
 	--[[--- Drawing --]]--
 	MenuMorg:addSubMenu("[Morgana Master]: Draw Settings", "drawConfig")
 	MenuMorg.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
@@ -1075,10 +1075,10 @@ function OnProcessSpell(unit,spell)
 		    end	
 		end
 	end
-	if MenuMorg.exConfig.UG and EReady then
+	if MenuMorg.gpConfig.UG and EReady then
 		for _, x in pairs(GapCloserList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
-				if spell.name == x.spellName and MenuMorg.exConfig.ES2[x.spellName] and ValidTarget(unit, Q.range - 30) then
+				if spell.name == x.spellName and MenuMorg.gpConfig.ES2[x.spellName] and ValidTarget(unit, skills.skillQ.range - 30) then
 					if spell.target and spell.target.isMe then
 						CastQ(unit)
 					elseif not spell.target then
