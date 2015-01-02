@@ -2,8 +2,8 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.74
-	13.12.2014
+	Last Version: 1.75
+	02.01.2015
 	
 ]]--
 
@@ -14,33 +14,56 @@ _G.USESKINHACK = false
 
 
 --AUTO UPDATE--
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
-local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local SCRIPT_NAME = "GangplankMaster"
-local version = 1.74
-if FileExist(SOURCELIB_PATH) then
-	require("SourceLib")
-else
-	DOWNLOADING_SOURCELIB = true
-	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
-end
-if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+local version = "1.75"
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kokosik1221/bol/master/GangplankMaster.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>GangplanMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if _G.AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/GangplanMaster.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available "..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
-local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
-require "AoE_Skillshot_Position"
-RequireI:Check()
-if RequireI.downloadNeeded == true then return end
-
-local skills = {
-	skillQ = {range = 625},
-	skillW = {range = 0},
-	skillE = {range = 1300},
-	skillR = {range = 99000},
+local REQUIRED_LIBS = {
+	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
+	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
 }
+local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
+function AfterDownload()
+	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
+	if DOWNLOAD_COUNT == 0 then
+		DOWNLOADING_LIBS = false
+		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
+	end
+end
+for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
+	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
+		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+			prodstatus = true 
+		end
+	else
+		DOWNLOADING_LIBS = true
+		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
+		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
+	end
+end
 
 local Items = {
 	BRK = { id = 3153, range = 450, reqTarget = true, slot = nil },
@@ -51,16 +74,23 @@ local Items = {
 	YGB = { id = 3142, range = 350, reqTarget = false, slot = nil },
 	RND = { id = 3143, range = 275, reqTarget = false, slot = nil },
 }
-
-local QReady, WReady, EReady, RReady, IReady, Recall, sac, mma = false, false, false, false, false, false, false, false
-local abilitylvl, lastskin = 0, 0
-local EnemyMinions = minionManager(MINION_ENEMY, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local JungleMinions = minionManager(MINION_JUNGLE, skills.skillQ.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey = nil
-local killstring = {}
 		
-function OnLoad()
+function Vars()
+	Qrange = 625
+	Wrange = 0
+	Erange = 1300
+	Rrange = 99000
+	QReady, WReady, EReady, RReady, IReady, Recall, sac, mma = false, false, false, false, false, false, false, false
+	abilitylvl, lastskin = 0, 0
+	EnemyMinions = minionManager(MINION_ENEMY, Qrange, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, Qrange, myHero, MINION_SORT_MAXHEALTH_DEC)
+	IgniteKey = nil
+	killstring = {}
 	print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+end
+
+function OnLoad()
+	Vars()
 	Menu()
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -122,7 +152,7 @@ function Menu()
 	MenuGP:addSubMenu("Orbwalking", "Orbwalking")
 	SOWi:LoadToMenu(MenuGP.Orbwalking)
 	MenuGP:addSubMenu("Target selector", "STS")
-    TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, skills.skillQ.range, DAMAGE_PHYSICAL)
+    TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Qrange, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Gangplank"
 	MenuGP.STS:addTS(TargetSelector)
 	MenuGP:addSubMenu("[Gangplank Master]: Combo Settings", "comboConfig")
@@ -151,7 +181,7 @@ function Menu()
 	MenuGP.ksConfig:addParam("QKS", "Use Q To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.ksConfig:addParam("RKS", "Use R To KS", SCRIPT_PARAM_ONOFF, true)
-	MenuGP.ksConfig:addParam("ULTHITS", "Ult hit times:", SCRIPT_PARAM_SLICE, 2, 1, 7, 0)
+	MenuGP.ksConfig:addParam("ULTHITS", "Ult hit times:", SCRIPT_PARAM_SLICE, 3, 1, 7, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Farm Settings", "farm")
 	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, false)
 	MenuGP.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
@@ -303,7 +333,7 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USEE then
-		local Count = CountTeam(myHero, skills.skillE.range)
+		local Count = CountTeam(myHero, Erange)
 		if EReady and MenuGP.comboConfig.USEE and Count >= MenuGP.comboConfig.EC then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _E}):send()
@@ -313,7 +343,7 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USER and not MenuGP.comboConfig.USER2 then
-		if RReady and GetDistance(Cel) < skills.skillR.range then
+		if RReady and GetDistance(Cel) < Rrange then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _R, fromX = Cel.x, fromY = Cel.z, toX = Cel.x, toY = Cel.z}):send()
 			else
@@ -322,22 +352,20 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USER and MenuGP.comboConfig.USER2 then
-		local rPos = GetAoESpellPosition(600, Cel)
-        if rPos and GetDistance(rPos) <= skills.skillR.range then
-            if RReady and EnemyCount(rPos, 600) >= MenuGP.comboConfig.USER2C then
-				if VIP_USER and MenuGP.prConfig.pc then
-					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
-				else
-					CastSpell(_R, rPos.x, rPos.z)
-				end	
-            end
-        end
+		local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(Cel, 0.25, Qrange - 55, Rrange, 500, myHero)
+		if ValidTarget(Cel) and rPos ~= nil and maxHit >= MenuGP.comboConfig.USER2C then		
+			if VIP_USER and MenuGP.prConfig.pc then
+				Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
+			else
+				CastSpell(_R, rPos.x, rPos.z)
+			end	
+		end
 	end
 end
 
 function Harrass()
 	if MenuGP.harrasConfig.QH then
-		if QReady and GetDistance(Cel) <= skills.skillQ.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
+		if QReady and GetDistance(Cel) <= Qrange and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, targetNetworkId = Cel.networkID}):send()
 			else
@@ -366,7 +394,7 @@ function Farm(Mode)
 	
 	if UseQ then
 		for i, minion in pairs(EnemyMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range then
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Qrange then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
 				else
@@ -377,7 +405,7 @@ function Farm(Mode)
 	end
 	if UseE then
 		for i, minion in pairs(EnemyMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range then
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Erange then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _E}):send()
 				else
@@ -392,7 +420,7 @@ function JungleFarmm()
 	JungleMinions:update()
 	if MenuGP.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillQ.range then
+			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Qrange then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
 				else
@@ -403,7 +431,7 @@ function JungleFarmm()
 	end
 	if MenuGP.jf.EJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= skills.skillE.range then
+			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Erange then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _E}):send()
 				else
@@ -518,10 +546,10 @@ function OnDraw()
         end
 	end
 	if MenuGP.drawConfig.DQR and QReady then
-		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillQ.range, RGB(MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, Qrange, RGB(MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
 	end
 	if MenuGP.drawConfig.DER and EReady then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, skills.skillE.range, RGB(MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, Erange, RGB(MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
 	end
 end
 
@@ -541,24 +569,24 @@ function KillSteall()
 			rDmg = 0
 		end
 		if MenuGP.ksConfig.IKS then
-			iDmg = getDmg("IGNITE", Enemy, myHero)
+			iDmg = (50 + (20 * myHero.level))
 		else 
 			iDmg = 0
 		end
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health <= qDmg and QReady and (distance < skills.skillQ.range) and MenuGP.ksConfig.QKS then
+			if health <= qDmg and QReady and (distance < Qrange) and MenuGP.ksConfig.QKS then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = Enemy.networkID}):send()
 				else
 					CastSpell(_Q, Enemy)
 				end
-			elseif health < rDmg and RReady and (distance < skills.skillR.range) and MenuGP.ksConfig.RKS then
+			elseif health < rDmg and RReady and (distance < Rrange) and MenuGP.ksConfig.RKS then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, targetNetworkId = Enemy.networkID}):send()
 				else
 					CastSpell(_R, Enemy)
 				end
-			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < skills.skillQ.range) and MenuGP.ksConfig.QKS and MenuGP.ksConfig.RKS then
+			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < Qrange) and MenuGP.ksConfig.QKS and MenuGP.ksConfig.RKS then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = Enemy.networkID}):send()
 				else
