@@ -2,8 +2,8 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.53
-	24.12.2014
+	Last Version: 0.54
+	02.01.2015
 	
 ]]--
 
@@ -14,32 +14,80 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.53
-local SCRIPT_NAME = "GragasMaster"
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
-local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local prodstatus = false
-local colstatus = false
-if FileExist(SOURCELIB_PATH) then
-	require("SourceLib")
-else
-	DOWNLOADING_SOURCELIB = true
-	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
-end
-if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+local version = "0.54"
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kokosik1221/bol/master/GragasMaster.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>GragasMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if _G.AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/GragasMaster.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available "..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
-local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
-require "AoE_Skillshot_Position"
-if VIP_USER then
-	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	prodstatus = true
+local REQUIRED_LIBS = {
+	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
+	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+}
+local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
+function AfterDownload()
+	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
+	if DOWNLOAD_COUNT == 0 then
+		DOWNLOADING_LIBS = false
+		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
+	end
 end
-RequireI:Check()
-if RequireI.downloadNeeded == true then return end
+for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
+	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
+		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+			prodstatus = true 
+		end
+	else
+		DOWNLOADING_LIBS = true
+		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
+		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
+	end
+end
+
+local InterruptList = {
+	{charName = "FiddleSticks", spellName = "Crowstorm"},
+    {charName = "MissFortune", spellName = "MissFortuneBulletTime"},
+    {charName = "Nunu", spellName = "AbsoluteZero"},
+    {charName = "Caitlyn", spellName = "CaitlynAceintheHole"},
+    {charName = "Katarina", spellName = "KatarinaR"},
+    {charName = "Karthus", spellName = "FallenOne"},
+    {charName = "Malzahar", spellName = "AlZaharNetherGrasp"},
+    {charName = "Galio", spellName = "GalioIdolOfDurand"},
+    {charName = "Darius", spellName = "DariusExecute"},
+    {charName = "MonkeyKing", spellName = "MonkeyKingSpinToWin"},
+    {charName = "Vi", spellName = "ViR"},
+    {charName = "Shen", spellName = "ShenStandUnited"},
+    {charName = "Urgot", spellName = "UrgotSwap2"},
+    {charName = "Pantheon", spellName = "Pantheon_GrandSkyfall_Jump"},
+    {charName = "Lucian", spellName = "LucianR"},
+    {charName = "Warwick", spellName = "InfiniteDuress"},
+    {charName = "Urgot", spellName = "UrgotSwap2"},
+    {charName = "Xerath", spellName = "XerathLocusOfPower2"},
+    {charName = "Velkoz", spellName = "VelkozR"},
+    {charName = "Skarner", spellName = "SkarnerImpale"},
+}
 
 local Items = {
 	BWC = { id = 3144, range = 400, reqTarget = true, slot = nil },
@@ -163,7 +211,15 @@ function Menu()
 	MenuGragy.exConfig:addParam("AQF", "Auto (Q) If Can Hit X", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.exConfig:addParam("AQX", "X = ", SCRIPT_PARAM_SLICE, 4, 1, 5, 0)
 	MenuGragy:addSubMenu("[Gragas Master]: Interrupt Settings", "iConfig")
-    Interrupter(MenuGragy.iConfig, Interrup)
+    MenuGragy.iConfig:addSubMenu("Auto-Interrupt Spells", "ES")
+	for i, enemy in ipairs(GetEnemyHeroes()) do
+		for _, champ in pairs(InterruptList) do
+			if enemy.charName == champ.charName then
+				MenuGragy.iConfig.ES:addParam(champ.spellName, "Stop "..champ.charName.." "..champ.spellName, SCRIPT_PARAM_ONOFF, true)
+			end
+		end
+	end
+	MenuGragy.iConfig:addParam("UI", "Use Auto-Interrupt (E)", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy:addSubMenu("[Gragas Master]: KS Settings", "ksConfig")
 	MenuGragy.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -470,10 +526,14 @@ function BestQFarmPos(range, radius, objects)
     return Pos, BHit
 end
 
-function Interrup(unit, spell)
-	if EReady and GetDistance(unit) <= E.range then
-		CastE(unit)
-	end
+function CountObjectsNearPos(pos, range, radius, objects)
+    local n = 0
+    for i, object in ipairs(objects) do
+        if GetDistanceSqr(pos, object) <= radius * radius then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function autozh()
@@ -728,6 +788,18 @@ function CastRBehind(unit)
 		else
 			CastSpell(_R, posX, posZ)
 		end	
+	end
+end
+
+function OnProcessSpell(unit, spell)
+	if MenuGragy.iConfig.UI and EReady then
+		for _, x in pairs(InterruptList) do
+			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
+				if spell.name == x.spellName and MenuGragy.iConfig.ES[x.spellName] and ValidTarget(unit, E.range) then
+					CastE(unit)
+				end
+			end
+		end
 	end
 end
 
