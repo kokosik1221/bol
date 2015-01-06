@@ -1,19 +1,18 @@
 --[[
 
 	Script Name: MISS FORUNTE MASTER 
-  Author: kokosik1221
-	Last Version: 0.1
-	05.01.2015
+    	Author: kokosik1221
+	Last Version: 0.2
+	06.01.2015
 	
 ]]--
 
 if myHero.charName ~= "MissFortune" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "0.1"
+local version = "0.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -91,7 +90,7 @@ function Vars()
 	QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
 	RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_PHYSICAL)
 	ETargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_PHYSICAL)
-	TextList = {"Harass him", "1 AA = Kill!", "2 AA = Kill!", "3 AA = Kill!", "4 AA = Kill!", "Q = Kill!", "E = Kill!", "R = Kill!", "Ignite = Kill!"}
+	TextList = {"Harass him", "1 AA = Kill!", "2 AA = Kill!", "3 AA = Kill!", "4 AA = Kill!", "Q = Kill!", "E = Kill!", "R = Kill!", "Ignite = Kill!", "Harass him"}
 	HealKey = nil
 	KillText = {}
 	VP = VPrediction()
@@ -157,6 +156,7 @@ function OnTick()
 		AutoHeal()
 	end
 	AutoF()
+	KillSteal()
 end
 
 function Menu()
@@ -200,6 +200,11 @@ function Menu()
 	MFMenu.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MFMenu.exConfig:addParam("UAH", "Auto Heal Summoner", SCRIPT_PARAM_ONOFF, true)
 	MFMenu.exConfig:addParam("UAHHP", "Min. HP% To Heal", SCRIPT_PARAM_SLICE, 35, 0, 100, 0)
+	MFMenu:addSubMenu("[MissFortune Master]: KillSteal Settings", "ksConfig")
+	MFMenu.ksConfig:addParam("QKS", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.ksConfig:addParam("EKS", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.ksConfig:addParam("RKS", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.ksConfig:addParam("IKS", "Use Ignite", SCRIPT_PARAM_ONOFF, true)
 	MFMenu:addSubMenu("[MissFortune Master]: Farm Settings", "farm")
 	MFMenu.farm:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
 	MFMenu.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -242,6 +247,9 @@ function Menu()
 	MFMenu.comboConfig:permaShow("CEnabled")
 	MFMenu.harrasConfig:permaShow("HEnabled")
 	MFMenu.harrasConfig:permaShow("HTEnabled")
+	MFMenu.exConfig:permaShow("ARF")
+	MFMenu.exConfig:permaShow("AEF")
+	MFMenu.exConfig:permaShow("UAH")
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonerheal") then HealKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerheal") then HealKey = SUMMONER_2
 	end
@@ -330,14 +338,14 @@ function Combo()
 		end
 	end
 	if ECel ~= nil then 
-		if MFMenu.comboConfig.eConfig.USEE and ValidTarget(ECel) and GetDistance(ECel) <= E.range and not rcasting then
+		if MFMenu.comboConfig.eConfig.USEE and ValidTarget(ECel) and GetDistance(ECel) <= E.range+100 and not rcasting then
 			CastE(ECel)
 		end
 	end
 	if RCel ~= nil then 
 		if MFMenu.comboConfig.rConfig.USER and ValidTarget(RCel) and GetDistance(RCel) < R.range then
 			if MFMenu.comboConfig.rConfig.RM == 1 then
-				CastR(RCel)
+				CastR(RCel)	
 			elseif MFMenu.comboConfig.rConfig.RM == 2 then
 				local RDMG = getDmg("R", RCel, myHero, 3)
 				if RCel.health <= RDMG and GetDistance(RCel) >= 550 then
@@ -494,8 +502,8 @@ function DmgCalc()
 				KillText[i] = 4
 			elseif enemy.health < aaDmg4 then
 				KillText[i] = 8
-			elseif enemy.health > (aaDmg+aaDmg2+aaDmg3+aaDmg4+qDmg+eDmg+rDmg+iDmg) then
-				KillText[i] = 1
+			elseif enemy.health > (aaDmg4+qDmg+eDmg+rDmg+iDmg) then
+				KillText[i] = 10
 			end
         end
     end
@@ -520,7 +528,7 @@ function OnDraw()
 		end
 	end
 	if MFMenu.drawConfig.DQR then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MFMenu.drawConfig.DERC[2], MFMenu.drawConfig.DERC[3], MFMenu.drawConfig.DERC[4]))
+		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MFMenu.drawConfig.DQRC[2], MFMenu.drawConfig.DQRC[3], MFMenu.drawConfig.DQRC[4]))
 	end
 	if MFMenu.drawConfig.DER then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MFMenu.drawConfig.DERC[2], MFMenu.drawConfig.DERC[3], MFMenu.drawConfig.DERC[4]))
@@ -577,7 +585,7 @@ function CheckUlt()
     else
         rcasting = false
 		if rcasting == false then
-			SxOrbWalk:EnableMove()
+			DelayAction(function() SxOrbWalk:EnableMove() end, 0.25)
 			if (sac and _G.AutoCarry) then
 				
 			end
@@ -588,6 +596,27 @@ function CheckUlt()
     else
         recall = false 
     end
+end
+
+function KillSteal()
+	for _, Enemy in pairs(GetEnemyHeroes()) do
+		local health = Enemy.health
+		local qDmg = getDmg("Q", Enemy, myHero, 3)
+		local eDmg = getDmg("E", Enemy, myHero, 3)
+		local rDmg = getDmg("R", Enemy, myHero, 3)
+		local iDmg = getDmg("IGNITE", Enemy, myHero) 
+		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible and GetDistance(Enemy) < 2000 then
+			if health < qDmg and MFMenu.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
+				CastQ(Enemy)
+			elseif health < eDmg and MFMenu.ksConfig.EKS and ValidTarget(Enemy, E.range+50) then
+				CastE(Enemy)
+			elseif health < rDmg and MFMenu.ksConfig.RKS and ValidTarget(Enemy, R.range) then
+				CastR(Enemy)
+			elseif health <= iDmg and MFMenu.ksConfig.IKS and ValidTarget(Enemy, 600) and IReady then
+				CastSpell(IgniteKey, Enemy)
+			end
+		end
+	end
 end
 
 function CastQ(unit)
@@ -616,9 +645,9 @@ function CastE(unit)
 			local CastPosition,  HitChance,  Position = VP:GetPredictedPos(unit, E.delay, E.speed, myHero, false)
 			if Position and HitChance >= MFMenu.prConfig.vphit - 1 then
 				if VIP_USER and MFMenu.prConfig.pc then
-					Packet("S_CAST", {spellId = _E, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
+					Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
 				else
-					CastSpell(_E, CastPosition.x, CastPosition.z)
+					CastSpell(_E, Position.x, Position.z)
 				end
 			end
 		end
@@ -657,10 +686,10 @@ function CastR(unit)
 				end	
 			end
 		end
-	end
-	rcasting = true 
-	if (sac and _G.AutoCarry) then
+		rcasting = true 
+		if (sac and _G.AutoCarry) then
 		
+		end
 	end
 end
 
