@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: Poppy MASTER 
-  	Author: kokosik1221
-	Last Version: 0.1
-	02.01.2015
+    	Author: kokosik1221
+	Last Version: 0.2
+	08.01.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Poppy" then return end
 _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
-local version = "0.1"
+local version = "0.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/PoppyMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -251,7 +251,7 @@ function Menu()
     else
 		arrangePrioritys()
 	end
-	SxOrb:RegisterBeforeAttackCallback(function(t) aa() end)
+	SxOrb:RegisterAfterAttackCallback(function(t) aa() end)
 end
 
 function aa()
@@ -355,6 +355,9 @@ end
 
 function Combo()
 	UseItems(Cel)
+	if (sac or mma) and MenuPoppy.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range)then
+		CastQ()
+	end
 	if MenuPoppy.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
 		CastW()
 	end
@@ -372,6 +375,9 @@ end
 function Harrass()
 	if MenuPoppy.harrasConfig.USEE and ValidTarget(Cel, E.range) then
 		CastE(Cel)
+	end
+	if (sac or mma) and MenuPoppy.harrasConfig.USEQ and ValidTarget(Cel, Q.range)then
+		CastQ()
 	end
 end
 
@@ -412,6 +418,11 @@ function JungleFarm()
 		if MenuPoppy.jf.EJF then
 			if minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				CastE(minion)
+			end
+		end
+		if MenuPoppy.jf.QJF and (sac or mma) then
+			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+				CastQ()
 			end
 		end
 	end
