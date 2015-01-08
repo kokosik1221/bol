@@ -2,9 +2,9 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.222
-	01.01.2015
-	
+	Last Version: 0.223
+	08.01.2015
+
 ]]--
 
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.222"
+local version = "0.223"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -40,7 +40,7 @@ end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
-	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -80,10 +80,10 @@ function OnLoad()
 end
 
 function Vars()
-	Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, width = 80}
+	Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, width = 70}
 	W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25, width = 110}
-	E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.15, width = 275}
-	R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1.35, width = 190}
+	E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.25, width = 275}
+	R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190}
 	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma, recall = false, false, false, false, false, false, false, false, false
 	abilitylvl, lastskin = 0, 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -146,10 +146,9 @@ end
 
 function Menu()
 	VP = VPrediction()
-	SOWi = SOW(VP)
 	MenuLux = scriptConfig("Lux Master "..version, "Lux Master "..version)
 	MenuLux:addSubMenu("Orbwalking", "Orbwalking")
-	SOWi:LoadToMenu(MenuLux.Orbwalking)
+	SxOrb:LoadToMenu(MenuLux.Orbwalking)
 	MenuLux:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Lux"
@@ -281,9 +280,9 @@ end
 
 function caa()
 	if MenuLux.comboConfig.uaa then
-		SOWi:EnableAttacks()
+		SxOrb:EnableAttacks()
 	elseif not MenuLux.comboConfig.uaa then
-		SOWi:DisableAttacks()
+		SxOrb:DisableAttacks()
 	end
 end
 
@@ -307,9 +306,9 @@ function Check()
 		Cel = GetCustomTarget()
 	end
 	if sac or mma then
-		SOWi.Menu.Enabled = false
+		SxOrb.SxOrbMenu.General.Enabled = false
 	end
-	SOWi:ForceTarget(Cel)
+	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -421,7 +420,6 @@ end
 
 function Farm()
 	EnemyMinions:update()
-	if not SOWi:CanMove() then return end
 	QMode =  MenuLux.farm.QF
 	EMode =  MenuLux.farm.EF
 	if myHero.mana >= MenuLux.farm.manaf and not recall then
@@ -493,6 +491,16 @@ function BestEFarmPos(range, radius, objects)
          end
     end
     return Pos, BHit
+end
+
+function CountObjectsNearPos(pos, range, radius, objects)
+    local n = 0
+    for i, object in ipairs(objects) do
+        if GetDistanceSqr(pos, object) <= radius * radius then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function autozh()
