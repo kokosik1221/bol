@@ -2,8 +2,8 @@
 
 	Script Name: MORGANA MASTER 
     	Author: kokosik1221
-	Last Version: 2.142
-	01.01.2015
+	Last Version: 2.2
+	08.01.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "2.142"
+local version = "2.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MorganaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,7 +39,7 @@ end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
-	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -551,10 +551,9 @@ end
 		
 function Menu()
 	VP = VPrediction(true)
-	SOWi = SOW(VP)
 	MenuMorg = scriptConfig("Morgana Master "..version, "Morgana Master "..version)
 	MenuMorg:addSubMenu("Orbwalking", "Orbwalking")
-	SOWi:LoadToMenu(MenuMorg.Orbwalking)
+	SxOrb:LoadToMenu(MenuMorg.Orbwalking)
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, skills.skillQ.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Morgana"
 	MenuMorg:addSubMenu("Target selector", "STS")
@@ -708,9 +707,9 @@ end
 
 function caa()
 	if MenuMorg.comboConfig.uaa then
-		SOWi:EnableAttacks()
+		SxOrb:EnableAttacks()
 	elseif not MenuMorg.comboConfig.uaa then
-		SOWi:DisableAttacks()
+		SxOrb:DisableAttacks()
 	end
 end
 
@@ -732,9 +731,9 @@ function Check()
 		Cel = GetCustomTarget()
 	end
 	if sac or mma then
-		SOWi.Menu.Enabled = false
+		SxOrb.SxOrbMenu.General.Enabled = false
 	end
-	SOWi:ForceTarget(Cel)
+	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -833,8 +832,6 @@ function Farm(Mode)
 	EnemyMinions:update()
 	local UseQ
 	local UseW
-	if not SOWi:CanMove() then return end
-
 	if Mode == "Freeze" then
 		UseQ =  MenuMorg.farm.QF == 2
 		UseW =  MenuMorg.farm.WF == 2 
@@ -880,6 +877,16 @@ function BestWFarmPos(range, radius, objects)
          end
     end
     return Pos, BHit
+end
+
+function CountObjectsNearPos(pos, range, radius, objects)
+    local n = 0
+    for i, object in ipairs(objects) do
+        if GetDistanceSqr(pos, object) <= radius * radius then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function JungleFarmm()
