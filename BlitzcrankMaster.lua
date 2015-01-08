@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.67
-	24.12.2014
+	Last Version: 0.68
+	08.01.2015
 	
 ]]--
 
@@ -14,34 +14,58 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = 0.67
-local SCRIPT_NAME = "BlitzcrankMaster"
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
-local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
-local prodstatus = false
-local colstatus = false
-if FileExist(SOURCELIB_PATH) then
-	require("SourceLib")
-else
-	DOWNLOADING_SOURCELIB = true
-	DownloadFile(SOURCELIB_URL, SOURCELIB_PATH, function() PrintChat("Required libraries downloaded successfully, please reload") end)
-end
-if DOWNLOADING_SOURCELIB then PrintChat("Downloading required libraries, please wait...") return end
+local version = "0.68"
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>BlitzcrankMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if _G.AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/kokosik1221/bol/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/kokosik1221/bol/master/"..SCRIPT_NAME..".version"):CheckUpdate()
+	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/BlitzcrankMaster.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available "..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
-local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
-if VIP_USER then
-	RequireI:Add("Prodiction", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua")
-	RequireI:Add("Collision", "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/b891699e739f77f77fd428e74dec00b2a692fdef/Common/Collision.lua")
-	prodstatus = true
-	colstatus = true
+local REQUIRED_LIBS = {
+	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
+	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["Collision"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/b891699e739f77f77fd428e74dec00b2a692fdef/Common/Collision.lua",
+}
+local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
+function AfterDownload()
+	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
+	if DOWNLOAD_COUNT == 0 then
+		DOWNLOADING_LIBS = false
+		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
+	end
 end
-RequireI:Check()
-if RequireI.downloadNeeded == true then return end
-
+for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
+	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" and DOWNLOAD_LIB_NAME ~= "Collision" then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
+		if DOWNLOAD_LIB_NAME == "Prodiction" and DOWNLOAD_LIB_NAME == "Collision" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+			prodstatus = true 
+		end
+	else
+		DOWNLOADING_LIBS = true
+		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
+		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
+	end
+end
 
 local Counterspells = {
 	['KatarinaR'] = {charName = "Katarina", spellSlot = "R"},
@@ -84,7 +108,7 @@ function Vars()
 	print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if VIP_USER and prodstatus and colstatus then
 		Prodict = ProdictManager.GetInstance()
-		ProdictQ = Prodict:AddProdictionObject(_Q, Q.range, Q.speed, Q.delay, Q.width, myHero)
+		ProdictQ = Prodict:AddProdictionObject(_Q, Q.range-20, Q.speed, Q.delay, Q.width, myHero)
         ProdictQCol = Collision(Q.range, Q.speed, Q.delay, Q.width)
 	end
 	if _G.MMA_Loaded then
@@ -139,10 +163,9 @@ end
 
 function Menu()
 	VP = VPrediction()
-	SOWi = SOW(VP)
 	MenuBlitz = scriptConfig("Blitzcrank Master "..version, "Blitzcrank Master "..version)
 	MenuBlitz:addSubMenu("Orbwalking", "Orbwalking")
-	SOWi:LoadToMenu(MenuBlitz.Orbwalking)
+	SxOrb:LoadToMenu(MenuBlitz.Orbwalking)
 	MenuBlitz:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Blitzcrank"
@@ -270,7 +293,14 @@ function Menu()
 		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
 		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
 	}
-}
+	}
+	SxOrb:RegisterBeforeAttackCallback(function(t) aa() end)
+end
+
+function aa()
+	if MenuBlitz.comboConfig.CEnabled and MenuBlitz.comboConfig.USEE then
+		CastE()
+	end
 end
 
 function EnemyCount(point, range)
@@ -301,9 +331,9 @@ function Check()
 		Cel = GetCustomTarget()
 	end
 	if sac or mma then
-		SOWi.Menu.Enabled = false
+		SxOrb.SxOrbMenu.General.Enabled = false
 	end
-	SOWi:ForceTarget(Cel)
+	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -359,7 +389,7 @@ function Combo()
 	blacktarget = FindBL()
 	if Cel ~= nil and ValidTarget(Cel) and Cel ~= blacktarget then
 		UseItems(Cel)
-		if MenuBlitz.comboConfig.USEQ then
+		if MenuBlitz.comboConfig.USEQ and ValidTarget(Cel, Q.range) then
 			if GetDistance(Cel) >= MenuBlitz.comboConfig.QMINR then
 				CastQ(Cel)
 			end
@@ -367,8 +397,8 @@ function Combo()
 		if MenuBlitz.comboConfig.USEW then
 			CastW()
 		end
-		if MenuBlitz.comboConfig.USEE then
-			CastE(Cel)
+		if (sac or mma) and MenuBlitz.comboConfig.USEE and ValidTarget(Cel, E.range) then
+			CastE()
 		end
 		if MenuBlitz.comboConfig.USER then
 			if MenuBlitz.comboConfig.Kilable then
@@ -387,16 +417,16 @@ function Harrass()
 	blacktarget = FindBL()
 	if Cel ~= nil and ValidTarget(Cel) and Cel ~= blacktarget then
 		if MenuBlitz.harrasConfig.HM == 1 then
-			if GetDistance(Cel) > MenuBlitz.comboConfig.QMINR then
+			if GetDistance(Cel) > MenuBlitz.comboConfig.QMINR and ValidTarget(Cel, Q.range) then
 				CastQ(Cel)
 			end
 		end
-		if MenuBlitz.harrasConfig.HM == 2 then
-			CastE(Cel)
+		if MenuBlitz.harrasConfig.HM == 2 and ValidTarget(Cel, E.range) then
+			CastE()
 		end
-		if MenuBlitz.harrasConfig.HM == 3 then
+		if MenuBlitz.harrasConfig.HM == 3 and ValidTarget(Cel, Q.range) then
 			CastQ(Cel)
-			CastE(Cel)
+			CastE()
 		end
 	end
 	if MenuBlitz.harrasConfig.MM then
@@ -408,13 +438,13 @@ function Farm()
 	EnemyMinions:update()
 	for i, minion in pairs(EnemyMinions.objects) do
 		if MenuBlitz.farm.QF then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
 		end
 		if MenuBlitz.farm.EF then
-			if minion ~= nil and not minion.dead then
-				CastE(minion)
+			if minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+				CastE()
 			end
 		end
 	end
@@ -424,13 +454,13 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuBlitz.jf.QJF then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
 		end
 		if MenuBlitz.jf.EJF then
-			if minion ~= nil and not minion.dead then
-				CastE(minion)
+			if minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+				CastE()
 			end
 		end
 	end
@@ -524,26 +554,30 @@ function KillSteall()
 		local rDmg = getDmg("R", Enemy, myHero, 3)
 		local iDmg = (50 + (20 * myHero.level))
 		if ValidTarget(Enemy, Q.range) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health < qDmg and MenuBlitz.ksConfig.QKS and GetDistance(Enemy) < Q.range then
+			if health < qDmg and MenuBlitz.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
-			elseif health < eDmg and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < E.range then
-				CastE(Enemy)
-			elseif health < rDmg and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < R.range then
+			elseif health < eDmg and MenuBlitz.ksConfig.EKS and ValidTarget(Enemy, E.range) then
+				CastE()
+				myHero:Attack(Enemy)
+			elseif health < rDmg and MenuBlitz.ksConfig.RKS and ValidTarget(Enemy, R.range) then
 				CastR(Enemy)
-			elseif health < iDmg and MenuBlitz.ksConfig.IKS and IReady and GetDistance(Enemy) <= 600 then
+			elseif health < iDmg and MenuBlitz.ksConfig.IKS and IReady and ValidTarget(Enemy, 600) then
 				CastSpell(IgniteKey, Enemy)
-			elseif health < (qDmg + eDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and GetDistance(Enemy) < Q.range then
+			elseif health < (qDmg + eDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
-				CastE(Enemy)
-			elseif health < (qDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < Q.range then
+				CastE()
+				myHero:Attack(Enemy)
+			elseif health < (qDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.RKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
 				CastR(Enemy)				
-			elseif health < (eDmg + rDmg) and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < E.range then
-				CastE(Enemy)
+			elseif health < (eDmg + rDmg) and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and ValidTarget(Enemy, E.range) then
+				CastE()
+				myHero:Attack(Enemy)
 				CastR(Enemy)	
-			elseif health < (qDmg + eDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and GetDistance(Enemy) < Q.range then
+			elseif health < (qDmg + eDmg + rDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and MenuBlitz.ksConfig.RKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
-				CastE(Enemy)
+				CastE()
+				myHero:Attack(Enemy)
 				CastR(Enemy)	
 			end
 		end
@@ -579,7 +613,7 @@ function DmgCalc()
 end
 
 function CastQ(unit)
-	if QReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < Q.range then
+	if QReady then
 		if MenuBlitz.prConfig.pro == 1 then
 			if MenuBlitz.comboConfig.USEQS then
 				local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
@@ -587,7 +621,7 @@ function CastQ(unit)
 					CastSpell(SmiteKey, ColTable2[1])
 				end
 			end
-			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
+			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range-20, Q.speed, myHero, true)
 			if HitChance >= MenuBlitz.prConfig.vphit - 1 then
 				if VIP_USER and MenuBlitz.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -625,20 +659,18 @@ function CastW()
 	end
 end
 
-function CastE(unit)
-	if EReady and GetDistance(unit) < E.range then
+function CastE()
+	if EReady then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _E}):send()
-			myHero:Attack(unit)
 		else
 			CastSpell(_E)
-			myHero:Attack(unit)
 		end	
 	end
 end
 
 function CastR(unit)
-	if RReady and GetDistance(unit) - getHitBoxRadius(unit)/2 < R.range then
+	if RReady and ValidTarget(unit, R.range-20) then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _R}):send()
 		else
