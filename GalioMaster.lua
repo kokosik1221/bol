@@ -2,9 +2,8 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 1.83
-	02.01.2015
-	
+	Last Version: 1.84
+	08.01.2015
 	
 ]]--
 
@@ -14,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.83"
+local version = "1.84"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GalioMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -40,7 +39,7 @@ end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
-	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -103,12 +102,12 @@ end
 function CheckUlt()
     if TargetHaveBuff("GalioIdolOfDurand", myHero) then
          ultbuff = true
-		 SOWi.Menu.Enabled = false
+		 SxOrb.SxOrbMenu.General.Enabled = false
 		 oc = false
     else
          ultbuff = false
 		 if (oc == false) and (not sac or mma) then
-			SOWi.Menu.Enabled = true
+			SxOrb.SxOrbMenu.General.Enabled = false
 			oc = true
 		 end
     end
@@ -145,10 +144,9 @@ end
 
 function Menu()
 	VP = VPrediction()
-	SOWi = SOW(VP)
 	MenuGalio = scriptConfig("Galio Master "..version, "Galio Master "..version)
 	MenuGalio:addSubMenu("Orbwalking", "Orbwalking")
-	SOWi:LoadToMenu(MenuGalio.Orbwalking)
+	SxOrb:LoadToMenu(MenuGalio.Orbwalking)
 	MenuGalio:addSubMenu("Target selector", "STS")
     TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Galio"
@@ -241,9 +239,9 @@ end
 
 function caa()
 	if MenuGalio.comboConfig.uaa then
-		SOWi:EnableAttacks()
+		SxOrb:EnableAttacks()
 	elseif not MenuGalio.comboConfig.uaa then
-		SOWi:DisableAttacks()
+		SxOrb:DisableAttacks()
 	end
 end
 
@@ -279,9 +277,9 @@ function Check()
 		Cel = GetCustomTarget()
 	end
 	if (sac or mma) then
-		SOWi.Menu.Enabled = false
+		SxOrb.SxOrbMenu.General.Enabled = false
 	end
-	SOWi:ForceTarget(Cel)
+	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -359,7 +357,7 @@ function Combo()
 	if MenuGalio.comboConfig.USER then
 		local enemyCount = EnemyCount(myHero, R.range)
 		if not ultbuff and RReady and GetDistance(Cel) < R.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR then
-			SOWi.Menu.Enabled = false
+			SxOrb.SxOrbMenu.General.Enabled = false
 			CastSpell(_R)
 		end
 	end
@@ -393,8 +391,6 @@ end
 function Farm(Mode)
 	local UseQ
 	local UseE
-	if not SOWi:CanMove() then return end
-
 	EnemyMinions:update()
 	if Mode == "Freeze" then
 		UseQ =  MenuGalio.farm.QF == 2
@@ -446,6 +442,16 @@ function BestQFarmPos(range, radius, objects)
     end
 
     return Pos, BHit
+end
+
+function CountObjectsNearPos(pos, range, radius, objects)
+    local n = 0
+    for i, object in ipairs(objects) do
+        if GetDistanceSqr(pos, object) <= radius * radius then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function JungleFarmm()
