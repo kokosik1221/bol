@@ -2,8 +2,8 @@
 
 	Script Name: RUMBLE MASTER 
     	Author: kokosik1221
-	Last Version: 0.22
-	02.01.2015
+	Last Version: 0.23
+	08.01.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.22"
+local version = "0.23"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/RumbleMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -40,7 +40,7 @@ end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
-	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -137,20 +137,15 @@ function OnTick()
 	end
 	KillSteall()
 	if MenuRumble.comboConfig.rConfig.CRKD and Cel then
-		if VIP_USER then
-			CastRVIP(Cel)
-		else
-			CastRFREE(Cel)
-		end
+		CastR(Cel)
 	end
 end
 
 function Menu()
 	VP = VPrediction()
-	SOWi = SOW(VP)
 	MenuRumble = scriptConfig("Rumble Master "..version, "Rumble Master "..version)
 	MenuRumble:addSubMenu("Orbwalking", "Orbwalking")
-	SOWi:LoadToMenu(MenuRumble.Orbwalking)
+	SxOrb:LoadToMenu(MenuRumble.Orbwalking)
 	MenuRumble:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Rumble"
@@ -254,9 +249,9 @@ end
 
 function caa()
 	if MenuRumble.comboConfig.uaa then
-		SOWi:EnableAttacks()
+		SxOrb:EnableAttacks()
 	elseif not MenuRumble.comboConfig.uaa then
-		SOWi:DisableAttacks()
+		SxOrb:DisableAttacks()
 	end
 end
 
@@ -278,9 +273,9 @@ function Check()
 		Cel = GetCustomTarget()
 	end
 	if sac or mma then
-		SOWi.Menu.Enabled = false
+		SxOrb.SxOrbMenu.General.Enabled = false
 	end
-	SOWi:ForceTarget(Cel)
+	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -336,11 +331,7 @@ function Combo()
 		end
 		if MenuRumble.comboConfig.rConfig.USER and RReady and GetDistance(Cel) <= R.range and ValidTarget(Cel) then
 			if MenuRumble.comboConfig.rConfig.RM == 1 then
-				if VIP_USER then
-					CastRVIP(Cel)
-				else
-					CastRFREE(Cel)
-				end
+				CastR(Cel)
 			end
 			if MenuRumble.comboConfig.rConfig.RM == 2 then
 				if myHero.mana >= 50 then
@@ -349,11 +340,7 @@ function Combo()
 					r = getDmg("R", Cel, myHero, 1)
 				end
 				if Cel.health < r then
-					if VIP_USER then
-						CastRVIP(Cel)
-					else
-						CastRFREE(Cel)
-					end
+					CastR(Cel)
 				end
 			end
 		end
@@ -373,7 +360,6 @@ end
 
 function Farm()
 	EnemyMinions:update()
-	if not SOWi:CanMove() then return end
 	QMode =  MenuRumble.farm.QF
 	EMode =  MenuRumble.farm.EF
 	if myHero.mana < MenuRumble.farm.HEAT then
@@ -518,11 +504,7 @@ function KillSteall()
 			elseif enemy.health < EDMG and GetDistance(enemy) < E.range and MenuRumble.ksConfig.EKS then
 				CastE(enemy)
 			elseif enemy.health < RDMG and GetDistance(enemy) < R.range and MenuRumble.ksConfig.RKS then
-				if VIP_USER then
-					CastRVIP(enemy)
-				else
-					CastRFREE(enemy)
-				end
+				CastR(Cel)
 			elseif enemy.health < IDMG and IReady and GetDistance(enemy) <= 600 and MenuRumble.ksConfig.IKS then
 				CastSpell(IgniteKey, enemy)
 			end
@@ -603,10 +585,25 @@ function CastE(unit)
 	end
 end
 
+function CastR(unit)
+	if GetDistance(unit) < R.range and RReady then
+		local pos, HitChance, Position = VP:GetPredictedPos(unit, R.delay, R.speed, myHero, false)
+		if Position and HitChance >= 2 then
+			if VIP_USER then
+				Packet("S_CAST", {spellId = _R, fromX = pos.x, fromY = pos.z, toX = Position.x, toY = Position.z}):send()
+			else
+				CastSpell(_R, Position.x, Position.z)
+			end
+		end
+	end
+end
+
 function CastRFREE(unit)
 	if GetDistance(unit) < R.range and RReady then
 		local pos, HitChance, Position = VP:GetPredictedPos(unit, R.delay, R.speed, myHero, false)
-		CastSpell(_R, pos.x, pos.z)
+		if Position and HitChance >= 2 then
+			CastSpell(_R, Position.x, Position.z)
+		end
 	end
 end
 
