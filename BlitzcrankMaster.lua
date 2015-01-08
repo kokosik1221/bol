@@ -2,7 +2,7 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.69
+	Last Version: 0.7
 	08.01.2015
 	
 ]]--
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.69"
+local version = "0.7"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -41,7 +41,6 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
-	["Collision"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/b891699e739f77f77fd428e74dec00b2a692fdef/Common/Collision.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -53,13 +52,12 @@ function AfterDownload()
 end
 for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
-		if DOWNLOAD_LIB_NAME ~= "Prodiction" and DOWNLOAD_LIB_NAME ~= "Collision" then 
+		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
 			require(DOWNLOAD_LIB_NAME) 
 		end
-		if DOWNLOAD_LIB_NAME == "Prodiction" and DOWNLOAD_LIB_NAME == "Collision" and VIP_USER then 
+		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
-			colstatus = true
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -107,11 +105,6 @@ function Vars()
 	Spells = {_Q,_W,_E,_R}
 	Spells2 = {"Q","W","E","R"}
 	print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-	if VIP_USER and prodstatus and colstatus then
-		Prodict = ProdictManager.GetInstance()
-		ProdictQ = Prodict:AddProdictionObject(_Q, Q.range-20, Q.speed, Q.delay, Q.width, myHero)
-        ProdictQCol = Collision(Q.range, Q.speed, Q.delay, Q.width)
-	end
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 		mma = true
@@ -221,6 +214,8 @@ function Menu()
 	MenuBlitz.drawConfig:addParam("DT", "Draw Current Target Name", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.drawConfig:addParam("DQL", "Draw Q Collision Line", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.drawConfig:addParam("DQLC", "Draw Q Collision Color", SCRIPT_PARAM_COLOR, {150,40,4,4})
+	MenuBlitz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.drawConfig:addParam("DQR", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DQRC", "Draw Q Range Color", SCRIPT_PARAM_COLOR, {255,0,0,255})
 	MenuBlitz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -527,8 +522,9 @@ function OnDraw()
 			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
 		end
 	end
-	if MenuBlitz.drawConfig.DQL and ValidTarget(Cel, Q.range) and VIP_USER then
-		ProdictQCol:DrawCollision(myHero, Cel)
+	if MenuBlitz.drawConfig.DQL and ValidTarget(Cel, Q.range) and not GetMinionCollision(myHero, Cel, Q.width) then
+		QMark = Cel
+		DrawLine3D(myHero.x, myHero.y, myHero.z, QMark.x, QMark.y, QMark.z, Q.width, ARGB(MenuBlitz.drawConfig.DQLC[1], MenuBlitz.drawConfig.DQLC[2], MenuBlitz.drawConfig.DQLC[3], MenuBlitz.drawConfig.DQLC[4]))
 	end
 	if MenuBlitz.drawConfig.DD then	
 		DmgCalc()
@@ -633,13 +629,13 @@ function CastQ(unit)
 		end
 		if MenuBlitz.prConfig.pro == 2 and VIP_USER and prodstatus then
 			if MenuBlitz.comboConfig.USEQS then
-				local Position = ProdictQ:GetPrediction(unit)
-				local willCollide, ColTable = ProdictQCol:GetMinionCollision(Position, myHero)
-				if #ColTable == 1 and SReady and GetDistance(myHero, ColTable[1]) < 800 then
-					CastSpell(SmiteKey, ColTable[1])
+				local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
+				if #ColTable2 == 1 and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
+					CastSpell(SmiteKey, ColTable2[1])
 				end
 			end
-			if Position ~= nil and not willCollide then
+			local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range-20, Q.speed, Q.delay, Q.width)
+			if Position ~= nil and not info.mCollision() then
 				if VIP_USER and MenuBlitz.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
 				else
