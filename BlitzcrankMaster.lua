@@ -2,7 +2,7 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.68
+	Last Version: 0.69
 	08.01.2015
 	
 ]]--
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.68"
+local version = "0.69"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -59,6 +59,7 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and DOWNLOAD_LIB_NAME == "Collision" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+			colstatus = true
 		end
 	else
 		DOWNLOADING_LIBS = true
