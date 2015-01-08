@@ -2,8 +2,8 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.75
-	02.01.2015
+	Last Version: 1.76
+	08.01.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.USESKINHACK = false
 
 
 --AUTO UPDATE--
-local version = "1.75"
+local version = "1.76"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GangplankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,7 +39,7 @@ if _G.AUTOUPDATE then
 end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
-	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -147,10 +147,9 @@ end
 
 function Menu()
 	VP = VPrediction()
-	SOWi = SOW(VP)
 	MenuGP = scriptConfig("Gangplank Master "..version, "Gangplank Master "..version)
 	MenuGP:addSubMenu("Orbwalking", "Orbwalking")
-	SOWi:LoadToMenu(MenuGP.Orbwalking)
+	SxOrb:LoadToMenu(MenuGP.Orbwalking)
 	MenuGP:addSubMenu("Target selector", "STS")
     TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Qrange, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Gangplank"
@@ -229,9 +228,9 @@ end
 
 function caa()
 	if MenuGP.comboConfig.uaa then
-		SOWi:EnableAttacks()
+		SxOrb:EnableAttacks()
 	elseif not MenuGP.comboConfig.uaa then
-		SOWi:DisableAttacks()
+		SxOrb:DisableAttacks()
 	end
 end
 
@@ -253,9 +252,9 @@ function Check()
 		Cel = GetCustomTarget()
 	end
 	if sac or mma then
-		SOWi.Menu.Enabled = false
+		SxOrb.SxOrbMenu.General.Enabled = false
 	end
-	SOWi:ForceTarget(Cel)
+	SxOrb:ForceTarget(Cel)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
@@ -378,8 +377,6 @@ end
 function Farm(Mode)
 	local UseQ
 	local UseE
-	if not SOWi:CanMove() then return end
-
 	EnemyMinions:update()
 	if Mode == "Freeze" then
 		UseQ =  MenuGP.farm.QF == 2
