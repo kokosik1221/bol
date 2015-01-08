@@ -2,8 +2,8 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.52
-	30.12.2014
+	Last Version: 0.53
+	08.01.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.52"
+local version = "0.53"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -40,7 +40,7 @@ end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
-	["SOW"] = "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -151,10 +151,9 @@ end
 
 function Menu()
 	VP = VPrediction()
-	SOWi = SOW(VP)
 	MenuAnnie = scriptConfig("Annie Master "..version, "Annie Master "..version)
 	MenuAnnie:addSubMenu("Orbwalking", "Orbwalking")
-	SOWi:LoadToMenu(MenuAnnie.Orbwalking)
+	SxOrb:LoadToMenu(MenuAnnie.Orbwalking)
 	MenuAnnie:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Annie"
@@ -285,15 +284,15 @@ end
 
 function caa()
 	if MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
-		SOWi:EnableAttacks()
+		SxOrb:EnableAttacks()
 	elseif not MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
-		SOWi:DisableAttacks()
+		SxOrb:DisableAttacks()
 	end
 	if MenuAnnie.comboConfig.uaa and MenuAnnie.comboConfig.uaa2 then
 		if GetDistance(Cel) < (Q.range - 50) then
-			SOWi:EnableAttacks()
+			SxOrb:EnableAttacks()
 		else
-			SOWi:DisableAttacks()
+			SxOrb:DisableAttacks()
 		end
 	end
 end
@@ -318,9 +317,9 @@ function Check()
 		Cel = GetCustomTarget()
 	end
 	if sac or mma then
-		SOWi.Menu.Enabled = false
+		SxOrb.SxOrbMenu.General.Enabled = false
 	end
-	SOWi:ForceTarget(Cel)
+	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -414,7 +413,6 @@ end
 
 function Farm()
 	EnemyMinions:update()
-	if not SOWi:CanMove() then return end
 	QMode =  MenuAnnie.farm.QF
 	WMode =  MenuAnnie.farm.WF
 	for i, minion in pairs(EnemyMinions.objects) do
