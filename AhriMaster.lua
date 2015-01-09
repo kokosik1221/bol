@@ -2,8 +2,8 @@
 
 	Script Name: AHRI MASTER 
     	Author: kokosik1221
-	Last Version: 0.2
-	30.12.2014
+	Last Version: 0.3
+	09.01.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Ahri" then return end
 _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
-local version = "0.2"
+local version = "0.3"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AhriMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,6 +39,7 @@ end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -132,9 +133,9 @@ function Vars()
 	W = {name = "Fox-Fire", range = 800}
 	E = {name = "Charm", range = 975, speed = 1200, delay = 0.25, width = 100}
 	R = {name = "Spirit Rush", range = 450}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, recall, aa = false, false, false, false, false, false, true
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, true
 	sac, mma = false, false
-	abilitylvl, lastskin, LastAttack, BaseWindupTime, BaseAnimationTime = 0, 0, 0, 3, 0.65
+	abilitylvl, lastskin = 0, 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey, zhonyaslot = nil, nil
@@ -179,20 +180,17 @@ end
 
 function OnTick()
 	Check()
-	if MenuAhri.Orbwalkingf.Combo and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.comboConfig.manac then
+	if MenuAhri.comboConfig.Combo then
 		caa()
 		Combo()
 	end
-	if MenuAhri.Orbwalkingf.LastHit then
-		_OrbWalk(Lasthit())
-	end
-	if (MenuAhri.Orbwalkingf.Mixed or MenuAhri.Orbwalkingf.MixedT) then
+	if (MenuAhri.harrasConfig.Mixed or MenuAhri.harrasConfig.MixedT) then
 		Harrass()
 	end
-	if MenuAhri.Orbwalkingf.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.farm.manaf then
+	if MenuAhri.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.farm.manaf then
 		Farm()
 	end
-	if MenuAhri.Orbwalkingf.JungleFarm and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.jf.manajf then
+	if MenuAhri.jf.JungleFarm and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.jf.manajf then
 		JungleFarmm()
 	end
 	if MenuAhri.prConfig.AZ then
@@ -207,14 +205,8 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuAhri = scriptConfig("Ahri Master "..version, "Ahri Master "..version)
-	MenuAhri:addSubMenu("Orbwalking", "Orbwalkingf")
-	MenuAhri.Orbwalkingf:addParam("USEORB", "Enable Orbwalk", SCRIPT_PARAM_ONOFF, true)
-	MenuAhri.Orbwalkingf:addParam("Combo", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
-	MenuAhri.Orbwalkingf:addParam("LastHit", "Last Hit ", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))	
-	MenuAhri.Orbwalkingf:addParam("Mixed", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
-	MenuAhri.Orbwalkingf:addParam("MixedT", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
-	MenuAhri.Orbwalkingf:addParam("LaneClear", "Lane Clear ", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))	
-	MenuAhri.Orbwalkingf:addParam("JungleFarm", "Jungle Clear", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
+	MenuAhri:addSubMenu("Orbwalking", "Orbwalking")
+	SxOrb:LoadToMenu(MenuAhri.Orbwalking) 
 	MenuAhri:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Ahri"
@@ -234,6 +226,7 @@ function Menu()
 	MenuAhri.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
 	MenuAhri.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
+	MenuAhri.comboConfig:addParam("Combo", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	MenuAhri:addSubMenu("[Ahri Master]: Harras Settings", "harrasConfig")
     MenuAhri.harrasConfig:addParam("QH", "Harras Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.harrasConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -242,6 +235,8 @@ function Menu()
 	MenuAhri.harrasConfig:addParam("EH", "Harras Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.harrasConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAhri.harrasConfig:addParam("manah", "Min. Mana To Harass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuAhri.harrasConfig:addParam("Mixed", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
+	MenuAhri.harrasConfig:addParam("MixedT", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuAhri:addSubMenu("[Ahri Master]: KS Settings", "ksConfig")
 	MenuAhri.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -258,12 +253,14 @@ function Menu()
 	MenuAhri.farm:addParam("WF",  "Use " .. W.name .. "(W)", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear"})
 	MenuAhri.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAhri.farm:addParam("manaf", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuAhri.farm:addParam("LaneClear", "Lane Clear ", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))	
 	MenuAhri:addSubMenu("[Ahri Master]: Jungle Farm Settings", "jf")
 	MenuAhri.jf:addParam("QJF", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAhri.jf:addParam("WJF", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAhri.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
+	MenuAhri.jf:addParam("JungleFarm", "Jungle Clear", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
 	MenuAhri:addSubMenu("[Ahri Master]: Extra Settings", "exConfig")
 	MenuAhri.exConfig:addSubMenu("Auto-Interrupt Spells", "ES")
 	for i, enemy in ipairs(GetEnemyHeroes()) do
@@ -313,12 +310,11 @@ function Menu()
 	MenuAhri.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAhri.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuAhri.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
-	MenuAhri.Orbwalkingf:permaShow("Combo")
-	MenuAhri.Orbwalkingf:permaShow("Mixed")
-	MenuAhri.Orbwalkingf:permaShow("MixedT")
-	MenuAhri.Orbwalkingf:permaShow("LaneClear")
-	MenuAhri.Orbwalkingf:permaShow("JungleFarm")
-	MenuAhri.Orbwalkingf:permaShow("LastHit")
+	MenuAhri.comboConfig:permaShow("Combo")
+	MenuAhri.harrasConfig:permaShow("Mixed")
+	MenuAhri.harrasConfig:permaShow("MixedT")
+	MenuAhri.farm:permaShow("LaneClear")
+	MenuAhri.jf:permaShow("JungleFarm")
 	MenuAhri.exConfig:permaShow("UI")
 	MenuAhri.exConfig:permaShow("UG")
 	MenuAhri.prConfig:permaShow("AZ")
@@ -348,9 +344,9 @@ end
 
 function caa()
 	if MenuAhri.comboConfig.uaa then
-		EnableAA()
+		SxOrb:EnableAttacks()
 	elseif not MenuAhri.comboConfig.uaa then
-		DisableAA()
+		SxOrb:DisableAttacks()
 	end
 end
 
@@ -387,8 +383,9 @@ function Check()
 		Cel = GetCustomTarget()
 	end
 	if (sac == true) or (mma == true) then
-		MenuAhri.Orbwalkingf.USEORB = false
+		SxOrb.SxOrbMenu.General.Enabled = false
 	end
+	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -427,8 +424,7 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
-	_OrbWalk(Cel)
-	if Cel ~= nil then
+	if Cel ~= nil and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.comboConfig.manac then
 		UseItems(Cel)
 		if MenuAhri.comboConfig.USER then
 			if RReady and ValidTarget(Cel, E.range) then
@@ -459,14 +455,6 @@ function Combo()
 end
 
 function Harrass()
-	m = Lasthit()
-	if Cel == nil then
-		_OrbWalk(m)
-	elseif GetDistance(Cel) < GetDistance(m) then
-			_OrbWalk(Cel)
-	else 
-		_OrbWalk(m)
-	end
 	if Cel ~= nil and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.harrasConfig.manah then
 		if MenuAhri.harrasConfig.QH then
 			if QReady and ValidTarget(Cel, Q.range - 30) then
@@ -486,26 +474,11 @@ function Harrass()
 	end
 end
 
-function Lasthit()
-	EnemyMinions:update()
-	for _, minion in pairs(EnemyMinions.objects) do
-		if minion and ValidTarget(minion, myHero.range + VP:GetHitBox(myHero)) then
-			local aa = getDmg("AD",minion, myHero)
-			if minion.health <= aa then
-				tar = minion
-			end
-		end
-	end
-	return tar
-end
-
 function Farm()
 	EnemyMinions:update()
 	QMode =  MenuAhri.farm.QF
 	WMode =  MenuAhri.farm.WF
-	_OrbWalk()
 	for i, minion in pairs(EnemyMinions.objects) do
-		_OrbWalk(minion)
 		if QMode == 3 then
 			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
@@ -564,9 +537,7 @@ end
 
 function JungleFarmm()
 	JungleMinions:update()
-	_OrbWalk()
 	for i, minion in pairs(JungleMinions.objects) do
-		_OrbWalk(minion)
 		if MenuAhri.jf.QJF then
 			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
@@ -926,13 +897,6 @@ function DrawCircle2(x, y, z, radius, color)
 end
 
 function OnProcessSpell(unit, spell)
-    if unit.isMe then
-        if (spell.name:lower():find("attack")) then
- 			BaseAnimationTime = 1 / (spell.animationTime * myHero.attackSpeed)
- 			BaseWindupTime = 1 / (spell.windUpTime * myHero.attackSpeed)
- 			LastAttack = os.clock() - (GetLatency()/4000)
- 		end
-    end
 	if MenuAhri.exConfig.UI and EReady then
 		for _, x in pairs(InterruptList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
@@ -959,46 +923,4 @@ function OnProcessSpell(unit, spell)
 			end
 		end
 	end
-end
-
-function _OrbWalk(target) 
-	if MenuAhri.Orbwalkingf.USEORB then
-		if aa and CanAA() and ValidTarget(target, myHero.range + VP:GetHitBox(myHero)) then
-			LastAttack = os.clock() + (GetLatency()/4000)
-			myHero:Attack(target)
-		elseif CanMove() then
-			MouseMove = Vector(myHero) + (Vector(mousePos) - Vector(myHero)):normalized() * 500
-			myHero:MoveTo(MouseMove.x, MouseMove.z)
-		end
-	end
-end
-
-function DisableAA()
-	aa = false
-end
-
-function EnableAA()
-	aa = true
-end
-
-function CanAA()
-	if LastAttack <= os.clock() then
-		return (os.clock() + (GetLatency()/4000) > LastAttack + AnimationTime())
-	else
-		return false
-	end
-end
-
-function CanMove()
-	if LastAttack <= os.clock() then
-		return (os.clock() + (GetLatency()/4000) > LastAttack + WindUpTime())
-	end
-end
- 
-function WindUpTime(exact)
-	return (1 / (myHero.attackSpeed * BaseWindupTime)) + (exact and 0 or 50 / 1000)
-end
- 
-function AnimationTime()
- 	return 1 / (myHero.attackSpeed * BaseAnimationTime)
 end
