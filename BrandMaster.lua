@@ -2,8 +2,8 @@
 
 	Script Name: BRAND MASTER 
     	Author: kokosik1221
-	Last Version: 1.29
-	08.01.2015
+	Last Version: 1.291
+	12.01.2015
 	
 ]]--
 	
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.29"
+local version = "1.291"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BrandMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -131,7 +131,7 @@ function OnTick()
 		for _, enemy in pairs(GetEnemyHeroes()) do
 			local wPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, W.delay, W.width, W.range, W.speed, myHero)
 			if ValidTarget(enemy) and wPos ~= nil and maxHit >= MenuBrand.exConfig.AW2C then		
-				if VIP_USER and MenuAnnie.prConfig.pc then
+				if VIP_USER and MenuBrand.prConfig.pc then
 					Packet("S_CAST", {spellId = _W, fromX = wPos.x, fromY = wPos.z, toX = wPos.x, toY = wPos.z}):send()
 				else
 					CastSpell(_W, wPos.x, wPos.z)
