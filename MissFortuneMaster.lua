@@ -2,8 +2,8 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.2
-	06.01.2015
+	Last Version: 0.3
+	13.01.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.2"
+local version = "0.3"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -170,6 +170,7 @@ function Menu()
 	MFMenu:addSubMenu("[MissFortune Master]: Combo Settings", "comboConfig")
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: Q Settings", "qConfig")
 	MFMenu.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.comboConfig.qConfig:addParam("USEQ2", "Use On Minions", SCRIPT_PARAM_ONOFF, false)
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: W Settings", "wConfig")
 	MFMenu.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: E Settings", "eConfig")
@@ -186,6 +187,7 @@ function Menu()
 	MFMenu.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	MFMenu:addSubMenu("[MissFortune Master]: Harras Settings", "harrasConfig")
 	MFMenu.harrasConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.harrasConfig:addParam("USEQ2", "Use On Minions", SCRIPT_PARAM_ONOFF, false)
 	MFMenu.harrasConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
 	MFMenu.harrasConfig:addParam("USEE", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
 	MFMenu.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
@@ -325,6 +327,14 @@ function getHitBoxRadius(target)
 	return GetDistance(target.minBBox, target.maxBBox)/2
 end
 
+function Getminion(tar)
+	for i, minion in pairs(EnemyMinions.objects) do
+		if GetDistance(minion, tar) < 300 and ValidTarget(minion, Q.range) then
+			return minion
+		end
+	end
+end
+
 function Combo()
 	if Cel ~= nil then 
 		UseItems(Cel)
@@ -333,8 +343,21 @@ function Combo()
 		end
 	end
 	if QCel ~= nil then 
-		if MFMenu.comboConfig.qConfig.USEQ and ValidTarget(QCel, Q.range) and not rcasting then
+		if MFMenu.comboConfig.qConfig.USEQ and ValidTarget(QCel, Q.range) and not rcasting and not MFMenu.comboConfig.qConfig.USEQ2 then
 			CastQ(QCel)
+		end
+		if MFMenu.comboConfig.qConfig.USEQ and MFMenu.comboConfig.qConfig.USEQ2 and not rcasting then
+			EnemyMinions:update()
+			local minio = Getminion(QCel)
+			local hit = CountObjectsNearPos(QCel, 200, 200, EnemyMinions.objects)
+			if hit > 0 and GetDistance(minio, QCel) < 300 and ValidTarget(minio, Q.range) then
+				CastQ(minion)
+			end
+			if not minio or GetDistance(minio, QCel) > 300 then
+				if ValidTarget(QCel, Q.range) then
+					CastQ(QCel)
+				end
+			end
 		end
 	end
 	if ECel ~= nil then 
@@ -343,11 +366,11 @@ function Combo()
 		end
 	end
 	if RCel ~= nil then 
-		if MFMenu.comboConfig.rConfig.USER and ValidTarget(RCel) and GetDistance(RCel) < R.range then
+		if MFMenu.comboConfig.rConfig.USER and GetDistance(RCel) < R.range then
 			if MFMenu.comboConfig.rConfig.RM == 1 then
 				CastR(RCel)	
 			elseif MFMenu.comboConfig.rConfig.RM == 2 then
-				local RDMG = getDmg("R", RCel, myHero, 3)
+				local RDMG = getDmg("R", RCel, myHero, 3) * 7
 				if RCel.health <= RDMG and GetDistance(RCel) >= 550 then
 					CastR(RCel)
 				end
@@ -366,9 +389,22 @@ function Combo()
 end
 
 function Harrass()
-	if MFMenu.harrasConfig.USEQ and recall == false and not rcasting then
+	if MFMenu.harrasConfig.USEQ and recall == false and not rcasting and not MFMenu.harrasConfig.USEQ2 then
 		if ValidTarget(QCel, Q.range) then
 			CastQ(QCel)
+		end
+	end
+	if QCel ~= nil and MFMenu.harrasConfig.USEQ and MFMenu.harrasConfig.USEQ2 and not rcasting then
+		EnemyMinions:update()
+		local minio = Getminion(QCel)
+		local hit = CountObjectsNearPos(QCel, 200, 200, EnemyMinions.objects)
+		if hit > 0 and GetDistance(minio, QCel) < 300 and ValidTarget(minio, Q.range) then
+			CastQ(minio)
+		end
+		if not minio or GetDistance(minio, QCel) > 300 then
+			if ValidTarget(QCel, Q.range) then
+				CastQ(QCel)
+			end
 		end
 	end
 	if MFMenu.harrasConfig.USEW and recall == false and not rcasting then
@@ -432,32 +468,30 @@ function JungleFarm()
 	end
 end
 
-function BestEFarmPos(range, width, objects)
-	local BestPos 
-	local BestHit = 0
-	for i, object in ipairs(objects) do
-		local EndPos = Vector(myHero.visionPos) + range * (Vector(object) - Vector(myHero.visionPos)):normalized()
-		local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
-		if hit > BestHit then
-			BestHit = hit
-			BestPos = Vector(object)
-			if BestHit == #objects then
-			   break
-			end
-		 end
-	end
-	return BestPos, BestHit
+function BestEFarmPos(range, radius, objects)
+    local Pos 
+    local BHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BHit then
+            BHit = hit
+            Pos = Vector(object)
+            if BHit == #objects then
+               break
+            end
+         end
+    end
+    return Pos, BHit
 end
 
-function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
-	local n = 0
-	for i, object in ipairs(objects) do
-		local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
-		if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width then
-			n = n + 1
-		end
-	end
-	return n
+function CountObjectsNearPos(pos, range, radius, objects)
+    local n = 0
+    for i, object in ipairs(objects) do
+        if GetDistanceSqr(pos, object) <= radius * radius then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function autolvl()
@@ -485,7 +519,7 @@ function DmgCalc()
 			local aaDmg4 = getDmg("AD", enemy, myHero) * 4
 			local qDmg = getDmg("Q", enemy, myHero, 3)
 			local eDmg = getDmg("E", enemy, myHero, 3)
-			local rDmg = getDmg("R", enemy, myHero, 3)
+			local rDmg = getDmg("R", enemy, myHero, 3) * 7
 			if enemy.health < qDmg and QReady then
 				KillText[i] = 6
 			elseif enemy.health < eDmg and EReady then
@@ -548,7 +582,7 @@ end
 
 function AutoF()
 	for _, enemy in pairs(GetEnemyHeroes()) do
-		if MFMenu.exConfig.ARF then
+		if MFMenu.exConfig.ARF and not rcasting then
 			if RReady and ValidTarget(enemy, R.range) and recall == false then
 				local rPos, HitChance, maxHit, Positions = VP:GetConeAOECastPosition(enemy, R.delay, R.angle, R.range, R.speed, myHero)
 				if rPos ~= nil and maxHit >= MFMenu.exConfig.ARX and HitChance >=2 then		
@@ -560,7 +594,7 @@ function AutoF()
 				end
 			end
 		end
-		if MFMenu.exConfig.AEF then
+		if MFMenu.exConfig.AEF and not rcasting then
 			if EReady and ValidTarget(enemy, E.range) and recall == false then
 				local ePos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, E.delay, E.width, E.range, E.speed, myHero)
 				if ePos ~= nil and maxHit >= MFMenu.exConfig.AEX and HitChance >=2 then		
@@ -578,15 +612,17 @@ end
 function CheckUlt()
 	if TargetHaveBuff("missfortunebulletsound", myHero) then
 		rcasting = true 
+		r2 = true
 		SxOrbWalk:DisableMove()
-		if (sac and _G.AutoCarry) then
+		if _G.AutoCarry then
 			
 		end
     else
         rcasting = false
+		r2 = false
 		if rcasting == false then
 			DelayAction(function() SxOrbWalk:EnableMove() end, 0.25)
-			if (sac and _G.AutoCarry) then
+			if _G.AutoCarry then
 				
 			end
 		end
@@ -603,9 +639,9 @@ function KillSteal()
 		local health = Enemy.health
 		local qDmg = getDmg("Q", Enemy, myHero, 3)
 		local eDmg = getDmg("E", Enemy, myHero, 3)
-		local rDmg = getDmg("R", Enemy, myHero, 3)
+		local rDmg = getDmg("R", Enemy, myHero, 3) * 7
 		local iDmg = getDmg("IGNITE", Enemy, myHero) 
-		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible and GetDistance(Enemy) < 2000 then
+		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible and GetDistance(Enemy) < 2000 and not rcasting then
 			if health < qDmg and MFMenu.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
 			elseif health < eDmg and MFMenu.ksConfig.EKS and ValidTarget(Enemy, E.range+50) then
@@ -666,6 +702,8 @@ end
 
 function CastR(unit)
 	if RReady then
+		rcasting = true 
+		r2 = true
 		if MFMenu.prConfig.pro == 1 then
 			local CastPosition,  HitChance, maxHit = VP:GetConeAOECastPosition(unit, R.delay, R.angle, R.range, R.speed, myHero)
 			if HitChance >= MFMenu.prConfig.vphit - 1 then
@@ -686,14 +724,21 @@ function CastR(unit)
 				end	
 			end
 		end
-		rcasting = true 
-		if (sac and _G.AutoCarry) then
-		
-		end
 	end
 end
 
+function OnSendPacket(packet)
+    local UltPacket = Packet(packet)
+    if VIP_USER and MFMenu.prConfig.pc and (UltPacket:get("name") == "S_MOVE") and r2 == true then
+		UltPacket:block()
+    end
+end
+
 function OnWndMsg(Msg, Key)
+	if RReady and Msg == KEY_DOWN and Key == 82 then
+		rcasting = true
+		r2 = true
+	end
 	if Msg == WM_LBUTTONDOWN and MFMenu.comboConfig.ST then
 		local dist = 0
 		local Selecttarget = nil
