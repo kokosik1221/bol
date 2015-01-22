@@ -2,8 +2,8 @@
 
 	Script Name: OLAF MASTER 
     	Author: kokosik1221
-	Last Version: 0.32
-	30.12.2014
+	Last Version: 0.33
+	22.01.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.32"
+local version = "0.33"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/OlafMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -483,6 +483,17 @@ function GetBestLineFarmPosition(range, width, objects)
 		 end
 	end
 	return BestPos, BestHit
+end
+
+function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
+	local n = 0
+	for i, object in ipairs(objects) do
+		local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
+		if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width then
+			n = n + 1
+		end
+	end
+	return n
 end
 
 function AutoAxe()
