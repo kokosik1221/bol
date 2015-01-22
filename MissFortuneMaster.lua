@@ -2,8 +2,8 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.3
-	13.01.2015
+	Last Version: 0.31
+	22.01.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.3"
+local version = "0.31"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -620,7 +620,7 @@ function CheckUlt()
     else
         rcasting = false
 		r2 = false
-		if rcasting == false then
+		if rcasting == false or r2 == false then
 			DelayAction(function() SxOrbWalk:EnableMove() end, 0.25)
 			if _G.AutoCarry then
 				
