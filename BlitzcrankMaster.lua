@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.7
-	08.01.2015
+	Last Version: 0.8
+	26.01.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.7"
+local version = "0.8"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -92,7 +92,7 @@ local Items = {
 }
 
 function Vars()
-	Q = {name = "Rocket Grab", range = 900, speed = 1800, delay = 0.25, width = 60}
+	Q = {name = "Rocket Grab", range = 925, speed = 1800, delay = 0.25, width = 60}
 	W = {name = "Overdrive"}
 	E = {name = "Power Fist", range = 140}
 	R = {name = "Static Field", range = 600}
@@ -167,7 +167,8 @@ function Menu()
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Combo Settings", "comboConfig")
 	MenuBlitz.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("USEQS", "Use Smite If See Collision", SCRIPT_PARAM_ONOFF, true)
-	MenuBlitz.comboConfig:addParam("QMINR", "Min. Q Range", SCRIPT_PARAM_SLICE, 300, 0, 900, 0) 
+	MenuBlitz.comboConfig:addParam("QMINR", "Min. Q Range", SCRIPT_PARAM_SLICE, 250, 0, 500, 0) 
+	MenuBlitz.comboConfig:addParam("QMAXR", "Max. Q Range", SCRIPT_PARAM_SLICE, 850, 500, 925, 0) 
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("USEW", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -349,6 +350,7 @@ function Check()
 	else 
 		_G.DrawCircle = _G.oldDrawCircle 
 	end
+	Q.range = MenuBlitz.comboConfig.QMAXR
 end
 
 function UseItems(unit)
