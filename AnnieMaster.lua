@@ -2,8 +2,8 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.53
-	08.01.2015
+	Last Version: 0.54
+	27.01.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.53"
+local version = "0.54"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -809,30 +809,24 @@ function OnGainBuff(unit, buff)
 	if unit.isMe and (buff.name == "recallimproved") then
 		recall = true
 	end 
+	if unit.isMe and (buff.name == "pyromania_particle") then
+		stun = true
+	end 
+	if unit.isMe and (buff.name == "infernalguardiantimer") then
+		tibbers = true
+	end 
 end
 
 function OnLoseBuff(unit, buff)
 	if unit.isMe and (buff.name == "recallimproved") then
 		recall = false
 	end 
-end
-
-function OnCreateObj(object)
-    if object.name == "StunReady.troy" then
-        stun = true
-    end
-    if object.name == "BearFire_foot.troy" then
-        tibbers = true
-    end
-end
- 
-function OnDeleteObj(object)
-    if object.name == "StunReady.troy" then
-        stun = false
-    end
-    if object.name == "BearFire_foot.troy" then
-        tibbers = false
-    end
+	if unit.isMe and (buff.name == "pyromania_particle") then
+		stun = false
+	end 
+	if unit.isMe and (buff.name == "infernalguardiantimer") then
+		tibbers = false
+	end 
 end
 
 function EnemyCount(point, range)
