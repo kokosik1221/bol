@@ -2,9 +2,9 @@
 
 	Script Name: FIZZ MASTER 
     	Author: kokosik1221
-	Last Version: 1.33
-	08.01.2015
-
+	Last Version: 1.34
+	01.02.2015
+	
 ]]--
 
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.33"
+local version = "1.34"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/FizzMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -74,119 +74,385 @@ local Items = {
 }
 
 local DodgeSpells = {
-  ['AkaliShadowDance'] = {charName = "Akali", spellSlot = "R", SpellType = "castcel"},
-  ['BrandWildfire'] = {charName = "Brand", spellSlot = "R", SpellType = "castcel"},
-  ['AceintheHole'] = {charName = "Caitlyn", spellSlot = "R", SpellType = "castcel"},
-  ['Feast'] = {charName = "ChoGath", spellSlot = "R", SpellType = "castcel"},
-  ['DariusExecute'] = {charName = "Darius", spellSlot = "R", SpellType = "castcel"},
-  ['DianaTeleport'] = {charName = "Diana", spellSlot = "R", SpellType = "castcel"},
-  ['FioraDance'] = {charName = "Fiora", spellSlot = "R", SpellType = "castcel"},
-  ['GarenR'] = {charName = "Garen", spellSlot = "R", SpellType = "castcel"},
-  ['BlindMonkRKick'] = {charName = "LeeSin", spellSlot = "R", SpellType = "castcel"},
-  ['LissandraR'] = {charName = "Lissandra", spellSlot = "R", SpellType = "castcel"},
-  ['AlZaharNetherGrasp'] = {charName = "Malzahar", spellSlot = "R", SpellType = "castcel"},
-  ['MordekaiserChildrenOfTheGrave'] = {charName = "Mordekaiser", spellSlot = "R", SpellType = "castcel"},
-  ['NautilusGandLine'] = {charName = "Nautilus", spellSlot = "R", SpellType = "castcel"},
-  ['NocturneParanoia'] = {charName = "Nocturne", spellSlot = "R", SpellType = "castcel"},
-  ['SkarnerImpale'] = {charName = "Skarner", spellSlot = "R", SpellType = "castcel"},
-  ['SyndraR'] = {charName = "Syndra", spellSlot = "R", SpellType = "castcel"},
-  ['BusterShot'] = {charName = "Tristana", spellSlot = "R", SpellType = "castcel"},
-  ['TrundlePain'] = {charName = "Trundle", spellSlot = "R", SpellType = "castcel"},
-  ['UrgotSwap2'] = {charName = "Urgot", spellSlot = "R", SpellType = "castcel"},
-  ['VeigarPrimordialBurst'] = {charName = "Veigar", spellSlot = "R", SpellType = "castcel"},
-  ['ViR'] = {charName = "Vi", spellSlot = "R", SpellType = "castcel"},
-  ['InfiniteDuress'] = {charName = "Warwick", spellSlot = "R", SpellType = "castcel"},
-  ['zedult'] = {charName = "Zed", spellSlot = "R", SpellType = "castcel"},
+  ['AatroxQ'] = {charName = "Aatrox", spellSlot = "Q", SpellType = "skillshot"},
+  ['AatroxE'] = {charName = "Aatrox", spellSlot = "E", SpellType = "skillshot"},
+  ['AhriOrbofDeception'] = {charName = "Ahri", spellSlot = "Q", SpellType = "skillshot"},
+  ['AhriFoxFire'] = {charName = "Ahri", spellSlot = "W", SpellType = "skillshot"},
+  ['AhriSeduce'] = {charName = "Ahri", spellSlot = "E", SpellType = "skillshot"},
+  ['AhriTumble'] = {charName = "Ahri", spellSlot = "R", SpellType = "skillshot"},
   ['AkaliMota'] = {charName = "Akali", spellSlot = "Q", SpellType = "castcel"},
+  ['AkaliShadowSwipe'] = {charName = "Akali", spellSlot = "E", SpellType = "skillshot"},
+  ['AkaliShadowDance'] = {charName = "Akali", spellSlot = "R", SpellType = "castcel"},
   ['Pulverize'] = {charName = "Alistar", spellSlot = "Q", SpellType = "castcel"},
   ['Headbutt'] = {charName = "Alistar", spellSlot = "W", SpellType = "castcel"},
+  ['BandageToss'] = {charName = "Amumu", spellSlot = "Q", SpellType = "skillshot"},
+  ['AuraofDespair'] = {charName = "Amumu", spellSlot = "W", SpellType = "skillshot"},
+  ['Tantrum'] = {charName = "Amumu", spellSlot = "E", SpellType = "skillshot"},
+  ['CurseoftheSadMummy'] = {charName = "Amumu", spellSlot = "R", SpellType = "skillshot"},
+  ['FlashFrost'] = {charName = "Anivia", spellSlot = "Q", SpellType = "skillshot"},
   ['Frostbite'] = {charName = "Anivia", spellSlot = "E", SpellType = "castcel"},
+  ['GlacialStorm'] = {charName = "Anivia", spellSlot = "R", SpellType = "skillshot"},
   ['Disintegrate'] = {charName = "Annie", spellSlot = "Q", SpellType = "castcel"},
   ['Incinerate'] = {charName = "Annie", spellSlot = "W", SpellType = "castcel"},
+  ['InfernalGuardian'] = {charName = "Annie", spellSlot = "R", SpellType = "castcel"},
+  ['Volley'] = {charName = "Ashe", spellSlot = "W", SpellType = "skillshot"},
+  ['EnchantedCrystalArrow'] = {charName = "Ashe", spellSlot = "R", SpellType = "skillshot"},
+  ['RocketGrab'] = {charName = "Blitzcrank", spellSlot = "Q", SpellType = "skillshot"},
+  ['PowerFist'] = {charName = "Blitzcrank", spellSlot = "E", SpellType = "skillshot"},
+  ['StaticField'] = {charName = "Blitzcrank", spellSlot = "R", SpellType = "skillshot"},
+  ['BrandBlaze'] = {charName = "Brand", spellSlot = "Q", SpellType = "skillshot"},
+  ['BrandFissure'] = {charName = "Brand", spellSlot = "W", SpellType = "skillshot"},
   ['BrandConflagration'] = {charName = "Brand", spellSlot = "E", SpellType = "castcel"},
+  ['BrandWildfire'] = {charName = "Brand", spellSlot = "R", SpellType = "castcel"},
+  ['BraumQ'] = {charName = "Braum", spellSlot = "Q", SpellType = "skillshot"},
+  ['BraumQMissle'] = {charName = "Braum", spellSlot = "Q", SpellType = "skillshot"},
+  ['BraumR'] = {charName = "Braum", spellSlot = "R", SpellType = "skillshot"},
+  ['CaitlynPiltoverPeacemaker'] = {charName = "Caitlyn", spellSlot = "Q", SpellType = "skillshot"},
+  ['CaitlynYordleTrap'] = {charName = "Caitlyn", spellSlot = "W", SpellType = "skillshot"},
+  ['CaitlynEntrapment'] = {charName = "Caitlyn", spellSlot = "E", SpellType = "skillshot"},
+  ['CaitlynAceintheHole'] = {charName = "Caitlyn", spellSlot = "R", SpellType = "castcel"},
+  ['CassiopeiaNoxiousBlast'] = {charName = "Cassiopeia", spellSlot = "Q", SpellType = "skillshot"},
+  ['CassiopeiaMiasma'] = {charName = "Cassiopeia", spellSlot = "W", SpellType = "skillshot"},
   ['CassiopeiaTwinFang'] = {charName = "Cassiopeia", spellSlot = "E", SpellType = "castcel"},
+  ['CassiopeiaPetrifyingGaze'] = {charName = "Cassiopeia", spellSlot = "R", SpellType = "skillshot"},
+  ['Rupture'] = {charName = "Chogath", spellSlot = "Q", SpellType = "skillshot"},
+  ['FeralScream'] = {charName = "Chogath", spellSlot = "W", SpellType = "skillshot"},
   ['VorpalSpikes'] = {charName = "Chogath", spellSlot = "E", SpellType = "castcel"},
+  ['Feast'] = {charName = "Chogath", spellSlot = "R", SpellType = "castcel"},
+  ['PhosphorusBomb'] = {charName = "Corki", spellSlot = "Q", SpellType = "skillshot"},
+  ['CarpetBomb'] = {charName = "Corki", spellSlot = "W", SpellType = "skillshot"},
+  ['GGun'] = {charName = "Corki", spellSlot = "E", SpellType = "skillshot"},
+  ['MissileBarrage'] = {charName = "Corki", spellSlot = "R", SpellType = "skillshot"},
+  ['DariusCleave'] = {charName = "Darius", spellSlot = "Q", SpellType = "castcel"},
+  ['DariusAxeGrabCone'] = {charName = "Darius", spellSlot = "E", SpellType = "castcel"},
+  ['DariusExecute'] = {charName = "Darius", spellSlot = "R", SpellType = "castcel"},
+  ['DianaArc'] = {charName = "Diana", spellSlot = "Q", SpellType = "skillshot"},
+  ['DianaOrbs'] = {charName = "Diana", spellSlot = "W", SpellType = "skillshot"},
+  ['DianaVortex'] = {charName = "Diana", spellSlot = "E", SpellType = "skillshot"},
+  ['DianaTeleport'] = {charName = "Diana", spellSlot = "R", SpellType = "castcel"},
+  ['InfectedCleaverMissileCast'] = {charName = "DrMundo", spellSlot = "Q"},
+  ['BurningAgony'] = {charName = "DrMundo", spellSlot = "W", SpellType = "skillshot"},
+  ['DravenDoubleShot'] = {charName = "Draven", spellSlot = "E", SpellType = "castcel"},
+  ['DravenRCast'] = {charName = "Draven", spellSlot = "R", SpellType = "castcel"},
+  ['EliseHumanQ'] = {charName = "Elise", spellSlot = "Q", SpellType = "castcel"},
+  ['EliseHumanW'] = {charName = "Elise", spellSlot = "W", SpellType = "skillshot"},
+  ['EliseHumanE'] = {charName = "Elise", spellSlot = "E", SpellType = "skillshot"},
+  ['EliseSpiderQCast'] = {charName = "Elise", spellSlot = "Q", SpellType = "skillshot"},
+  ['EliseSpiderW'] = {charName = "Elise", spellSlot = "W", SpellType = "skillshot"},
+  ['EliseSpiderEInitial'] = {charName = "Elise", spellSlot = "E", SpellType = "castcel"},
+  ['elisespideredescent'] = {charName = "Elise", spellSlot = "E", SpellType = "castcel"},
+  ['EvelynnQ'] = {charName = "Evelynn", spellSlot = "Q", SpellType = "skillshot"},
+  ['EvelynnE'] = {charName = "Evelynn", spellSlot = "E", SpellType = "castcel"},
+  ['EvelynnR'] = {charName = "Evelynn", spellSlot = "R", SpellType = "skillshot"},
+  ['EzrealMysticShot'] = {charName = "Ezreal", spellSlot = "Q", SpellType = "skillshot"},
+  ['EzrealEssenceFlux'] = {charName = "Ezreal", spellSlot = "W", SpellType = "skillshot"},
+  ['EzrealArcaneShift'] = {charName = "Ezreal", spellSlot = "E", SpellType = "castcel"},
+  ['EzrealTruehotBarrage'] = {charName = "Ezreal", spellSlot = "R", SpellType = "skillshot"},
   ['Terrify'] = {charName = "FiddleSticks", spellSlot = "Q", SpellType = "castcel"},
   ['Drain'] = {charName = "FiddleSticks", spellSlot = "W", SpellType = "castcel"},
   ['FiddlesticksDarkWind'] = {charName = "FiddleSticks", spellSlot = "E", SpellType = "castcel"},
+  ['Crowstorm'] = {charName = "FiddleSticks", spellSlot = "R", SpellType = "skillshot"},
   ['FioraQ'] = {charName = "Fiora", spellSlot = "Q", SpellType = "castcel"},
+  ['FioraDance'] = {charName = "Fiora", spellSlot = "R", SpellType = "castcel"},
   ['FizzPiercingStrike'] = {charName = "Fizz", spellSlot = "Q", SpellType = "castcel"},
+  ['FizzJump'] = {charName = "Fizz", spellSlot = "E", SpellType = "skillshot"},
+  ['FizzJumptwo'] = {charName = "Fizz", spellSlot = "E", SpellType = "skillshot"},
+  ['FizzMarinerDoom'] = {charName = "Fizz", spellSlot = "R", SpellType = "skillshot"},
+  ['GalioResoluteSmite'] = {charName = "Galio", spellSlot = "Q", SpellType = "skillshot"},
+  ['GalioRighteousGust'] = {charName = "Galio", spellSlot = "E", SpellType = "skillshot"},
+  ['GalioIdolOfDurand'] = {charName = "Galio", spellSlot = "R", SpellType = "skillshot"},
   ['Parley'] = {charName = "Gangplank", spellSlot = "Q", SpellType = "castcel"},
+  ['CannonBarrage'] = {charName = "Gangplank", spellSlot = "R", SpellType = "skillshot"},
+  ['GarenQ'] = {charName = "Garen", spellSlot = "Q", SpellType = "skillshot"},
+  ['GarenE'] = {charName = "Garen", spellSlot = "E", SpellType = "skillshot"},
+  ['GarenR'] = {charName = "Garen", spellSlot = "R", SpellType = "castcel"},
+  ['GnarQ'] = {charName = "Gnar", spellSlot = "Q", SpellType = "skillshot"},
+  ['GnarBigQ'] = {charName = "Gnar", spellSlot = "Q", SpellType = "skillshot"},
+  ['GnarWStack'] = {charName = "Gnar", spellSlot = "W", SpellType = "castcel"},
+  ['GnarBigW'] = {charName = "Gnar", spellSlot = "W", SpellType = "skillshot"},
+  ['GnarBigE'] = {charName = "Gnar", spellSlot = "E", SpellType = "skillshot"},
+  ['GnarBigR'] = {charName = "Gnar", spellSlot = "R", SpellType = "skillshot"},
+  ['GragasBarrelRoll'] = {charName = "Gragas", spellSlot = "Q", SpellType = "skillshot"},
+  ['gragasbarrelrolltoggle'] = {charName = "Gragas", spellSlot = "Q", SpellType = "skillshot"},
+  ['GragasBodySlam'] = {charName = "Gragas", spellSlot = "E", SpellType = "skillshot"},
+  ['GragasExplosiveCask'] = {charName = "Gragas", spellSlot = "R", SpellType = "skillshot"},
+  ['GravesClusterShot'] = {charName = "Graves", spellSlot = "Q", SpellType = "skillshot"},
+  ['GravesSmokeGrenade'] = {charName = "Graves", spellSlot = "W", SpellType = "skillshot"},
+  ['gravessmokegrenadeboom'] = {charName = "Graves", spellSlot = "W", SpellType = "skillshot"},
+  ['GravesChargeShot'] = {charName = "Graves", spellSlot = "R", SpellType = "skillshot"},
+  ['HecarimRapidSlash'] = {charName = "Hecarim", spellSlot = "Q", SpellType = "skillshot"},
+  ['HecarimW'] = {charName = "Hecarim", spellSlot = "W", SpellType = "skillshot"},
+  ['HecarimUlt'] = {charName = "Hecarim", spellSlot = "R", SpellType = "skillshot"},
+  ['HeimerdingerQ'] = {charName = "Heimerdinger", spellSlot = "Q", SpellType = "skillshot"},
+  ['HeimerdingerW'] = {charName = "Heimerdinger", spellSlot = "W", SpellType = "skillshot"},
+  ['HeimerdingerE'] = {charName = "Heimerdinger", spellSlot = "E", SpellType = "skillshot"},
   ['IreliaGatotsu'] = {charName = "Irelia", spellSlot = "Q", SpellType = "castcel"},
   ['IreliaEquilibriumStrike'] = {charName = "Irelia", spellSlot = "E", SpellType = "castcel"},
+  ['IreliaTranscendentBlades'] = {charName = "Irelia", spellSlot = "R", SpellType = "skillshot"},
+  ['HowlingGale'] = {charName = "Janna", spellSlot = "Q", SpellType = "skillshot"},
   ['SowTheWind'] = {charName = "Janna", spellSlot = "W", SpellType = "castcel"},
+  ['JarvanIVDragonStrike'] = {charName = "JarvanIV", spellSlot = "Q", SpellType = "skillshot"},
+  ['JarvanIVDemacianStandard'] = {charName = "JarvanIV", spellSlot = "E", SpellType = "skillshot"},
+  ['JarvanIVCataclysm'] = {charName = "JarvanIV", spellSlot = "R", SpellType = "skillshot"},
   ['JaxLeapStrike'] = {charName = "Jax", spellSlot = "Q", SpellType = "castcel"},
+  ['JaxCounterStrike'] = {charName = "Jax", spellslot = "E", SpellType = "skillshot"},
   ['JayceToTheSkies'] = {charName = "Jayce", spellSlot = "Q", SpellType = "castcel"},
+  ['JayceStaticField'] = {charName = "Jayce", spellSlot = "W", SpellType = "skillshot"},
   ['JayceThunderingBlow'] = {charName = "Jayce", spellSlot = "E", SpellType = "castcel"},
+  ['jayceshockblast'] = {charName = "Jayce", spellSlot = "Q", SpellType = "skillshot"},
+  ['jaycehypercharge'] = {charName = "Jayce", spellSlot = "W", SpellType = "skillshot"},
+  ['jayceaccelerationgate'] = {charName = "Jayce", spellSlot = "E", SpellType = "skillshot"},
+  ['JinxW'] = {charName = "Jinx", spellSlot = "W", SpellType = "skillshot"},
+  ['JinxRWrapper'] = {charName = "Jinx", spellSlot = "R", SpellType = "skillshot"},
+  ['LayWaste'] = {charName = "Karthus", spellSlot = "Q", SpellType = "skillshot"},
+  ['WallOfPain'] = {charName = "Karthus", spellSlot = "W", SpellType = "skillshot"},
+  ['Defile'] = {charName = "Karthus", spellSlot = "E", SpellType = "skillshot"},
+  ['FallenOne'] = {charName = "Karthus", spellSlot = "R", SpellType = "skillshot"},
+  ['KarmaQ'] = {charName = "Karma", spellSlot = "Q", SpellType = "skillshot"},
   ['KarmaSpiritBind'] = {charName = "Karma", spellSlot = "W", SpellType = "castcel"},
   ['NullLance'] = {charName = "Kassadin", spellSlot = "Q", SpellType = "castcel"},
+  ['NetherBlade'] = {charName = "Kassadin", spellSlot = "W", SpellType = "skillshot"},
+  ['ForcePulse'] = {charName = "Kassadin", spellSlot = "E", SpellType = "skillshot"},
+  ['RiftWalk'] = {charName = "Kassadin", spellSlot = "R", SpellType = "skillshot"},
   ['KatarinaQ'] = {charName = "Katarina", spellSlot = "Q", SpellType = "castcel"},
+  ['KatarinaW'] = {charName = "Katarina", spellSlot = "W", SpellType = "skillshot"},
+  ['KatarinaE'] = {charName = "Katarina", spellSlot = "E", SpellType = "castcel"},
+  ['KatarinaR'] = {charName = "Katarina", spellSlot = "R", SpellType = "skillshot"},
   ['JudicatorReckoning'] = {charName = "Kayle", spellSlot = "Q", SpellType = "castcel"},
-  ['KennenShurikenHurlMissile1'] = {charName = "Kennen", spellSlot = "Q", SpellType = "castcel"},
+  ['JudicatorRighteousFury'] = {charName = "Kayle", spellSlot = "E", SpellType = "skillshot"},
+  ['KennenShurikenHurlMissile1'] = {charName = "Kennen", spellSlot = "Q"},
+  ['KennenBringTheLight'] = {charName = "Kennen", spellSlot = "W", SpellType = "skillshot"},
+  ['KennenShurikenStorm ']= {charName = "Kennen", spellSlot = "R", SpellType = "skillshot"},
+  ['KhazixQ'] = {charName = "Khazix", spellSlot = "Q", SpellType = "castcel"},
+  ['KhazixW'] = {charName = "Khazix", spellSlot = "W", SpellType = "skillshot"},
+  ['KhazixE'] = {charName = "Khazix", spellSlot = "E", SpellType = "skillshot"},
+  ['khazixqlong'] = {charName = "Khazix", spellSlot = "Q", SpellType = "castcel"},
+  ['khazixwlong'] = {charName = "Khazix", spellSlot = "W", SpellType = "skillshot"},
+  ['khazixelong'] = {charName = "Khazix", spellSlot = "E", SpellType = "skillshot"},
+  ['KogMawCausticSpittle'] = {charName = "KogMaw", spellSlot = "Q", SpellType = "skillshot"},
+  ['KogMawBioArcanBarrage'] = {charName = "KogMaw", spellSlot = "W", SpellType = "skillshot"},
+  ['KogMawVoidOoze'] = {charName = "KogMaw", spellSlot = "E", SpellType = "skillshot"},
+  ['KogMawLivingArtillery'] = {charName = "KogMaw", spellSlot = "R", SpellType = "skillshot"},
   ['LeblancChaosOrb'] = {charName = "Leblanc", spellSlot = "Q", SpellType = "castcel"},
+  ['LeblancSlide'] = {charName = "Leblanc", spellSlot = "W", SpellType = "skillshot"},
+  ['LeblancSoulShackle'] = {charName = "Leblanc", spellSlot = "E", SpellType = "skillshot"},
+  ['LeblancChaosOrbM'] = {charName = "Leblanc", spellSlot = "R", SpellType = "castcel"},
+  ['LeblancSlideM'] = {charName = "Leblanc", spellSlot = "R", SpellType = "skillshot"},
+  ['LeblancSoulShackleM'] = {charName = "Leblanc", spellSlot = "R", SpellType = "skillshot"},
+  ['BlindMonkQOne'] = {charName = "LeeSin", spellSlot = "Q", SpellType = "skillshot"},
+  ['BlindMonkWOne'] = {charName = "LeeSin", spellSlot = "W", SpellType = "skillshot"},
+  ['BlindMonkEOne'] = {charName = "LeeSin", spellSlot = "E", SpellType = "skillshot"},
+  ['BlindMonkRKick'] = {charName = "LeeSin", spellSlot = "R", SpellType = "castcel"},
+  ['blindmonkqtwo'] = {charName = "LeeSin", spellSlot = "Q", SpellType = "castcel"},
+  ['blindmonkwtwo'] = {charName = "LeeSin", spellSlot = "W", SpellType = "skillshot"},
+  ['blindmonketwo'] = {charName = "LeeSin", spellSlot = "E", SpellType = "skillshot"},
+  ['LeonaShieldOfDaybreak'] = {charName = "Leona", spellSlot = "Q", SpellType = "skillshot"},
+  ['LeonaZenithBlade'] = {charName = "Leona", spellSlot = "E", SpellType = "skillshot"},
+  ['LeonaZenithBladeMissle'] = {charName = "Leona", spellSlot = "E", SpellType = "skillshot"},
+  ['LeonaSolarFlare'] = {charName = "Leona", spellSlot = "R", SpellType = "skillshot"},
+  ['LissandraQ'] = {charName = "Lissandra", spellSlot = "Q", SpellType = "skillshot"},
+  ['LissandraW'] = {charName = "Lissandra", spellSlot = "W", SpellType = "skillshot"},
+  ['LissandraE'] = {charName = "Lissandra", spellSlot = "E", SpellType = "skillshot"},
+  ['LissandraR'] = {charName = "Lissandra", spellSlot = "R", SpellType = "skillshot"},
   ['LucianQ']= {charName = "Lucian", spellSlot = "Q", SpellType = "castcel"},
+  ['LucianW']= {charName = "Lucian", spellSlot = "W", SpellType = "skillshot"},
+  ['LucianR'] = {charName = "Lucian", spellSlot = "R", SpellType = "skillshot"},
+  ['LuluQ'] = {charName = "Lulu", spellSlot = "Q", SpellType = "skillshot"},
   ['LuluW'] = {charName = "Lulu", spellSlot = "W", SpellType = "castcel"},
   ['LuluE'] = {charName = "Lulu", spellSlot = "E", SpellType = "castcel"},
+  ['LuxLightBinding'] = {charName = "Lux", spellSlot = "Q", SpellType = "skillshot"},
+  ['LuxLightStrikeKugel'] = {charName = "Lux", spellSlot = "E", SpellType = "skillshot"},
+  ['luxlightstriketoggle'] = {charName = "Lux", spellSlot = "E", SpellType = "skillshot"},
+  ['LuxMaliceCannon'] = {charName = "Lux", spellSlot = "R", SpellType = "skillshot"},
   ['SeismicShard'] = {charName = "Malphite", spellSlot = "Q", SpellType = "castcel"},
+  ['Landslide'] = {charName = "Malphite", spellSlot = "E", SpellType = "skillshot"},
+  ['UFSlash'] = {charName = "Malphite", spellSlot = "R", SpellType = "skillshot"},
+  ['AlZaharCalloftheVoid'] = {charName = "Malzahar", spellSlot = "Q", SpellType = "castcel"},
+  ['AlZaharNullZone'] = {charName = "Malzahar", spellSlot = "W", SpellType = "skillshot"},
   ['AlZaharMaleficVisions'] = {charName = "Malzahar", spellSlot = "E", SpellType = "castcel"},
+  ['AlZaharNetherGrasp'] = {charName = "Malzahar", spellSlot = "R", SpellType = "castcel"},
+  ['MaokaiTrunkLine'] = {charName = "Maokai", spellSlot = "Q", SpellType = "skillshot"},
   ['MaokaiUnstableGrowth'] = {charName = "Maokai", spellSlot = "W", SpellType = "castcel"},
+  ['MaokaiSapling2'] = {charName = "Maokai", spellSlot = "E", SpellType = "skillshot"},
+  ['MaokaiDrain3'] = {charName = "Maokai", spellSlot = "R", SpellType = "skillshot"},
   ['AlphaStrike'] = {charName = "MasterYi", spellSlot = "Q", SpellType = "castcel"},
   ['MissFortuneRicochetShot'] = {charName = "MissFortune", spellSlot = "Q", SpellType = "castcel"},
+  ['MissFortuneScattershot'] = {charName = "MissFortune", spellSlot = "E", SpellType = "skillshot"},
+  ['MissFortuneBulletTime'] = {charName = "MissFortune", spellSlot = "R", SpellType = "skillshot"},
+  ['MordekaiserMaceOfSpades'] = {charName = "Mordekaiser", spellSlot = "Q", SpellType = "skillshot"},
+  ['MordekaiserSyphoneOfDestruction'] = {charName = "Mordekaiser", spellSlot = "E", SpellType = "skillshot"},
+  ['MordekaiserChildrenOfTheGrave'] = {charName = "Mordekaiser", spellSlot = "R", SpellType = "castcel"},
+  ['DarkBindingMissile'] = {charName = "Morgana", spellSlot = "Q", SpellType = "skillshot"},
+  ['TormentedSoil'] = {charName = "Morgana", spellSlot = "W", SpellType = "skillshot"},
+  ['SoulShackles'] = {charName = "Morgana", spellSlot = "R", SpellType = "skillshot"},
+  ['NamiQ'] = {charName = "Nami", spellSlot = "Q", SpellType = "skillshot"},
   ['NamiW'] = {charName = "Nami", spellSlot = "W", SpellType = "castcel"},
+  ['NamiE'] = {charName = "Nami", spellSlot = "E", SpellType = "skillshot"},
+  ['NamiR'] = {charName = "Nami", spellSlot = "R", SpellType = "skillshot"},
+  ['NasusQ'] = {charName = "Nasus", spellSlot = "Q", SpellType = "skillshot"},
   ['NasusW'] = {charName = "Nasus", spellSlot = "W", SpellType = "castcel"},
+  ['NasusE'] = {charName = "Nasus", spellSlot = "E", SpellType = "skillshot"},
+  ['NautilusAnchorDrag'] = {charName = "Nautilus", spellSlot = "Q", SpellType = "skillshot"},
+  ['NautilusSplashZone'] = {charName = "Nautilus", spellSlot = "E", SpellType = "skillshot"},
+  ['NautilusGandLine'] = {charName = "Nautilus", spellSlot = "R", SpellType = "castcel"},
+  ['JavelinToss'] = {charName = "Nidalee", spellSlot = "Q", SpellType = "skillshot"},
+  ['Bushwhack'] = {charName = "Nidalee", spellSlot = "W", SpellType = "skillshot"},
+  ['PrimalSurge'] = {charName = "Nidalee", spellSlot = "E", SpellType = "skillshot"},
+  ['Takedown'] = {charName = "Nidalee", spellSlot = "Q", SpellType = "skillshot"},
+  ['Pounce'] = {charName = "Nidalee", spellSlot = "W", SpellType = "skillshot"},
+  ['Swipe'] = {charName = "Nidalee", spellSlot = "E", SpellType = "skillshot"},
+  ['NocturneDuskbringer'] = {charName = "Nocturne", spellSlot = "Q", SpellType = "skillshot"},
   ['NocturneUnspeakableHorror'] = {charName = "Nocturne", spellSlot = "E", SpellType = "castcel"},
   ['IceBlast'] = {charName = "Nunu", spellSlot = "E", SpellType = "castcel"},
+  ['AbsoluteZero'] = {charName = "Nunu", spellSlot = "R", SpellType = "skillshot"},
+  ['OlafAxeThrowCast'] = {charName = "Olaf", spellSlot = "Q", SpellType = "skillshot"},
   ['OlafRecklessStrike'] = {charName = "Olaf", spellSlot = "E", SpellType = "castcel"},
+  ['OrianaIzunaCommand'] = {charName = "Orianna", spellSlot = "Q", SpellType = "skillshot"},
+  ['OrianaDissonanceCommand'] = {charName = "Orianna", spellSlot = "W", SpellType = "skillshot"},
+  ['OrianaDetonateCommand'] = {charName = "Orianna", spellSlot = "R", SpellType = "skillshot"},
   ['Pantheon_Throw'] = {charName = "Pantheon", spellSlot = "Q", SpellType = "castcel"},
   ['Pantheon_LeapBash'] = {charName = "Pantheon", spellSlot = "W", SpellType = "castcel"},
+  ['Pantheon_Heartseeker'] = {charName = "Pantheon", spellSlot = "E", SpellType = "skillshot"},
+  ['PoppyDevastatingBlow'] = {charName = "Poppy", spellSlot = "Q", SpellType = "skillshot"},
   ['PoppyHeroicCharge'] = {charName = "Poppy", spellSlot = "E", SpellType = "castcel"},
+  ['QuinnQ'] = {charName = "Quinn", spellSlot = "Q", SpellType = "skillshot"},
   ['QuinnE'] = {charName = "Quinn", spellSlot = "E", SpellType = "castcel"},
+  ['PowerBall'] = {charName = "Rammus", spellSlot = "Q", SpellType = "skillshot"},
   ['PuncturingTaunt'] = {charName = "Rammus", spellSlot = "E", SpellType = "castcel"},
+  ['Tremors2'] = {charName = "Rammus", spellSlot = "R", SpellType = "skillshot"},
+  ['RenektonCleave'] = {charName = "Renekton", spellSlot = "Q", SpellType = "skillshot"},
+  ['RenektonPreExecute'] = {charName = "Renekton", spellSlot = "W", SpellType = "skillshot"},
+  ['RenektonSliceAndDice'] = {charName = "Renekton", spellSlot = "E", SpellType = "skillshot"},
+  ['RengarQ'] = {charName = "Rengar", spellSlot = "Q", SpellType = "skillshot"},
+  ['RengarE'] = {charName = "Rengar", spellSlot = "E", SpellType = "skillshot"},
+  ['RivenTriCleav'] = {charName = "Riven", spellSlot = "Q", SpellType = "skillshot"},
+  ['RivenTriCleave_03'] = {charName = "Riven", spellSlot = "Q", SpellType = "skillshot"},
+  ['RivenMartyr'] = {charName = "Riven", spellSlot = "W", SpellType = "skillshot"},
+  ['RivenFengShuiEngine'] = {charName = "Riven", spellSlot = "R", SpellType = "skillshot"},
+  ['rivenizunablade'] = {charName = "Riven", spellSlot = "R", SpellType = "skillshot"},
+  ['RumbleFlameThrower'] = {charName = "Rumble", spellSlot = "Q", SpellType = "skillshot"},
+  ['RumbeGrenade'] = {charName = "Rumble", spellSlot = "E", SpellType = "skillshot"},
+  ['RumbleCarpetBomb'] = {charName = "Rumble", spellSlot = "R", SpellType = "skillshot"},
   ['Overload'] = {charName = "Ryze", spellSlot = "Q", SpellType = "castcel"},
   ['RunePrison'] = {charName = "Ryze", spellSlot = "W", SpellType = "castcel"},
   ['SpellFlux'] = {charName = "Ryze", spellSlot = "E", SpellType = "castcel"},
+  ['SejuaniArcticAssault'] = {charName = "Sejuani", spellSlot = "Q", SpellType = "skillshot"},
+  ['SejuaniGlacialPrisonStart'] = {charName = "Sejuani", spellSlot = "R", SpellType = "skillshot"},
+  ['Deceive'] = {charName = "Shaco", spellSlot = "Q", SpellType = "skillshot"},
+  ['JackInTheBox'] = {charName = "Shaco", spellSlot = "W", SpellType = "skillshot"},
   ['TwoShivPoisen'] = {charName = "Shaco", spellSlot = "E", SpellType = "castcel"},
   ['ShenVorpalStar'] = {charName = "Shen", spellSlot = "Q", SpellType = "castcel"},
+  ['ShenShadowDash'] = {charName = "Shen", spellSlot = "E", SpellType = "skillshot"},
+  ['ShyvanaFireball'] = {charName = "Shyvana", spellSlot = "E", SpellType = "skillshot"},
+  ['ShyvanaTransformCast'] = {charName = "Shyvana", spellSlot = "R", SpellType = "skillshot"},
+  ['PoisenTrail'] = {charName = "Singed", spellSlot = "Q", SpellType = "skillshot"},
+  ['MegaAdhesive'] = {charName = "Singed", spellSlot = "W", SpellType = "skillshot"},
   ['Fling'] = {charName = "Singed", spellSlot = "E", SpellType = "castcel"},
   ['CrypticGaze'] = {charName = "Sion", spellSlot = "Q", SpellType = "castcel"},
+  ['SivirQ'] = {charName = "Sivir", spellSlot = "Q", SpellType = "skillshot"},
+  ['SkarnerVirulentSlash'] = {charName = "Skarner", spellSlot = "Q", SpellType = "skillshot"},
+  ['SkarnerFracture'] = {charName = "Skarner", spellSlot = "E", SpellType = "skillshot"},
+  ['SkarnerImpale'] = {charName = "Skarner", spellSlot = "R", SpellType = "castcel"},
+  ['SonaHymnofValor'] = {charName = "Sona", spellSlot = "Q", SpellType = "castcel"},
+  ['SonaAriaofPerseverance'] = {charName = "Sona", spellSlot = "W", SpellType = "skillshot"},
+  ['SonaSongofDiscord'] = {charName = "Sona", spellSlot = "E", SpellType = "skillshot"},
+  ['SonaCrescendo'] = {charName = "Sona", spellSlot = "R", SpellType = "skillshot"},
+  ['Starcall'] = {charName = "Soraka", spellSlot = "Q", SpellType = "skillshot"},
+  ['InfuseWrapper'] = {charName = "Soraka", spellSlot = "E", SpellType = "castcel"},
   ['SwainDecrepify'] = {charName = "Swain", spellSlot = "Q", SpellType = "castcel"},
+  ['SwainShadowGrasp'] = {charName = "Swain", spellSlot = "W", SpellType = "skillshot"},
   ['SwainTorment'] = {charName = "Swain", spellSlot = "E", SpellType = "castcel"},
+  ['SwainMetamorphism'] = {charName = "Swain", spellSlot = "R", SpellType = "skillshot"},
+  ['SyndraQ']= {charName = "Syndra", spellSlot = "Q", SpellType = "skillshot"},
+  ['SyndraW ']= {charName = "Syndra", spellSlot = "W", SpellType = "skillshot"},
+  ['SyndraE'] = {charName = "Syndra", spellSlot = "E", SpellType = "skillshot"},
+  ['SyndraR'] = {charName = "Syndra", spellSlot = "R", SpellType = "castcel"},
+  ['TalonRake'] = {charName = "Talon", spellSlot = "W", SpellType = "skillshot"},
   ['TalonCutthroat'] = {charName = "Talon", spellSlot = "E", SpellType = "castcel"},
+  ['Shatter'] = {charName = "Taric", spellSlot = "W", SpellType = "skillshot"},
   ['Dazzle'] = {charName = "Taric", spellSlot = "E", SpellType = "castcel"},
+  ['TaricHammerSmash'] = {charName = "Taric", spellSlot = "R", SpellType = "skillshot"},
   ['BlindingDart'] = {charName = "Teemo", spellSlot = "Q", SpellType = "castcel"},
+  ['ThreshQ'] = {charName = "Thresh", spellSlot = "Q", SpellType = "skillshot"},
+  ['ThreshE'] = {charName = "Thresh", spellSlot = "E", SpellType = "skillshot"},
+  ['ThreshRPenta'] = {charName = "Thresh", spellSlot = "R", SpellType = "skillshot"},
+  ['RocketJump'] = {charName = "Tristana", spellSlot = "W", SpellType = "skillshot"},
   ['DetonatingShot'] = {charName = "Tristana", spellSlot = "E", SpellType = "castcel"},
+  ['BusterShot'] = {charName = "Tristana", spellSlot = "R", SpellType = "castcel"},
   ['TrundleTrollSmash'] = {charName = "Trundle", spellSlot = "Q", SpellType = "castcel"},
+  ['TrundlePain'] = {charName = "Trundle", spellSlot = "R", SpellType = "castcel"},
+  ['slashCast'] = {charName = "Tryndamere", spellSlot = "E", SpellType = "skillshot"},
+  ['WildCards'] = {charName = "TwistedFate", spellSlot = "Q", SpellType = "skillshot"},
+  ['TwitchVenomCask'] = {charName = "Twitch", spellSlot = "W", SpellType = "skillshot"},
+  ['TwitchVenomCaskMissle'] = {charName = "Twitch", spellSlot = "W", SpellType = "skillshot"},
+  ['Expunge'] = {charName = "Twitch", spellSlot = "E", SpellType = "skillshot"},
+  ['UdyrTigerStance'] = {charName = "Udyr", spellSlot = "Q", SpellType = "skillshot"},
+  ['UdyrTurtleStance'] = {charName = "Udyr", spellSlot = "W", SpellType = "skillshot"},
+  ['UdyrBearStance'] = {charName = "Udyr", spellSlot = "E", SpellType = "skillshot"},
+  ['UdyrPhoenixStance'] = {charName = "Udyr", spellSlot = "R", SpellType = "skillshot"},
+  ['UrgotHeatseekingMissile'] = {charName = "Urgot", spellSlot = "Q", SpellType = "skillshot"},
+  ['UrgotPlasmaGrenade'] = {charName = "Urgot", spellSlot = "E", SpellType = "skillshot"},
+  ['UrgotSwap2'] = {charName = "Urgot", spellSlot = "R", SpellType = "castcel"},
+  ['VarusQ'] = {charName = "Varus", spellSlot = "Q", SpellType = "skillshot"},
+  ['VarusE'] = {charName = "Varus", spellSlot = "E", SpellType = "skillshot"},
+  ['VarusR'] = {charName = "Varus", spellSlot = "R", SpellType = "skillshot"},
   ['VayneCondemm'] = {charName = "Vayne", spellSlot = "E", SpellType = "castcel"},
   ['VeigarBalefulStrike'] = {charName = "Veigar", spellSlot = "Q", SpellType = "castcel"},
+  ['VeigarDarkMatter'] = {charName = "Veigar", spellSlot = "W", SpellType = "skillshot"},
+  ['VeigarEventHorizon'] = {charName = "Veigar", spellSlot = "E", SpellType = "skillshot"},
+  ['VeigarPrimordialBurst'] = {charName = "Veigar", spellSlot = "R", SpellType = "castcel"},
+  ['VelkozQ'] = {charName = "Velkoz", spellSlot = "Q", SpellType = "castcel"},
+  ['VelkozQMissle'] = {charName = "Velkoz", spellSlot = "Q", SpellType = "castcel"},
+  ['velkozqplitactive'] = {charName = "Velkoz", spellSlot = "Q", SpellType = "castcel"},
+  ['VelkozW'] = {charName = "Velkoz", spellSlot = "W", SpellType = "skillshot"},
+  ['VelkozE'] = {charName = "Velkoz", spellSlot = "E", SpellType = "skillshot"},
+  ['VelkozR'] = {charName = "Velkoz", spellSlot = "R", SpellType = "skillshot"},
+  ['ViQ'] = {charName = "Vi", spellSlot = "Q", SpellType = "skillshot"},
+  ['ViR'] = {charName = "Vi", spellSlot = "R", SpellType = "castcel"},
+  ['ViktorPowerTransfer'] = {charName = "Viktor", spellSlot = "Q", SpellType = "castcel"},
+  ['ViktorGravitonField'] = {charName = "Viktor", spellSlot = "W", SpellType = "skillshot"},
+  ['ViktorDeathRa'] = {charName = "Viktor", spellSlot = "E", SpellType = "skillshot"},
+  ['ViktorChaosStorm'] = {charName = "Viktor", spellSlot = "R", SpellType = "skillshot"},
   ['VladimirTransfusion'] = {charName = "Vladimir", spellSlot = "Q", SpellType = "castcel"},
+  ['VladimirTidesofBlood'] = {charName = "Vladimir", spellSlot = "E", SpellType = "skillshot"},
+  ['VladimirHemoplague'] = {charName = "Vladimir", spellSlot = "R", SpellType = "skillshot"},
+  ['VolibearQ'] = {charName = "Volibear", spellSlot = "Q", SpellType = "skillshot"},
   ['VolibearW'] = {charName = "Volibear", spellSlot = "W", SpellType = "castcel"},
+  ['VolibearE'] = {charName = "Volibear", spellSlot = "E", SpellType = "skillshot"},
   ['HungeringStrike'] = {charName = "Warwick", spellSlot = "Q", SpellType = "castcel"},
+  ['InfiniteDuress'] = {charName = "Warwick", spellSlot = "R", SpellType = "castcel"},
+  ['MonkeyKingDoubleAttack'] = {charName = "MonkeyKing", spellSlot = "Q", SpellType = "skillshot"},
   ['MonkeyKingNimbus'] = {charName = "MonkeyKing", spellSlot = "E", SpellType = "castcel"},
+  ['MonkeyKingSpinToWin'] = {charName = "MonkeyKing", spellSlot = "R", SpellType = "skillshot"},
+  ['monkeykingspintowinleave'] = {charName = "MonkeyKing", spellSlot = "R", SpellType = "skillshot"},
+  ['XerathArcanoPulseChargeUp'] = {charName = "Xerath", spellSlot = "Q", SpellType = "skillshot"},
+  ['XerathArcaneBarrage2'] = {charName = "Xerath", spellSlot = "W", SpellType = "skillshot"},
+  ['XerathMageSpear'] = {charName = "Xerath", spellSlot = "E", SpellType = "skillshot"},
+  ['XerathLocusOfPower2'] = {charName = "Xerath", spellSlot = "R", SpellType = "castcel"},
   ['XenZhaoSweep'] = {charName = "Xin Zhao", spellSlot = "E", SpellType = "castcel"},
+  ['XenZhaoParry'] = {charName = "Xin Zhao", spellSlot = "R", SpellType = "skillshot"},
+  ['YasuoQW'] = {charName = "Yasuo", spellSlot = "Q", SpellType = "skillshot"},
+  ['yasuoq2w'] = {charName = "Yasuo", spellSlot = "Q", SpellType = "skillshot"},
+  ['yasuoq3w'] = {charName = "Yasuo", spellSlot = "Q", SpellType = "skillshot"},
   ['YasuoDashWrapper'] = {charName = "Yasuo", spellSlot = "E", SpellType = "castcel"},
+  ['YasuoRKnockUpComboW'] = {charName = "Yasuo", spellSlot = "R", SpellType = "skillshot"},
+  ['YorickSpectral'] = {charName = "Yorick", spellSlot = "Q", SpellType = "skillshot"},
+  ['YorickDecayed'] = {charName = "Yorick", spellSlot = "W", SpellType = "skillshot"},
   ['YorickRavenous'] = {charName = "Yorick", spellSlot = "E", SpellType = "castcel"},
+  ['ZacQ'] = {charName = "Zac", spellSlot = "Q", SpellType = "skillshot"},
+  ['ZacW'] = {charName = "Zac", spellSlot = "W", SpellType = "skillshot"},
+  ['ZacE'] = {charName = "Zac", spellSlot = "E", SpellType = "skillshot"},
+  ['ZedShuriken'] = {charName = "Zed", spellSlot = "Q", SpellType = "skillshot"},
+  ['zedult'] = {charName = "Zed", spellSlot = "R", SpellType = "castcel"},
+  ['ZiggsQ'] = {charName = "Ziggs", spellSlot = "Q", SpellType = "skillshot"},
+  ['ZiggsW'] = {charName = "Ziggs", spellSlot = "W", SpellType = "skillshot"},
+  ['ZiggsE'] = {charName = "Ziggs", spellSlot = "E", SpellType = "skillshot"},
+  ['ZiggsR'] = {charName = "Ziggs", spellSlot = "R", SpellType = "skillshot"},
   ['TimeBomb'] = {charName = "Zilean", spellSlot = "Q", SpellType = "castcel"},
   ['TimeWarp'] = {charName = "Zilean", spellSlot = "E", SpellType = "castcel"},
-  ['InfernalGuardian'] = {charName = "Annie", spellSlot = "R", SpellType = "skillshot", range = 600},
-  ['KatarinaR'] = {charName = "Katarina", spellSlot = "R", SpellType = "skillshot", range = 600},
-  ['CurseoftheSadMumm'] = {charName = "Amumu", spellSlot = "R", SpellType = "skillshot", range = 550},
-  ['EnchantedCrystalArrow'] = {charName = "Ashe", spellSlot = "R", SpellType = "skillshot", range = 20000},
-  ['FizzMarinerDoom'] = {charName = "Fizz", spellSlot = "R", SpellType = "skillshot", range = 1300},
-  ['JinxRWrapper'] = {charName = "Jinx", spellSlot = "R", SpellType = "skillshot", range = 20000},
-  ['UFSlash'] = {charName = "Malphite", spellSlot = "R", SpellType = "skillshot", range = 1000},
-  ['OrianaDetonateCommand'] = {charName = "Orianna", spellSlot = "R", SpellType = "skillshot", range = 900},
-  ['SonaCrescendo'] = {charName = "Sona", spellSlot = "R", SpellType = "skillshot", range = 1000},
-  ['YasuoRKnockUpComboW'] = {charName = "Yasuo", spellSlot = "R", SpellType = "skillshot", range = 800},
-  ['LeonaSolarFlare'] = {charName = "Leona", spellSlot = "R", SpellType = "skillshot", range = 600},
-  ['VarusR'] = {charName = "Varus", spellSlot = "R", SpellType = "skillshot", range = 1075},
-  ['VelkozR'] = {charName = "Velkoz", spellSlot = "R", SpellType = "skillshot", range = 1550},
-  ['BraumR'] = {charName = "Braum", spellSlot = "R", SpellType = "skillshot", range = 1250},
-  ['CassiopeiaPetrifyingGaze'] = {charName = "Cassiopeia", spellSlot = "R", SpellType = "skillshot", range = 825},
-  ['EvelynnR'] = {charName = "Evelynn", spellSlot = "R", SpellType = "skillshot", range = 650},
-  ['EzrealTruehotBarrage'] = {charName = "Ezreal", spellSlot = "R", SpellType = "skillshot", range = 20000},
-  ['GragasExplosiveCask'] = {charName = "Gragas", spellSlot = "R", SpellType = "skillshot", range = 1150},
-  ['RiftWalk'] = {charName = "Kassadin", spellSlot = "R", SpellType = "skillshot", range = 700},
-  ['LuxMaliceCannon'] = {charName = "Lux", spellSlot = "R", SpellType = "skillshot", range = 3330},
+  ['ZyraQFissure'] = {charName = "Zyra", spellSlot = "Q", SpellType = "skillshot"},
+  ['ZyraGraspingRoots'] = {charName = "Zyra", spellSlot = "E", SpellType = "skillshot"},
+  ['ZyraBrambleZone'] = {charName = "Zyra", spellSlot = "R", SpellType = "skillshot"},
  }
  
 function Vars()
@@ -1060,3 +1326,157 @@ function DrawCircle2(x, y, z, radius, color)
     DrawCircleNextLvl(x, y, z, radius, 1, color, 75) 
   end
 end
+
+--[[		Code	by eXtragoZ	]]
+local spellsFile = LIB_PATH.."missedspells.txt"
+local spellslist = {}
+local textlist = ""
+local spellexists = false
+local spelltype = "Unknown"
+
+function writeConfigsspells()
+	local file = io.open(spellsFile, "w")
+	if file then
+		textlist = "return {"
+		for i=1,#spellslist do
+			textlist = textlist.."'"..spellslist[i].."', "
+		end
+		textlist = textlist.."}"
+		if spellslist[1] ~=nil then
+			file:write(textlist)
+			file:close()
+		end
+	end
+end
+if FileExist(spellsFile) then spellslist = dofile(spellsFile) end
+
+local Others = {"Recall","recall","OdinCaptureChannel","LanternWAlly","varusemissiledummy","khazixqevo","khazixwevo","khazixeevo","khazixrevo","braumedummyvoezreal","braumedummyvonami","braumedummyvocaitlyn","braumedummyvoriven","braumedummyvodraven","braumedummyvoashe","azirdummyspell"}
+local Items = {"RegenerationPotion","FlaskOfCrystalWater","ItemCrystalFlask","ItemMiniRegenPotion","PotionOfBrilliance","PotionOfElusiveness","PotionOfGiantStrength","OracleElixirSight","OracleExtractSight","VisionWard","SightWard","sightward","ItemGhostWard","ItemMiniWard","ElixirOfRage","ElixirOfIllumination","wrigglelantern","DeathfireGrasp","HextechGunblade","shurelyascrest","IronStylus","ZhonyasHourglass","YoumusBlade","randuinsomen","RanduinsOmen","Mourning","OdinEntropicClaymore","BilgewaterCutlass","QuicksilverSash","HextechSweeper","ItemGlacialSpike","ItemMercurial","ItemWraithCollar","ItemSoTD","ItemMorellosBane","ItemPromote","ItemTiamatCleave","Muramana","ItemSeraphsEmbrace","ItemSwordOfFeastAndFamine","ItemFaithShaker","OdynsVeil","ItemHorn","ItemPoroSnack","ItemBlackfireTorch","HealthBomb","ItemDervishBlade","TrinketTotemLvl1","TrinketTotemLvl2","TrinketTotemLvl3","TrinketTotemLvl3B","TrinketSweeperLvl1","TrinketSweeperLvl2","TrinketSweeperLvl3","TrinketOrbLvl1","TrinketOrbLvl2","TrinketOrbLvl3","OdinTrinketRevive","RelicMinorSpotter","RelicSpotter","RelicGreaterLantern","RelicLantern","RelicSmallLantern","ItemFeralFlare","trinketorblvl2","trinketsweeperlvl2","trinkettotemlvl2","SpiritLantern","RelicGreaterSpotter"}
+local MSpells = {"JayceStaticField","JayceToTheSkies","JayceThunderingBlow","Takedown","Pounce","Swipe","EliseSpiderQCast","EliseSpiderW","EliseSpiderEInitial","elisespidere","elisespideredescent","gnarbigq","gnarbigw","gnarbige","GnarBigQMissile"}
+local PSpells = {"CaitlynHeadshotMissile","RumbleOverheatAttack","JarvanIVMartialCadenceAttack","ShenKiAttack","MasterYiDoubleStrike","sonaqattackupgrade","sonawattackupgrade","sonaeattackupgrade","NocturneUmbraBladesAttack","NautilusRavageStrikeAttack","ZiggsPassiveAttack","QuinnWEnhanced","LucianPassiveAttack","SkarnerPassiveAttack","KarthusDeathDefiedBuff","AzirTowerClick","azirtowerclick","azirtowerclickchannel"}
+
+local QSpells = {"TrundleQ","LeonaShieldOfDaybreakAttack","XenZhaoThrust","NautilusAnchorDragMissile","RocketGrabMissile","VayneTumbleAttack","VayneTumbleUltAttack","NidaleeTakedownAttack","ShyvanaDoubleAttackHit","ShyvanaDoubleAttackHitDragon","frostarrow","FrostArrow","MonkeyKingQAttack","MaokaiTrunkLineMissile","FlashFrostSpell","xeratharcanopulsedamage","xeratharcanopulsedamageextended","xeratharcanopulsedarkiron","xeratharcanopulsediextended","SpiralBladeMissile","EzrealMysticShotMissile","EzrealMysticShotPulseMissile","jayceshockblast","BrandBlazeMissile","UdyrTigerAttack","TalonNoxianDiplomacyAttack","LuluQMissile","GarenSlash2","VolibearQAttack","dravenspinningattack","karmaheavenlywavec","ZiggsQSpell","UrgotHeatseekingHomeMissile","UrgotHeatseekingLineMissile","JavelinToss","RivenTriCleave","namiqmissile","NasusQAttack","BlindMonkQOne","ThreshQInternal","threshqinternal","QuinnQMissile","LissandraQMissile","EliseHumanQ","GarenQAttack","JinxQAttack","JinxQAttack2","yasuoq","xeratharcanopulse2","VelkozQMissile","KogMawQMis","BraumQMissile","KarthusLayWasteA1","KarthusLayWasteA2","KarthusLayWasteA3","karthuslaywastea3","karthuslaywastea2","karthuslaywastedeada1","MaokaiSapling2Boom","gnarqmissile","GnarBigQMissile","viktorqbuff"}
+local WSpells = {"KogMawBioArcaneBarrageAttack","SivirWAttack","TwitchVenomCaskMissile","gravessmokegrenadeboom","mordekaisercreepingdeath","DrainChannel","jaycehypercharge","redcardpreattack","goldcardpreattack","bluecardpreattack","RenektonExecute","RenektonSuperExecute","EzrealEssenceFluxMissile","DariusNoxianTacticsONHAttack","UdyrTurtleAttack","talonrakemissileone","LuluWTwo","ObduracyAttack","KennenMegaProc","NautilusWideswingAttack","NautilusBackswingAttack","XerathLocusOfPower","yoricksummondecayed","Bushwhack","karmaspiritbondc","SejuaniBasicAttackW","AatroxWONHAttackLife","AatroxWONHAttackPower","JinxWMissile","GragasWAttack","braumwdummyspell","syndrawcast","SorakaWParticleMissile"}
+local ESpells = {"KogMawVoidOozeMissile","ToxicShotAttack","LeonaZenithBladeMissile","PowerFistAttack","VayneCondemnMissile","ShyvanaFireballMissile","maokaisapling2boom","VarusEMissile","CaitlynEntrapmentMissile","jayceaccelerationgate","syndrae5","JudicatorRighteousFuryAttack","UdyrBearAttack","RumbleGrenadeMissile","Slash","hecarimrampattack","ziggse2","UrgotPlasmaGrenadeBoom","SkarnerFractureMissile","YorickSummonRavenous","BlindMonkEOne","EliseHumanE","PrimalSurge","Swipe","ViEAttack","LissandraEMissile","yasuodummyspell","XerathMageSpearMissile","RengarEFinal","RengarEFinalMAX","KarthusDefileSoundDummy2"}
+local RSpells = {"Pantheon_GrandSkyfall_Fall","LuxMaliceCannonMis","infiniteduresschannel","JarvanIVCataclysmAttack","jarvanivcataclysmattack","VayneUltAttack","RumbleCarpetBombDummy","ShyvanaTransformLeap","jaycepassiverangedattack", "jaycepassivemeleeattack","jaycestancegth","MissileBarrageMissile","SprayandPrayAttack","jaxrelentlessattack","syndrarcasttime","InfernalGuardian","UdyrPhoenixAttack","FioraDanceStrike","xeratharcanebarragedi","NamiRMissile","HallucinateFull","QuinnRFinale","lissandrarenemy","SejuaniGlacialPrisonCast","yasuordummyspell","xerathlocuspulse","tempyasuormissile","PantheonRFall"}
+
+local casttype2 = {"blindmonkqtwo","blindmonkwtwo","blindmonketwo","infernalguardianguide","KennenMegaProc","sonawattackupgrade","redcardpreattack","fizzjumptwo","fizzjumpbuffer","gragasbarrelrolltoggle","LeblancSlideM","luxlightstriketoggle","UrgotHeatseekingHomeMissile","xeratharcanopulseextended","xeratharcanopulsedamageextended","XenZhaoThrust3","ziggswtoggle","khazixwlong","khazixelong","renektondice","SejuaniNorthernWinds","shyvanafireballdragon2","shyvanaimmolatedragon","ShyvanaDoubleAttackHitDragon","talonshadowassaulttoggle","viktorchaosstormguide","zedw2","ZedR2","khazixqlong","AatroxWONHAttackLife","viktorqbuff"}
+local casttype3 = {"sonaeattackupgrade","bluecardpreattack","LeblancSoulShackleM","UdyrPhoenixStance","RenektonSuperExecute"}
+local casttype4 = {"FrostShot","PowerFist","DariusNoxianTacticsONH","EliseR","JaxEmpowerTwo","JaxRelentlessAssault","JayceStanceHtG","jaycestancegth","jaycehypercharge","JudicatorRighteousFury","kennenlrcancel","KogMawBioArcaneBarrage","LissandraE","MordekaiserMaceOfSpades","mordekaisercotgguide","NasusQ","Takedown","NocturneParanoia","QuinnR","RengarQ","HallucinateFull","DeathsCaressFull","SivirW","ThreshQInternal","threshqinternal","PickACard","goldcardlock","redcardlock","bluecardlock","FullAutomatic","VayneTumble","MonkeyKingDoubleAttack","YorickSpectral","ViE","VorpalSpikes","FizzSeastonePassive","GarenSlash3","HecarimRamp","leblancslidereturn","leblancslidereturnm","Obduracy","UdyrTigerStance","UdyrTurtleStance","UdyrBearStance","UrgotHeatseekingMissile","XenZhaoComboTarget","dravenspinning","dravenrdoublecast","FioraDance","LeonaShieldOfDaybreak","MaokaiDrain3","NautilusPiercingGaze","RenektonPreExecute","RivenFengShuiEngine","ShyvanaDoubleAttack","shyvanadoubleattackdragon","SyndraW","TalonNoxianDiplomacy","TalonCutthroat","talonrakemissileone","TrundleTrollSmash","VolibearQ","AatroxW","aatroxw2","AatroxWONHAttackLife","JinxQ","GarenQ","yasuoq","XerathArcanopulseChargeUp","XerathLocusOfPower2","xerathlocuspulse","velkozqsplitactivate","NetherBlade","GragasQToggle","GragasW","SionW","sionpassivespeed"}
+local casttype5 = {"VarusQ","ZacE","ViQ","SionQ"}
+local casttype6 = {"VelkozQMissile","KogMawQMis","RengarEFinal","RengarEFinalMAX","BraumQMissile","KarthusDefileSoundDummy2","gnarqmissile","GnarBigQMissile","SorakaWParticleMissile"}
+--,"PoppyDevastatingBlow"--,"Deceive" -- ,"EliseRSpider"
+function getSpellType(unit, spellName)
+	spelltype = "Unknown"
+	casttype = 1
+	if unit ~= nil and unit.type == "AIHeroClient" then
+		if spellName == nil or unit:GetSpellData(_Q).name == nil or unit:GetSpellData(_W).name == nil or unit:GetSpellData(_E).name == nil or unit:GetSpellData(_R).name == nil then
+			return "Error name nil", casttype
+		end
+		if spellName:find("SionBasicAttackPassive") or spellName:find("zyrapassive") then
+			spelltype = "P"
+		elseif (spellName:find("BasicAttack") and spellName ~= "SejuaniBasicAttackW") or spellName:find("basicattack") or spellName:find("JayceRangedAttack") or spellName == "SonaQAttack" or spellName == "SonaWAttack" or spellName == "SonaEAttack" or spellName == "ObduracyAttack" or spellName == "GnarBigAttackTower" then
+			spelltype = "BAttack"
+		elseif spellName:find("CritAttack") or spellName:find("critattack") then
+			spelltype = "CAttack"
+		elseif unit:GetSpellData(_Q).name:find(spellName) then
+			spelltype = "Q"
+		elseif unit:GetSpellData(_W).name:find(spellName) then
+			spelltype = "W"
+		elseif unit:GetSpellData(_E).name:find(spellName) then
+			spelltype = "E"
+		elseif unit:GetSpellData(_R).name:find(spellName) then
+			spelltype = "R"
+		elseif spellName:find("Summoner") or spellName:find("summoner") or spellName == "teleportcancel" then
+			spelltype = "Summoner"
+		else
+			if spelltype == "Unknown" then
+				for i=1,#Others do
+					if spellName:find(Others[i]) then
+						spelltype = "Other"
+					end
+				end
+			end
+			if spelltype == "Unknown" then
+				for i=1,#Items do
+					if spellName:find(Items[i]) then
+						spelltype = "Item"
+					end
+				end
+			end
+			if spelltype == "Unknown" then
+				for i=1,#PSpells do
+					if spellName:find(PSpells[i]) then
+						spelltype = "P"
+					end
+				end
+			end
+			if spelltype == "Unknown" then
+				for i=1,#QSpells do
+					if spellName:find(QSpells[i]) then
+						spelltype = "Q"
+					end
+				end
+			end
+			if spelltype == "Unknown" then
+				for i=1,#WSpells do
+					if spellName:find(WSpells[i]) then
+						spelltype = "W"
+					end
+				end
+			end
+			if spelltype == "Unknown" then
+				for i=1,#ESpells do
+					if spellName:find(ESpells[i]) then
+						spelltype = "E"
+					end
+				end
+			end
+			if spelltype == "Unknown" then
+				for i=1,#RSpells do
+					if spellName:find(RSpells[i]) then
+						spelltype = "R"
+					end
+				end
+			end
+		end
+		for i=1,#MSpells do
+			if spellName == MSpells[i] then
+				spelltype = spelltype.."M"
+			end
+		end
+		local spellexists = spelltype ~= "Unknown"
+		if #spellslist > 0 and not spellexists then
+			for i=1,#spellslist do
+				if spellName == spellslist[i] then
+					spellexists = true
+				end
+			end
+		end
+		if not spellexists then
+			table.insert(spellslist, spellName)
+			writeConfigsspells()
+			PrintChat("Skill Detector - Unknown spell: "..spellName)
+		end
+	end
+	for i=1,#casttype2 do
+		if spellName == casttype2[i] then casttype = 2 end
+	end
+	for i=1,#casttype3 do
+		if spellName == casttype3[i] then casttype = 3 end
+	end
+	for i=1,#casttype4 do
+		if spellName == casttype4[i] then casttype = 4 end
+	end
+	for i=1,#casttype5 do
+		if spellName == casttype5[i] then casttype = 5 end
+	end
+	for i=1,#casttype6 do
+		if spellName == casttype6[i] then casttype = 6 end
+	end
+
+	return spelltype, casttype
+end
+
+-----SCRIPT STATUS------------
+assert(load(Base64Decode("G0x1YVIAAQQEBAgAGZMNChoKAAAAAAAAAAAAAQIKAAAABgBAAEFAAAAdQAABBkBAAGUAAAAKQACBBkBAAGVAAAAKQICBHwCAAAQAAAAEBgAAAGNsYXNzAAQNAAAAU2NyaXB0U3RhdHVzAAQHAAAAX19pbml0AAQLAAAAU2VuZFVwZGF0ZQACAAAAAgAAAAgAAAACAAotAAAAhkBAAMaAQAAGwUAABwFBAkFBAQAdgQABRsFAAEcBwQKBgQEAXYEAAYbBQACHAUEDwcEBAJ2BAAHGwUAAxwHBAwECAgDdgQABBsJAAAcCQQRBQgIAHYIAARYBAgLdAAABnYAAAAqAAIAKQACFhgBDAMHAAgCdgAABCoCAhQqAw4aGAEQAx8BCAMfAwwHdAIAAnYAAAAqAgIeMQEQAAYEEAJ1AgAGGwEQA5QAAAJ1AAAEfAIAAFAAAAAQFAAAAaHdpZAAEDQAAAEJhc2U2NEVuY29kZQAECQAAAHRvc3RyaW5nAAQDAAAAb3MABAcAAABnZXRlbnYABBUAAABQUk9DRVNTT1JfSURFTlRJRklFUgAECQAAAFVTRVJOQU1FAAQNAAAAQ09NUFVURVJOQU1FAAQQAAAAUFJPQ0VTU09SX0xFVkVMAAQTAAAAUFJPQ0VTU09SX1JFVklTSU9OAAQEAAAAS2V5AAQHAAAAc29ja2V0AAQIAAAAcmVxdWlyZQAECgAAAGdhbWVTdGF0ZQAABAQAAAB0Y3AABAcAAABhc3NlcnQABAsAAABTZW5kVXBkYXRlAAMAAAAAAADwPwQUAAAAQWRkQnVnc3BsYXRDYWxsYmFjawABAAAACAAAAAgAAAAAAAMFAAAABQAAAAwAQACBQAAAHUCAAR8AgAACAAAABAsAAABTZW5kVXBkYXRlAAMAAAAAAAAAQAAAAAABAAAAAQAQAAAAQG9iZnVzY2F0ZWQubHVhAAUAAAAIAAAACAAAAAgAAAAIAAAACAAAAAAAAAABAAAABQAAAHNlbGYAAQAAAAAAEAAAAEBvYmZ1c2NhdGVkLmx1YQAtAAAAAwAAAAMAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAUAAAAFAAAABQAAAAUAAAAFAAAABQAAAAUAAAAFAAAABgAAAAYAAAAGAAAABgAAAAUAAAADAAAAAwAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAHAAAABwAAAAcAAAAHAAAABwAAAAcAAAAHAAAABwAAAAcAAAAIAAAACAAAAAgAAAAIAAAAAgAAAAUAAABzZWxmAAAAAAAtAAAAAgAAAGEAAAAAAC0AAAABAAAABQAAAF9FTlYACQAAAA4AAAACAA0XAAAAhwBAAIxAQAEBgQAAQcEAAJ1AAAKHAEAAjABBAQFBAQBHgUEAgcEBAMcBQgABwgEAQAKAAIHCAQDGQkIAx4LCBQHDAgAWAQMCnUCAAYcAQACMAEMBnUAAAR8AgAANAAAABAQAAAB0Y3AABAgAAABjb25uZWN0AAQRAAAAc2NyaXB0c3RhdHVzLm5ldAADAAAAAAAAVEAEBQAAAHNlbmQABAsAAABHRVQgL3N5bmMtAAQEAAAAS2V5AAQCAAAALQAEBQAAAGh3aWQABAcAAABteUhlcm8ABAkAAABjaGFyTmFtZQAEJgAAACBIVFRQLzEuMA0KSG9zdDogc2NyaXB0c3RhdHVzLm5ldA0KDQoABAYAAABjbG9zZQAAAAAAAQAAAAAAEAAAAEBvYmZ1c2NhdGVkLmx1YQAXAAAACgAAAAoAAAAKAAAACgAAAAoAAAALAAAACwAAAAsAAAALAAAADAAAAAwAAAANAAAADQAAAA0AAAAOAAAADgAAAA4AAAAOAAAACwAAAA4AAAAOAAAADgAAAA4AAAACAAAABQAAAHNlbGYAAAAAABcAAAACAAAAYQAAAAAAFwAAAAEAAAAFAAAAX0VOVgABAAAAAQAQAAAAQG9iZnVzY2F0ZWQubHVhAAoAAAABAAAAAQAAAAEAAAACAAAACAAAAAIAAAAJAAAADgAAAAkAAAAOAAAAAAAAAAEAAAAFAAAAX0VOVgA="), nil, "bt", _ENV))() ScriptStatus("UHKIIOHNMOK") 
