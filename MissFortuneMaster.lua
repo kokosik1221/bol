@@ -2,8 +2,8 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.31
-	22.01.2015
+	Last Version: 0.32
+	01.02.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.31"
+local version = "0.32"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -83,7 +83,7 @@ function Vars()
 	W = {name = "Impure Shots", range = 550}
 	E = {name = "Make It Rain", range = 800, width = 400, delay = 0.65, speed = 500}	
 	R = {name = "Bullet Time", range = 1400, width = 400, angle = 30, delay = 1, speed = 780}
-	QReady, WReady, EReady, RReady, recall, sac, mma, rcasting = false, false, false, false, false, false, false, false
+	QReady, WReady, EReady, RReady, recall, sac, mma, rcasting, r2 = false, false, false, false, false, false, false, false, false
 	abilitylvl = myHero.level - 1
 	EnemyMinions = minionManager(MINION_ENEMY, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -129,6 +129,7 @@ function Vars()
 	if _G.Reborn_Loaded then
 		print("<b><font color=\"#6699FF\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
+		local Skills, Keys, Items, Data, Jungle, Helper, MyHero, Minions, Crosshair, Orbwalker = AutoCarry.Helper:GetClasses()
 	end
 end
 
@@ -610,20 +611,27 @@ function AutoF()
 end
 
 function CheckUlt()
-	if TargetHaveBuff("missfortunebulletsound", myHero) then
+	if TargetHaveBuff("missfortunebulletsound", myHero) or rcasting or r2 then
 		rcasting = true 
 		r2 = true
-		SxOrbWalk:DisableMove()
-		if _G.AutoCarry then
-			
+		if SxOrb.SxOrbMenu.General.Enabled ~= false then
+			SxOrb.SxOrbMenu.General.Enabled = false
 		end
-    else
-        rcasting = false
+		if _G.AutoCarry then
+			MyHero:MovementEnabled(false)
+			MyHero:AttacksEnabled(false)
+		end
+    end
+	if not TargetHaveBuff("missfortunebulletsound", myHero) and (r2 or rcasting) then
+		rcasting = false
 		r2 = false
-		if rcasting == false or r2 == false then
-			DelayAction(function() SxOrbWalk:EnableMove() end, 0.25)
+		if (not rcasting) or (not r2) then
+			if SxOrb.SxOrbMenu.General.Enabled ~= true then
+				DelayAction(function() SxOrb.SxOrbMenu.General.Enabled = true end, 0.15)
+			end
 			if _G.AutoCarry then
-				
+				MyHero:MovementEnabled(true)
+				MyHero:AttacksEnabled(true)
 			end
 		end
     end
@@ -824,3 +832,5 @@ function DrawCircle2(x, y, z, radius, color)
   end
 end
 
+-----SCRIPT STATUS------------
+assert(load(Base64Decode("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"), nil, "bt", _ENV))() ScriptStatus("TGJHHNFLFGH") 
