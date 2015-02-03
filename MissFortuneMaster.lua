@@ -2,8 +2,8 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.32
-	01.02.2015
+	Last Version: 0.33
+	03.02.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.32"
+local version = "0.33"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -172,6 +172,7 @@ function Menu()
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: Q Settings", "qConfig")
 	MFMenu.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
 	MFMenu.comboConfig.qConfig:addParam("USEQ2", "Use On Minions", SCRIPT_PARAM_ONOFF, false)
+	MFMenu.comboConfig.qConfig:addParam("QMODE", "Q Cast Mode", SCRIPT_PARAM_LIST, 2, { "Normal", "After AA"})
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: W Settings", "wConfig")
 	MFMenu.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: E Settings", "eConfig")
@@ -265,6 +266,17 @@ function Menu()
     else
 		arrangePrioritys()
 	end
+	SxOrb:RegisterAfterAttackCallback(function(t) aa() end)
+end
+
+function aa()
+	if MFMenu.comboConfig.qConfig.QMODE == 2 then
+		if QCel ~= nil and MFMenu.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.comboConfig.manac then
+			if MFMenu.comboConfig.qConfig.USEQ and ValidTarget(QCel, Q.range) and not rcasting and not MFMenu.comboConfig.qConfig.USEQ2 then
+				CastQ(QCel)
+			end
+		end
+	end
 end
 
 function GetCustomTarget()
@@ -344,7 +356,7 @@ function Combo()
 		end
 	end
 	if QCel ~= nil then 
-		if MFMenu.comboConfig.qConfig.USEQ and ValidTarget(QCel, Q.range) and not rcasting and not MFMenu.comboConfig.qConfig.USEQ2 then
+		if MFMenu.comboConfig.qConfig.USEQ and ValidTarget(QCel, Q.range) and not rcasting and not MFMenu.comboConfig.qConfig.USEQ2 and MFMenu.comboConfig.qConfig.QMODE == 1 then
 			CastQ(QCel)
 		end
 		if MFMenu.comboConfig.qConfig.USEQ and MFMenu.comboConfig.qConfig.USEQ2 and not rcasting then
