@@ -2,8 +2,8 @@
 
 	Script Name: OLAF MASTER 
     	Author: kokosik1221
-	Last Version: 0.35
-	02.02.2015
+	Last Version: 0.36
+	03.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.35"
+local version = "0.36"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/OlafMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -704,24 +704,25 @@ function OnProcessSpell(unit, spell)
 			htar = myHero
 			if htar.team == myHero.team and not htar.dead and htar.health > 0 then
 				local hb = htar.boundingRadius
+				hitchampion = false
 				if shottype == 0 then 
-					htar = spell.target and spell.target.networkID == htar.networkID
+					hitchampion = spell.target and spell.target.networkID == htar.networkID
 				elseif shottype == 1 then 
-					htar = checkhitlinepass(unit, spell.endPos, radius, maxdistance, htar, hb)
+					hitchampion = checkhitlinepass(unit, spell.endPos, radius, maxdistance, htar, hb)
 				elseif shottype == 2 then 
-					htar = checkhitlinepoint(unit, spell.endPos, radius, maxdistance, htar, hb)
+					hitchampion = checkhitlinepoint(unit, spell.endPos, radius, maxdistance, htar, hb)
 				elseif shottype == 3 then 
-					htar = checkhitaoe(unit, spell.endPos, radius, maxdistance, htar, hb)
+					hitchampion = checkhitaoe(unit, spell.endPos, radius, maxdistance, htar, hb)
 				elseif shottype == 4 then 
-					htar = checkhitcone(unit, spell.endPos, radius, maxdistance, htar, hb)
+					hitchampion = checkhitcone(unit, spell.endPos, radius, maxdistance, htar, hb)
 				elseif shottype == 5 then 
-					htar = checkhitwall(unit, spell.endPos, radius, maxdistance, htar, hb)
+					hitchampion = checkhitwall(unit, spell.endPos, radius, maxdistance, htar, hb)
 				elseif shottype == 6 then 
-					htar = checkhitlinepass(unit, spell.endPos, radius, maxdistance, htar, hb) or checkhitlinepass(unit, Vector(unit)*2-spell.endPos, radius, maxdistance, tar, hb)
+					hitchampion = checkhitlinepass(unit, spell.endPos, radius, maxdistance, htar, hb) or checkhitlinepass(unit, Vector(unit)*2-spell.endPos, radius, maxdistance, tar, hb)
 				elseif shottype == 7 then 
-					htar = checkhitcone(spell.endPos, unit, radius, maxdistance, htar, hb)
+					hitchampion = checkhitcone(spell.endPos, unit, radius, maxdistance, htar, hb)
 				end
-				if htar and RReady and MenuOlaf.exConfig.ES[spell.name] then
+				if hitchampion and RReady and MenuOlaf.exConfig.ES[spell.name] then
 					CastSpell(_R)
 				end
 			end
