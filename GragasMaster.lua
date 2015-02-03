@@ -2,8 +2,8 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.56
-	01.02.2015
+	Last Version: 0.57
+	03.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.56"
+local version = "0.57"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GragasMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -386,15 +386,6 @@ end
 
 function Combo()
 	UseItems(Cel)
-	if QReady and MenuGragy.comboConfig.qConfig.USEQ and GetDistance(Cel) < Q.range then
-		CastQ(Cel)
-	end
-	if WReady and MenuGragy.comboConfig.wConfig.USEW and GetDistance(Cel) < E.range then
-		CastW()
-	end
-	if EReady and MenuGragy.comboConfig.eConfig.USEE and GetDistance(Cel) <= E.range then
-		CastE(Cel)
-	end
 	if RReady and MenuGragy.comboConfig.rConfig.USER and GetDistance(Cel) < R.range then
 		if MenuGragy.comboConfig.rConfig.RMODE == 1 then
 			if not MenuGragy.comboConfig.rConfig.CBE then
@@ -421,6 +412,15 @@ function Combo()
 				end	
 			end
 		end
+	end
+	if QReady and MenuGragy.comboConfig.qConfig.USEQ and GetDistance(Cel) < Q.range then
+		CastQ(Cel)
+	end
+	if EReady and MenuGragy.comboConfig.eConfig.USEE and GetDistance(Cel) <= E.range then
+		CastE(Cel)
+	end
+	if WReady and MenuGragy.comboConfig.wConfig.USEW and GetDistance(Cel) < E.range and not QReady and not EReady then
+		CastW()
 	end
 end
 
