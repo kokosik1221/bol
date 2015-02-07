@@ -2,8 +2,8 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.33
-	03.02.2015
+	Last Version: 0.34
+	07.02.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.33"
+local version = "0.34"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -126,7 +126,7 @@ function Vars()
 		print("<b><font color=\"#6699FF\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 		mma = true
 	end	
-	if _G.Reborn_Loaded then
+	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
 		local Skills, Keys, Items, Data, Jungle, Helper, MyHero, Minions, Crosshair, Orbwalker = AutoCarry.Helper:GetClasses()
@@ -168,6 +168,8 @@ function Menu()
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, 550, DAMAGE_PHYSICAL)
 	TargetSelector.name = "MissFortune"
 	MFMenu.STS:addTS(TargetSelector)
+	MFMenu:addParam("lan", "Language:", SCRIPT_PARAM_LIST, 1, {"English","Chinese"}) 
+	if MFMenu.lan == 1 then
 	MFMenu:addSubMenu("[MissFortune Master]: Combo Settings", "comboConfig")
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: Q Settings", "qConfig")
 	MFMenu.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
@@ -248,6 +250,87 @@ function Menu()
 	MFMenu.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MFMenu.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MFMenu.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
+	else
+	MFMenu:addSubMenu("[????]: ?? ??", "comboConfig")
+	MFMenu.comboConfig:addSubMenu("[????]: Q ??", "qConfig")
+	MFMenu.comboConfig.qConfig:addParam("USEQ", "?? " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.comboConfig.qConfig:addParam("USEQ2", "??Q??", SCRIPT_PARAM_ONOFF, false)
+	MFMenu.comboConfig:addSubMenu("[????]: W ??", "wConfig")
+	MFMenu.comboConfig.wConfig:addParam("USEW", "?? " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.comboConfig:addSubMenu("[????]: E ??", "eConfig")
+	MFMenu.comboConfig.eConfig:addParam("USEE", "?? " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.comboConfig:addSubMenu("[????]: R ??", "rConfig")
+	MFMenu.comboConfig.rConfig:addParam("USER", "?? " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.comboConfig.rConfig:addParam("RM", "R????", SCRIPT_PARAM_LIST, 2, { "??", "??? & ?? > AA", "????X"})
+	MFMenu.comboConfig.rConfig:addParam("RX", "X = ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
+	MFMenu.comboConfig.rConfig:addParam("CRKD", "?? (R) ??", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
+	MFMenu.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.comboConfig:addParam("ST", "???????", SCRIPT_PARAM_ONOFF, false)
+	MFMenu.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.comboConfig:addParam("CEnabled", "??", SCRIPT_PARAM_ONKEYDOWN, false, 32)
+	MFMenu.comboConfig:addParam("manac", "??. ??????", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
+	MFMenu:addSubMenu("[????]: ?? ??", "harrasConfig")
+	MFMenu.harrasConfig:addParam("USEQ", "?? " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.harrasConfig:addParam("USEQ2", "??Q??", SCRIPT_PARAM_ONOFF, false)
+	MFMenu.harrasConfig:addParam("USEW", "?? " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.harrasConfig:addParam("USEE", "?? " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.harrasConfig:addParam("HEnabled", "??", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
+	MFMenu.harrasConfig:addParam("HTEnabled", "????", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
+	MFMenu.harrasConfig:addParam("manah", "??. ?????", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MFMenu:addSubMenu("[????]: ?? ??", "exConfig")
+	MFMenu.exConfig:addParam("ARF", "??(R)??????X", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.exConfig:addParam("ARX", "X = ", SCRIPT_PARAM_SLICE, 4, 1, 5, 0)
+	MFMenu.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.exConfig:addParam("AEF", "??(E)??????X", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.exConfig:addParam("AEX", "X = ", SCRIPT_PARAM_SLICE, 4, 1, 5, 0)
+	MFMenu.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.exConfig:addParam("UAH", "???????", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.exConfig:addParam("UAHHP", "??. HP% ??", SCRIPT_PARAM_SLICE, 35, 0, 100, 0)
+	MFMenu:addSubMenu("[????]: ?? ??", "ksConfig")
+	MFMenu.ksConfig:addParam("QKS", "?? " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.ksConfig:addParam("EKS", "?? " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.ksConfig:addParam("RKS", "?? " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.ksConfig:addParam("IKS", "????", SCRIPT_PARAM_ONOFF, true)
+	MFMenu:addSubMenu("[????]: ?? ??", "farm")
+	MFMenu.farm:addParam("USEQ", "?? " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.farm:addParam("USEW", "?? " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.farm:addParam("USEE", "?? " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.farm:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.farm:addParam("LaneClear", "?? ", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
+	MFMenu.farm:addParam("manaf", "??. ?????", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MFMenu:addSubMenu("[????]: ?? ??", "jf")
+	MFMenu.jf:addParam("QJF", "?? " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.jf:addParam("WJF", "?? " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.jf:addParam("EJF", "?? " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.jf:addParam("JFEnabled", "??", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
+	MFMenu.jf:addParam("manajf", "??. ?????", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MFMenu:addSubMenu("[????]: ?? ??", "drawConfig")
+	MFMenu.drawConfig:addParam("DLC", "??????", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.drawConfig:addParam("DST", "???????", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.drawConfig:addParam("DD", "??????", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.drawConfig:addParam("DQR", "?? Q ??", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.drawConfig:addParam("DQRC", "?? Q ????", SCRIPT_PARAM_COLOR, {255,0,240,0})
+	MFMenu.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.drawConfig:addParam("DER", "?? E ??", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.drawConfig:addParam("DERC", "?? E ????", SCRIPT_PARAM_COLOR, {255,0,200,0})
+	MFMenu.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.drawConfig:addParam("DRR", "?? R ??", SCRIPT_PARAM_ONOFF, true)
+	MFMenu.drawConfig:addParam("DRRC", "?? R ????", SCRIPT_PARAM_COLOR, {255,200,0,0})
+	MFMenu:addSubMenu("[????]: ?? ??", "prConfig")
+	MFMenu.prConfig:addParam("pc", "?????????(VIP)", SCRIPT_PARAM_ONOFF, false)
+	MFMenu.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.prConfig:addParam("ALS", "??????", SCRIPT_PARAM_ONOFF, false)
+	MFMenu.prConfig:addParam("AL", "??lvl??", SCRIPT_PARAM_LIST, 1, { "Q>E>W>R", "Q>W>E>R", "E>Q>W>R", "W>Q>E>R"})
+	MFMenu.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MFMenu.prConfig:addParam("pro", "Prodiction ??:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MFMenu.prConfig:addParam("vphit", "VPrediction ???", SCRIPT_PARAM_LIST, 3, {"[0]????","[1]????", "[2]????", "[3]????/??", "[4]????", "[5]????" })
+	end
 	MFMenu.comboConfig:permaShow("CEnabled")
 	MFMenu.harrasConfig:permaShow("HEnabled")
 	MFMenu.harrasConfig:permaShow("HTEnabled")
@@ -303,7 +386,7 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if ((sac and _G.AutoCarry) or mma) and SxOrb.SxOrbMenu.General.Enabled ~= false then
+	if (_G.Reborn_Loaded or mma) and SxOrb.SxOrbMenu.General.Enabled ~= false then
 		SxOrb.SxOrbMenu.General.Enabled = false
 	end
 	SxOrb:ForceTarget(Cel)
