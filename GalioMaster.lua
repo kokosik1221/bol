@@ -2,8 +2,8 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 1.85
-	01.02.2015
+	Last Version: 1.86
+	08.02.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.85"
+local version = "1.86"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GalioMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -100,16 +100,20 @@ function OnLoad()
 end
 
 function CheckUlt()
-    if TargetHaveBuff("GalioIdolOfDurand", myHero) then
-         ultbuff = true
-		 SxOrb.SxOrbMenu.General.Enabled = false
-		 oc = false
-    else
-         ultbuff = false
-		 if (oc == false) and (not sac or mma) then
-			SxOrb.SxOrbMenu.General.Enabled = false
-			oc = true
-		 end
+    if ultbuff or TargetHaveBuff("GalioIdolOfDurand", myHero) then
+        ultbuff = true
+		SxOrb.SxOrbMenu.General.Enabled = false
+		if _G.AutoCarry then
+			MyHero:MovementEnabled(false)
+			MyHero:AttacksEnabled(false)
+		end
+    elseif not TargetHaveBuff("GalioIdolOfDurand", myHero) then
+        ultbuff = false
+		DelayAction(function() SxOrb.SxOrbMenu.General.Enabled = true end, 0.15)
+		if _G.AutoCarry then
+			MyHero:MovementEnabled(true)
+			MyHero:AttacksEnabled(true)
+		end
     end
 end
 
@@ -357,7 +361,7 @@ function Combo()
 	if MenuGalio.comboConfig.USER then
 		local enemyCount = EnemyCount(myHero, R.range)
 		if not ultbuff and RReady and GetDistance(Cel) < R.range and MenuGalio.comboConfig.USER and enemyCount >= MenuGalio.comboConfig.ENEMYTOR then
-			SxOrb.SxOrbMenu.General.Enabled = false
+			ultbuff = true
 			CastSpell(_R)
 		end
 	end
