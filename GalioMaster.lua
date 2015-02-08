@@ -1,9 +1,11 @@
 --[[
 
 	Script Name: GALIO MASTER 
-    	Author: kokosik1221
-	Last Version: 1.86
+    Author: kokosik1221
+	Last Version: 1.861
 	08.02.2015
+	
+	- reborn ult support
 	
 ]]--
 
@@ -13,7 +15,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.86"
+local version = "1.861"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GalioMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -96,6 +98,7 @@ function OnLoad()
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
+		local Skills, Keys, Items, Data, Jungle, Helper, MyHero, Minions, Crosshair, Orbwalker = AutoCarry.Helper:GetClasses()
 	end
 end
 
