@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: DIANA MASTER 
-    Author: kokosik1221
-	Last Version: 0.1
-	08.02.2015
+    	Author: kokosik1221
+	Last Version: 0.2
+	09.02.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Diana" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.1"
+local version = "0.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/DianaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -101,6 +101,7 @@ function Vars()
 	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	QCastTime, RDelay, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
 	IgniteKey, zhonyaslot = nil, nil
 	print("<b><font color=\"#FF0000\">Diana Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	killstring = {}
@@ -146,7 +147,11 @@ function OnTick()
 	if MenuDiana.comboConfig.CEnabled then
 		caa()
 		if ((myHero.mana/myHero.maxMana)*100) >= MenuDiana.comboConfig.manac then
-			Combo()
+			if MenuDiana.comboConfig.oConfig.CT == 1 then
+				Combo()
+			elseif MenuDiana.comboConfig.oConfig.CT == 2 then
+				Combo2()
+			end
 		end
 	end
 	if (MenuDiana.harrasConfig.HEnabled or MenuDiana.harrasConfig.HTEnabled) then
@@ -191,6 +196,7 @@ function Menu()
 	MenuDiana.comboConfig:addSubMenu("[Diana Master]: Other Settings", "oConfig")
 	MenuDiana.comboConfig.oConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana.comboConfig.oConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
+	MenuDiana.comboConfig.oConfig:addParam("CT", "Combo Type:", SCRIPT_PARAM_LIST, 1, { "Normal", "Misaya"})
 	MenuDiana.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	MenuDiana.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	MenuDiana:addSubMenu("[Diana Master]: Harras Settings", "harrasConfig")
@@ -228,6 +234,10 @@ function Menu()
 		end
 	end
 	MenuDiana.exConfig:addParam("UI", "Use Auto-Interrupt (E)", SCRIPT_PARAM_ONOFF, true)
+	MenuDiana.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuDiana.exConfig:addParam("USEW2", "Auto W", SCRIPT_PARAM_ONOFF, true)
+	MenuDiana.exConfig:addParam("qqq", "Auto W Info:", SCRIPT_PARAM_INFO,"")
+	MenuDiana.exConfig:addParam("qqq", "Use W When Enemy AA Me Or If I Take Some DMG", SCRIPT_PARAM_INFO,"")
 	MenuDiana:addSubMenu("[Diana Master]: Draw Settings", "drawConfig")
 	MenuDiana.drawConfig:addParam("DLC", "Draw Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
@@ -278,6 +288,7 @@ function Menu()
 end
 
 function Check()
+	WCheck()
 	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
 		Cel = SelectedTarget
 	else
@@ -302,18 +313,38 @@ function Combo()
 	if QReady and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
-	if WReady and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
-		CastW()
-	end
-	if EReady and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
-		CastE()
-	end
 	if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
 		if not MenuDiana.comboConfig.rConfig.USER2 then
 			CastR(Cel)
 		elseif MenuDiana.comboConfig.rConfig.USER2 and TargetHaveBuff("dianamoonlight", Cel) then
 			CastR(Cel)
 		end
+	end
+	if EReady and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
+		CastE()
+	end
+	if WReady and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
+		CastW()
+	end
+end
+
+function Combo2()
+	if QReady and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
+		CastQ(Cel)
+		local CastPosition,  HitChance,  Position = VP:GetCircularAOECastPosition(Cel, Q.delay, Q.width, Q.range, Q.speed, myHero)
+		RDelay = (250 + (GetDistance(CastPosition) / 1.8))
+        QCastTime = GetTickCount()
+	end
+	if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
+		if (GetTickCount() - QCastTime) >= RDelay and (GetTickCount() - QCastTime) < (3000 - RDelay) then
+			CastR(Cel)
+		end
+	end
+	if WReady and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
+		CastW()
+	end
+	if EReady and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
+		CastE()
 	end
 end
 
@@ -336,14 +367,14 @@ function Farm()
 	EMode =  MenuDiana.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
 			end
 		elseif QMode == 2 then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero, 3) then
 					CastQ(minion)
 				end
@@ -354,7 +385,7 @@ function Farm()
 				CastW()
 			end
 		elseif WMode == 2 then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				if minion.health <= getDmg("W", minion, myHero, 3) then
 					CastW()
 				end
@@ -372,17 +403,17 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuDiana.jf.QJF then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
 		end
 		if MenuDiana.jf.WJF then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				CastW()
 			end
 		end
 		if MenuDiana.jf.EJF then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
 				CastE()
 			end
 		end
@@ -397,15 +428,15 @@ function KillSteall()
 		local RDMG = getDmg("R", Enemy, myHero, 3)
 		local IDMG = 50 + (20 * myHero.level)
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if hp < IDMG and MenuDiana.ksConfig.IKS and ValidTarget(Enemy, 600) then
+			if IReady and hp < IDMG and MenuDiana.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(IgniteKey, Enemy)
-			elseif hp < QDMG and MenuDiana.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
+			elseif QReady and hp < QDMG and MenuDiana.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
-			elseif hp < WDMG and MenuDiana.ksConfig.WKS and ValidTarget(Enemy, W.range) then
+			elseif WReady and hp < WDMG and MenuDiana.ksConfig.WKS and ValidTarget(Enemy, W.range) then
 				CastW()
-			elseif hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and not MenuDiana.ksConfig.RKS2 then
+			elseif RReady and hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and not MenuDiana.ksConfig.RKS2 then
 				CastR(Enemy)
-			elseif hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and MenuDiana.ksConfig.RKS2 then
+			elseif RReady and hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and MenuDiana.ksConfig.RKS2 then
 				if TargetHaveBuff("dianamoonlight", Enemy) then
 					CastR(Enemy)
 				end
@@ -540,6 +571,18 @@ function UseItems(unit)
 	end
 end
 
+function WCheck()
+	if lasttickchecked <= GetTickCount() - 500 then
+		lasthealthchecked = myHero.health
+		lasttickchecked = GetTickCount()
+	end
+	if WReady and MenuDiana.exConfig.USEW2 then
+		if lasthealthchecked > myHero.health then
+			CastW()
+		end
+	end
+end
+
 function getHitBoxRadius(target)
 	return GetDistance(target.minBBox, target.maxBBox)/2
 end
@@ -642,6 +685,11 @@ function OnProcessSpell(unit, spell)
 					CastE()
 				end
 			end
+		end
+	end
+	if MenuDiana.exConfig.USEW2 and WReady then
+		if spell.name == "attack" and spell.target == myHero then
+			CastW()
 		end
 	end
 end
