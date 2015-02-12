@@ -2,8 +2,8 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.34
-	07.02.2015
+	Last Version: 0.35
+	12.02.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.34"
+local version = "0.35"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -129,7 +129,6 @@ function Vars()
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
-		local Skills, Keys, Items, Data, Jungle, Helper, MyHero, Minions, Crosshair, Orbwalker = AutoCarry.Helper:GetClasses()
 	end
 end
 
@@ -705,35 +704,44 @@ function AutoF()
 	end
 end
 
-function CheckUlt()
-	if TargetHaveBuff("missfortunebulletsound", myHero) or rcasting or r2 then
-		rcasting = true 
-		r2 = true
-		if SxOrb.SxOrbMenu.General.Enabled ~= false then
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "missfortunebulletsound" then
+		if not _G.AutoCarry then
 			SxOrb.SxOrbMenu.General.Enabled = false
+		elseif _G.AutoCarry then
+			AutoCarry.MyHero:MovementEnabled(false)
+			AutoCarry.MyHero:AttacksEnabled(false)
 		end
-		if _G.AutoCarry then
-			MyHero:MovementEnabled(false)
-			MyHero:AttacksEnabled(false)
+	end
+	if unit.isMe and buff and buff.name == "recallimproved" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "missfortunebulletsound" then
+		if not _G.AutoCarry then
+			SxOrb.SxOrbMenu.General.Enabled = true
+		elseif _G.AutoCarry then
+			AutoCarry.MyHero:MovementEnabled(true)
+			AutoCarry.MyHero:AttacksEnabled(true)
 		end
-    end
-	if not TargetHaveBuff("missfortunebulletsound", myHero) and (r2 or rcasting) then
 		rcasting = false
 		r2 = false
-		if (not rcasting) or (not r2) then
-			if SxOrb.SxOrbMenu.General.Enabled ~= true then
-				DelayAction(function() SxOrb.SxOrbMenu.General.Enabled = true end, 0.15)
-			end
-			if _G.AutoCarry then
-				MyHero:MovementEnabled(true)
-				MyHero:AttacksEnabled(true)
-			end
+	end
+	if unit.isMe and buff and buff.name == "recallimproved" then
+		recall = false
+	end
+end
+
+function CheckUlt()
+	if rcasting or r2 then
+		if not _G.AutoCarry then
+			SxOrb.SxOrbMenu.General.Enabled = false
+		elseif _G.AutoCarry then
+			AutoCarry.MyHero:MovementEnabled(false)
+			AutoCarry.MyHero:AttacksEnabled(false)
 		end
-    end
-	if TargetHaveBuff("recallimproved", myHero) then
-		recall = true
-    else
-        recall = false 
     end
 end
 
