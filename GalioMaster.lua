@@ -1,11 +1,9 @@
 --[[
 
 	Script Name: GALIO MASTER 
-    Author: kokosik1221
-	Last Version: 1.861
-	08.02.2015
-	
-	- reborn ult support
+    	Author: kokosik1221
+	Last Version: 1.9
+	12.02.2015
 	
 ]]--
 
@@ -15,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.861"
+local version = "1.9"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GalioMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -98,26 +96,7 @@ function OnLoad()
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 		sac = true
-		local Skills, Keys, Items, Data, Jungle, Helper, MyHero, Minions, Crosshair, Orbwalker = AutoCarry.Helper:GetClasses()
 	end
-end
-
-function CheckUlt()
-    if ultbuff or TargetHaveBuff("GalioIdolOfDurand", myHero) then
-        ultbuff = true
-		SxOrb.SxOrbMenu.General.Enabled = false
-		if _G.AutoCarry then
-			MyHero:MovementEnabled(false)
-			MyHero:AttacksEnabled(false)
-		end
-    elseif not TargetHaveBuff("GalioIdolOfDurand", myHero) then
-        ultbuff = false
-		DelayAction(function() SxOrb.SxOrbMenu.General.Enabled = true end, 0.15)
-		if _G.AutoCarry then
-			MyHero:MovementEnabled(true)
-			MyHero:AttacksEnabled(true)
-		end
-    end
 end
 
 function OnTick()
@@ -543,6 +522,40 @@ function OnDraw()
             end
         end
 	end
+end
+
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "GalioIdolOfDurand" then
+		if not _G.AutoCarry then
+			SxOrb.SxOrbMenu.General.Enabled = false
+		elseif _G.AutoCarry then
+			AutoCarry.MyHero:MovementEnabled(false)
+			AutoCarry.MyHero:AttacksEnabled(false)
+		end
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "GalioIdolOfDurand" then
+		if not _G.AutoCarry then
+			SxOrb.SxOrbMenu.General.Enabled = true
+		elseif _G.AutoCarry then
+			AutoCarry.MyHero:MovementEnabled(true)
+			AutoCarry.MyHero:AttacksEnabled(true)
+		end
+		ultbuff = false
+	end
+end
+
+function CheckUlt()
+	if ultbuff then
+		if not _G.AutoCarry then
+			SxOrb.SxOrbMenu.General.Enabled = false
+		elseif _G.AutoCarry then
+			AutoCarry.MyHero:MovementEnabled(false)
+			AutoCarry.MyHero:AttacksEnabled(false)
+		end
+    end
 end
 
 function autozh()
