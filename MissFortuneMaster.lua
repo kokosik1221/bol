@@ -2,8 +2,8 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.35
-	12.02.2015
+	Last Version: 0.36
+	13.02.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.35"
+local version = "0.36"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -83,7 +83,7 @@ function Vars()
 	W = {name = "Impure Shots", range = 550}
 	E = {name = "Make It Rain", range = 800, width = 400, delay = 0.65, speed = 500}	
 	R = {name = "Bullet Time", range = 1400, width = 400, angle = 30, delay = 1, speed = 780}
-	QReady, WReady, EReady, RReady, recall, sac, mma, rcasting, r2 = false, false, false, false, false, false, false, false, false
+	QReady, WReady, EReady, RReady, recall, sac, rcasting, r2 = false, false, false, false, false, false, false, false, false
 	abilitylvl = myHero.level - 1
 	EnemyMinions = minionManager(MINION_ENEMY, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -122,13 +122,8 @@ function Vars()
 		EQW = { 3,1,2,1,1,4,1,3,1,3,4,3,3,2,2,4,2,2}, 
 		WQE = { 2,1,3,2,2,4,1,3,1,3,4,3,3,2,2,4,1,1},
 	}
-	if _G.MMA_Loaded then
-		print("<b><font color=\"#6699FF\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
-	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -161,13 +156,18 @@ end
 
 function Menu()
 	MFMenu = scriptConfig("MissFortune Master "..version, "MissFortune Master "..version)
-	MFMenu:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MFMenu.Orbwalking)
+	MFMenu:addParam("lan", "Language:", SCRIPT_PARAM_LIST, 1, {"English","Chinese"}) 
+	MFMenu:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R"}) 
+	MFMenu:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MFMenu.orb == 1 then
+		MFMenu:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MFMenu.Orbwalking)
+		SxOrb:RegisterAfterAttackCallback(function(t) aa() end)
+	end
 	MFMenu:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, 550, DAMAGE_PHYSICAL)
 	TargetSelector.name = "MissFortune"
 	MFMenu.STS:addTS(TargetSelector)
-	MFMenu:addParam("lan", "Language:", SCRIPT_PARAM_LIST, 1, {"English","Chinese"}) 
 	if MFMenu.lan == 1 then
 	MFMenu:addSubMenu("[MissFortune Master]: Combo Settings", "comboConfig")
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: Q Settings", "qConfig")
@@ -348,7 +348,6 @@ function Menu()
     else
 		arrangePrioritys()
 	end
-	SxOrb:RegisterAfterAttackCallback(function(t) aa() end)
 end
 
 function aa()
@@ -385,10 +384,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if (_G.Reborn_Loaded or mma) and SxOrb.SxOrbMenu.General.Enabled ~= false then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MFMenu.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
@@ -440,6 +438,11 @@ function Combo()
 	if QCel ~= nil then 
 		if MFMenu.comboConfig.qConfig.USEQ and ValidTarget(QCel, Q.range) and not rcasting and not MFMenu.comboConfig.qConfig.USEQ2 and MFMenu.comboConfig.qConfig.QMODE == 1 then
 			CastQ(QCel)
+		end
+		if MFMenu.orb == 2 and MFMenu.comboConfig.qConfig.USEQ and ValidTarget(QCel, Q.range) and not rcasting and not MFMenu.comboConfig.qConfig.USEQ2 and MFMenu.comboConfig.qConfig.QMODE == 2 then
+			if AutoCarry.Orbwalker:IsAfterAttack() then
+				CastQ(QCel)
+			end
 		end
 		if MFMenu.comboConfig.qConfig.USEQ and MFMenu.comboConfig.qConfig.USEQ2 and not rcasting then
 			EnemyMinions:update()
@@ -516,7 +519,6 @@ end
 
 function Farm()
 	EnemyMinions:update()
-	if not SxOrb:CanMove() then return end
 	for i, minion in pairs(EnemyMinions.objects) do
 		if MFMenu.farm.USEQ then
 			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
@@ -706,9 +708,10 @@ end
 
 function OnApplyBuff(unit, source, buff)
 	if unit.isMe and buff and buff.name == "missfortunebulletsound" then
-		if not _G.AutoCarry then
-			SxOrb.SxOrbMenu.General.Enabled = false
-		elseif _G.AutoCarry then
+		if MFMenu.orb == 1 then
+			SxOrb:DisableMove()
+			SxOrb:DisableAttacks()
+		elseif MFMenu.orb == 2 then
 			AutoCarry.MyHero:MovementEnabled(false)
 			AutoCarry.MyHero:AttacksEnabled(false)
 		end
@@ -720,9 +723,10 @@ end
 
 function OnRemoveBuff(unit, buff)
 	if unit.isMe and buff and buff.name == "missfortunebulletsound" then
-		if not _G.AutoCarry then
-			SxOrb.SxOrbMenu.General.Enabled = true
-		elseif _G.AutoCarry then
+		if MFMenu.orb == 1 then
+			SxOrb:EnableMove()
+			SxOrb:EnableAttacks()
+		elseif MFMenu.orb == 2 then
 			AutoCarry.MyHero:MovementEnabled(true)
 			AutoCarry.MyHero:AttacksEnabled(true)
 		end
@@ -736,9 +740,10 @@ end
 
 function CheckUlt()
 	if rcasting or r2 then
-		if not _G.AutoCarry then
-			SxOrb.SxOrbMenu.General.Enabled = false
-		elseif _G.AutoCarry then
+		if MFMenu.orb == 1 then
+			SxOrb:DisableMove()
+			SxOrb:DisableAttacks()
+		elseif MFMenu.orb == 2 then
 			AutoCarry.MyHero:MovementEnabled(false)
 			AutoCarry.MyHero:AttacksEnabled(false)
 		end
