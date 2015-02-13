@@ -2,8 +2,8 @@
 
 	Script Name: DIANA MASTER 
     	Author: kokosik1221
-	Last Version: 0.2
-	09.02.2015
+	Last Version: 0.3
+	13.02.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Diana" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.2"
+local version = "0.3"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/DianaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -94,14 +94,14 @@ local Items = {
 }
  
 function Vars()
-	Q = {name = "Crescent Strike", range = 900, speed = math.huge, delay = 0.5, width = 195}
+	Q = {name = "Crescent Strike", range = 900, speed = 1800, delay = 0.5, width = 195}
 	W = {name = "Pale Cascade", range = 200}
 	E = {name = "Moonfall", range = 450}
 	R = {name = "Lunar Rush", range = 825}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, moonlight = false, false, false, false, false, false, false, false, false
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	QCastTime, RDelay, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
+	QCastTime, RTime, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
 	IgniteKey, zhonyaslot = nil, nil
 	print("<b><font color=\"#FF0000\">Diana Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	killstring = {}
@@ -134,11 +134,9 @@ function OnLoad()
 	Menu()
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Diana Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
-	end	
+	end
 	if _G.AutoCarry then
 		print("<b><font color=\"#FF0000\">Diana Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -177,8 +175,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuDiana = scriptConfig("Diana Master "..version, "Diana Master "..version)
-	MenuDiana:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuDiana.Orbwalking)
+	MenuDiana:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuDiana:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuDiana.orb == 1 then
+		MenuDiana:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuDiana.Orbwalking)
+	end
 	MenuDiana:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Diana"
@@ -190,6 +192,7 @@ function Menu()
 	MenuDiana.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana.comboConfig:addSubMenu("[Diana Master]: E Settings", "eConfig")
 	MenuDiana.comboConfig.eConfig:addParam("USEE", "Use " .. E.name .. " (E)", SCRIPT_PARAM_ONOFF, true)
+	MenuDiana.comboConfig.eConfig:addParam("USEE2", "Use If Dist To Enemy >", SCRIPT_PARAM_SLICE, 280, 0, E.range, 0)
 	MenuDiana.comboConfig:addSubMenu("[Diana Master]: R Settings", "rConfig")
 	MenuDiana.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana.comboConfig.rConfig:addParam("USER2", "Use Only If Have Q Mark", SCRIPT_PARAM_ONOFF, true)
@@ -213,7 +216,7 @@ function Menu()
 	MenuDiana.ksConfig:addParam("RKS", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana.ksConfig:addParam("RKS2", "Must Have Q Mark", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana:addSubMenu("[Diana Master]: Farm Settings", "farm")
-	MenuDiana.farm:addParam("QF", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear"})
+	MenuDiana.farm:addParam("QF", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear"})
 	MenuDiana.farm:addParam("WF", "Use " .. W.name .. " (W)", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear"})
 	MenuDiana.farm:addParam("EF", "Use " .. E.name .. " (E)", SCRIPT_PARAM_LIST, 1, { "No", "LaneClear"})
 	MenuDiana.farm:addParam("LaneClear", "LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
@@ -235,7 +238,7 @@ function Menu()
 	end
 	MenuDiana.exConfig:addParam("UI", "Use Auto-Interrupt (E)", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuDiana.exConfig:addParam("USEW2", "Auto W", SCRIPT_PARAM_ONOFF, true)
+	MenuDiana.exConfig:addParam("USEW2", "Auto W", SCRIPT_PARAM_LIST, 3, { "Disable", "If Take DMG", "If Enemy AA", "Both"})
 	MenuDiana.exConfig:addParam("qqq", "Auto W Info:", SCRIPT_PARAM_INFO,"")
 	MenuDiana.exConfig:addParam("qqq", "Use W When Enemy AA Me Or If I Take Some DMG", SCRIPT_PARAM_INFO,"")
 	MenuDiana:addSubMenu("[Diana Master]: Draw Settings", "drawConfig")
@@ -294,10 +297,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuDiana.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -313,15 +315,17 @@ function Combo()
 	if QReady and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
-	if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
-		if not MenuDiana.comboConfig.rConfig.USER2 then
-			CastR(Cel)
-		elseif MenuDiana.comboConfig.rConfig.USER2 and TargetHaveBuff("dianamoonlight", Cel) then
-			CastR(Cel)
-		end
+	if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) and not MenuDiana.comboConfig.rConfig.USER2 then
+		CastR(Cel)
+	end
+	if moonlight and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) and MenuDiana.comboConfig.rConfig.USER2 and RReady then
+		CastR(Cel)
+		DelayAction(function() moonlight = false end, 0.5)
 	end
 	if EReady and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
-		CastE()
+		if GetDistance(Cel) >= MenuDiana.comboConfig.eConfig.USEE2 then
+			CastE()
+		end
 	end
 	if WReady and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
 		CastW()
@@ -329,22 +333,21 @@ function Combo()
 end
 
 function Combo2()
-	if QReady and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
+	if QReady and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, R.range) then
 		CastQ(Cel)
-		local CastPosition,  HitChance,  Position = VP:GetCircularAOECastPosition(Cel, Q.delay, Q.width, Q.range, Q.speed, myHero)
-		RDelay = (250 + (GetDistance(CastPosition) / 1.8))
-        QCastTime = GetTickCount()
 	end
-	if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
-		if (GetTickCount() - QCastTime) >= RDelay and (GetTickCount() - QCastTime) < (3000 - RDelay) then
-			CastR(Cel)
-		end
-	end
+			DelayAction(function()  
+			if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
+				CastR(Cel)
+			end
+		end, 0.5)
 	if WReady and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
 		CastW()
 	end
 	if EReady and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
-		CastE()
+		if GetDistance(Cel) >= MenuDiana.comboConfig.eConfig.USEE2 then
+			CastE()
+		end
 	end
 end
 
@@ -437,8 +440,9 @@ function KillSteall()
 			elseif RReady and hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and not MenuDiana.ksConfig.RKS2 then
 				CastR(Enemy)
 			elseif RReady and hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and MenuDiana.ksConfig.RKS2 then
-				if TargetHaveBuff("dianamoonlight", Enemy) then
+				if moonlight then
 					CastR(Enemy)
+					DelayAction(function() moonlight = false end, 0.5)
 				end
 			end
 		end
@@ -571,12 +575,18 @@ function UseItems(unit)
 	end
 end
 
+function OnCreateObj(obj)
+	if obj.name == "Diana_Base_Q_Moonlight_Champ.troy" then
+		moonlight = true
+	end
+end
+
 function WCheck()
 	if lasttickchecked <= GetTickCount() - 500 then
 		lasthealthchecked = myHero.health
 		lasttickchecked = GetTickCount()
 	end
-	if WReady and MenuDiana.exConfig.USEW2 then
+	if WReady and (MenuDiana.exConfig.USEW2 == 2 or MenuDiana.exConfig.USEW2 == 4) then
 		if lasthealthchecked > myHero.health then
 			CastW()
 		end
@@ -687,8 +697,8 @@ function OnProcessSpell(unit, spell)
 			end
 		end
 	end
-	if MenuDiana.exConfig.USEW2 and WReady then
-		if spell.name == "attack" and spell.target == myHero then
+	if (MenuDiana.exConfig.USEW2 == 3 or MenuDiana.exConfig.USEW2 == 4) and WReady then
+		if unit.type == myHero.type and spell.name:lower():find("attack") and spell.target == myHero then
 			CastW()
 		end
 	end
