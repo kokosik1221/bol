@@ -2,8 +2,8 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.55
-	01.02.2015
+	Last Version: 0.6
+	16.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.55"
+local version = "0.6"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -84,8 +84,8 @@ function Vars()
 	W = {name = "Incinerate", range = 625, speed = math.huge, delay = 0.60, width = 50*math.pi/180}
 	E = {name = "Molten Shield"}
 	R = {name = "Summon: Tibbers", range = 600, speed = math.huge, delay = 0.20, width = 200}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma, stun, tibbers, recall = false, false, false, false, false, false, false, false, false, false, false
-	abilitylvl, lastskin = 0, 0
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, stun, tibbers, recall = false, false, false, false, false, false, false, false, false
+	lastskin = 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	RFTS = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range + 400, DAMAGE_MAGIC)
@@ -152,8 +152,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuAnnie = scriptConfig("Annie Master "..version, "Annie Master "..version)
-	MenuAnnie:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuAnnie.Orbwalking)
+	MenuAnnie:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuAnnie:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuAnnie.orb == 1 then
+		MenuAnnie:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuAnnie.Orbwalking)
+	end
 	MenuAnnie:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Annie"
@@ -246,7 +250,7 @@ function Menu()
 	MenuAnnie.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuAnnie.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAnnie.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuAnnie.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuAnnie.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID","SUPP"})
 	MenuAnnie.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAnnie.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuAnnie.comboConfig:permaShow("CEnabled")
@@ -267,11 +271,9 @@ function Menu()
 	_G.DrawCircle = DrawCircle2
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
@@ -283,6 +285,7 @@ function Menu()
 end
 
 function caa()
+	if MenuAnnie.orb == 1 then
 	if MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
 		SxOrb:EnableAttacks()
 	elseif not MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
@@ -294,6 +297,7 @@ function caa()
 		else
 			SxOrb:DisableAttacks()
 		end
+	end
 	end
 end
 
@@ -316,10 +320,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuAnnie.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -532,44 +535,14 @@ end
 
 function autolvl()
 	if not MenuAnnie.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuAnnie.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
+	if myHero.level > GetHeroLeveled() then
+		local a = {}
+		if MenuAnnie.prConfig.AL == 1 then
+			a = {_Q,_W,_Q,_W,_Q,_R,_E,_Q,_Q,_W,_R,_W,_W,_E,_E,_R,_E,_E}
+		else
+			a = {_W,_Q,_Q,_E,_Q,_R,_Q,_W,_Q,_W,_R,_W,_W,_E,_E,_R,_E,_E}
 		end
-		if MenuAnnie.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuAnnie.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuAnnie.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuAnnie.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuAnnie.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -753,7 +726,7 @@ function CastW(unit)
 		end
 	end
 	if MenuAnnie.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetConeAOEPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
+		local Position, info = Prodiction.GetPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
 		if Position ~= nil then
 			if VIP_USER and MenuAnnie.prConfig.pc then
 				Packet("S_CAST", {spellId = _W, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -786,7 +759,7 @@ function CastR(unit)
 		end
 	end
 	if MenuAnnie.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetCircularAOEPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
+		local Position, info = Prodiction.GetPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
 		if Position ~= nil then
 			if VIP_USER and MenuAnnie.prConfig.pc then
 				Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -805,26 +778,26 @@ function OnProcessSpell(unit,spell)
 	end
 end
 
-function OnGainBuff(unit, buff)
-	if unit.isMe and (buff.name == "recallimproved") then
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and (buff.name == "recallimproved") then
 		recall = true
 	end 
-	if unit.isMe and (buff.name == "pyromania_particle") then
+	if unit.isMe and buff and (buff.name == "pyromania_particle") then
 		stun = true
 	end 
-	if unit.isMe and (buff.name == "infernalguardiantimer") then
+	if unit.isMe and buff and (buff.name == "infernalguardiantimer") then
 		tibbers = true
 	end 
 end
 
-function OnLoseBuff(unit, buff)
-	if unit.isMe and (buff.name == "recallimproved") then
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and (buff.name == "recallimproved") then
 		recall = false
 	end 
-	if unit.isMe and (buff.name == "pyromania_particle") then
+	if unit.isMe and buff and (buff.name == "pyromania_particle") then
 		stun = false
 	end 
-	if unit.isMe and (buff.name == "infernalguardiantimer") then
+	if unit.isMe and buff and (buff.name == "infernalguardiantimer") then
 		tibbers = false
 	end 
 end
