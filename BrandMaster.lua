@@ -2,7 +2,7 @@
 
 	Script Name: BRAND MASTER 
     	Author: kokosik1221
-	Last Version: 1.3
+	Last Version: 1.31
 	16.02.2015
 	
 ]]--
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.3"
+local version = "1.31"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BrandMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -523,7 +523,7 @@ end
 function AutoW()
 	for _, target in pairs(GetEnemyHeroes()) do
         if target ~= nil and target.team ~= player.team and target.visible and not target.dead then
-            if ValidTarget(target, W.range - 30) and WReady and not target.canMove) then
+            if ValidTarget(target, W.range - 30) and WReady and not target.canMove then
                 CastW(target)
             end
         end
