@@ -2,8 +2,8 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.77
-	01.02.2015
+	Last Version: 1.8
+	16.02.2015
 	
 ]]--
 
@@ -13,8 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
---AUTO UPDATE--
-local version = "1.77"
+local version = "1.8"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GangplankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -51,13 +50,7 @@ function AfterDownload()
 end
 for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
-		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
-			require(DOWNLOAD_LIB_NAME) 
-		end
-		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
-			require(DOWNLOAD_LIB_NAME) 
-			prodstatus = true 
-		end
+		require(DOWNLOAD_LIB_NAME) 
 	else
 		DOWNLOADING_LIBS = true
 		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
@@ -80,8 +73,8 @@ function Vars()
 	Wrange = 0
 	Erange = 1300
 	Rrange = 99000
-	QReady, WReady, EReady, RReady, IReady, Recall, sac, mma = false, false, false, false, false, false, false, false
-	abilitylvl, lastskin = 0, 0
+	QReady, WReady, EReady, RReady, IReady, Recall = false, false, false, false, false, false
+	lastskin = 0
 	EnemyMinions = minionManager(MINION_ENEMY, Qrange, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Qrange, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey = nil
@@ -94,11 +87,9 @@ function OnLoad()
 	Menu()
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -123,9 +114,8 @@ function OnTick()
 	if Cel ~= nil and (MenuGP.harrasConfig.HEnabled or MenuGP.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.harrasConfig.manah then
 		Harrass()
 	end
-	if MenuGP.farm.Freeze or MenuGP.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.farm.manaf then
-		local Mode = MenuGP.farm.Freeze and "Freeze" or "LaneClear"
-		Farm(Mode)
+	if MenuGP.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.farm.manaf then
+		Farm()
 	end
 	if MenuGP.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.jf.manajf then
 		JungleFarmm()
@@ -148,8 +138,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuGP = scriptConfig("Gangplank Master "..version, "Gangplank Master "..version)
-	MenuGP:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuGP.Orbwalking)
+	MenuGP:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuGP:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuGP.orb == 1 then
+		MenuGP:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuGP.Orbwalking)
+	end
 	MenuGP:addSubMenu("Target selector", "STS")
     TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Qrange, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Gangplank"
@@ -183,9 +177,8 @@ function Menu()
 	MenuGP.ksConfig:addParam("ULTHITS", "Ult hit times:", SCRIPT_PARAM_SLICE, 3, 1, 7, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Farm Settings", "farm")
 	MenuGP.farm:addParam("LQ", "Last Hit Minions With Q", SCRIPT_PARAM_ONOFF, false)
-	MenuGP.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 4, { "No", "Freezing", "LaneClear", "Both" })
-	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 3, { "No", "Freezing", "LaneClear", "Both" })
-	MenuGP.farm:addParam("Freeze", "Farm Freezing", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("C"))
+	MenuGP.farm:addParam("QF", "Use Q Farm", SCRIPT_PARAM_LIST, 2, { "No", "Freezing", "LaneClear"})
+	MenuGP.farm:addParam("EF",  "Use E Farm", SCRIPT_PARAM_LIST, 2, { "No", "LaneClear"})
 	MenuGP.farm:addParam("LaneClear", "Farm LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
 	MenuGP.farm:addParam("manaf", "Min. Mana To Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuGP:addSubMenu("[Gangplank Master]: Jungle Farm Settings", "jf")
@@ -215,7 +208,7 @@ function Menu()
 	MenuGP.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 7, 1, 7)
 	MenuGP.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGP.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuGP.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuGP.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "TOP"})
 	MenuGP.comboConfig:permaShow("CEnabled")
 	MenuGP.harrasConfig:permaShow("HEnabled")
 	MenuGP.harrasConfig:permaShow("HTEnabled")
@@ -227,10 +220,12 @@ function Menu()
 end
 
 function caa()
-	if MenuGP.comboConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuGP.comboConfig.uaa then
-		SxOrb:DisableAttacks()
+	if MenuGP.orb == 1 then
+		if MenuGP.comboConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuGP.comboConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
@@ -251,10 +246,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuGP.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
@@ -374,34 +368,31 @@ function Harrass()
 	end
 end
 
-function Farm(Mode)
-	local UseQ
-	local UseE
+function Farm()
 	EnemyMinions:update()
-	if Mode == "Freeze" then
-		UseQ =  MenuGP.farm.QF == 2
-		UseE =  MenuGP.farm.EF == 2 
-	elseif Mode == "LaneClear" then
-		UseQ =  MenuGP.farm.QF == 3
-		UseE =  MenuGP.farm.EF == 3
-	end
-	
-	UseQ =  MenuGP.farm.QF == 4 or UseQ
-	UseE =  MenuGP.farm.EF == 4 or UseE
-	
-	if UseQ then
-		for i, minion in pairs(EnemyMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Qrange then
+	QMode = MenuGP.farm.QF
+	EMode = MenuGP.farm.EF
+	for i, minion in pairs(EnemyMinions.objects) do
+		if QMode == 3 then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Qrange) then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
 				else
 					CastSpell(_Q, minion)
 				end
 			end
+		elseif QMode == 2 then
+			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Qrange) then
+				if minion.health <= getDmg("Q", minion, myHero) then
+					if VIP_USER and MenuGP.prConfig.pc then
+						Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
+					else
+						CastSpell(_Q, minion)
+					end
+				end
+			end
 		end
-	end
-	if UseE then
-		for i, minion in pairs(EnemyMinions.objects) do
+		if EMode == 2 then
 			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Erange then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _E}):send()
@@ -491,44 +482,9 @@ end
 
 function autolvl()
 	if not MenuGP.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuGP.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuGP.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuGP.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuGP.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuGP.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuGP.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_Q,_E,_W,_E,_E,_R,_E,_E,_W,_W,_R,_W,_W,_Q,_Q,_R,_Q,_Q}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
