@@ -2,8 +2,8 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 1.9
-	12.02.2015
+	Last Version: 2.0
+	16.02.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.9"
+local version = "2.0"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GalioMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -77,8 +77,8 @@ function Vars()
 	W = {range = 800}
 	E = {range = 1180, speed = 1400, delay = 0.25, width = 235}
 	R = {range = 560}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, ultbuff, sac, mma, oc = false, false, false, false, false, false, false, false, false, false
-	abilitylvl, lastskin, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, ultbuff = false, false, false, false, false, false, false
+	lastskin, lasttickchecked, lasthealthchecked = 0, 0, 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey, zhonyaslot = nil, nil
@@ -91,11 +91,9 @@ function OnLoad()
 	Menu()
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -131,8 +129,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuGalio = scriptConfig("Galio Master "..version, "Galio Master "..version)
-	MenuGalio:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuGalio.Orbwalking)
+	MenuGalio:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuGalio:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuGalio.orb == 1 then
+		MenuGalio:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuGalio.Orbwalking)
+	end
 	MenuGalio:addSubMenu("Target selector", "STS")
     TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Galio"
@@ -208,7 +210,7 @@ function Menu()
 	MenuGalio.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuGalio.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuGalio.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, {"MID"})
 	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuGalio.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
@@ -224,10 +226,12 @@ function Menu()
 end
 
 function caa()
+	if MenuGalio.orb == 1 then
 	if MenuGalio.comboConfig.uaa then
 		SxOrb:EnableAttacks()
 	elseif not MenuGalio.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
 	end
 end
 
@@ -257,15 +261,14 @@ end
 
 function Check()
 	TargetSelector.range = GetRange()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, TargetSelector.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
 	end
-	if (sac or mma) then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuGalio.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -526,9 +529,10 @@ end
 
 function OnApplyBuff(unit, source, buff)
 	if unit.isMe and buff and buff.name == "GalioIdolOfDurand" then
-		if not _G.AutoCarry then
-			SxOrb.SxOrbMenu.General.Enabled = false
-		elseif _G.AutoCarry then
+		if MenuGalio.orb == 1 then
+			SxOrb:DisableMove()
+			SxOrb:DisableAttacks()
+		elseif MenuGalio.orb == 2 then
 			AutoCarry.MyHero:MovementEnabled(false)
 			AutoCarry.MyHero:AttacksEnabled(false)
 		end
@@ -538,7 +542,8 @@ end
 function OnRemoveBuff(unit, buff)
 	if unit.isMe and buff and buff.name == "GalioIdolOfDurand" then
 		if not _G.AutoCarry then
-			SxOrb.SxOrbMenu.General.Enabled = true
+			SxOrb:EnableMove()
+			SxOrb:EnableAttacks()
 		elseif _G.AutoCarry then
 			AutoCarry.MyHero:MovementEnabled(true)
 			AutoCarry.MyHero:AttacksEnabled(true)
@@ -550,7 +555,8 @@ end
 function CheckUlt()
 	if ultbuff then
 		if not _G.AutoCarry then
-			SxOrb.SxOrbMenu.General.Enabled = false
+			SxOrb:DisableMove()
+			SxOrb:DisableAttacks()
 		elseif _G.AutoCarry then
 			AutoCarry.MyHero:MovementEnabled(false)
 			AutoCarry.MyHero:AttacksEnabled(false)
@@ -567,44 +573,9 @@ end
 
 function autolvl()
 	if not MenuGalio.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuGalio.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuGalio.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuGalio.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuGalio.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuGalio.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuGalio.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_Q,_W,_Q,_E,_Q,_R,_Q,_W,_Q,_W,_R,_W,_W,_E,_E,_R,_E,_E}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -659,7 +630,7 @@ function CastQ(unit)
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetCircularAOEPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
+		local Position, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
 		if Position ~= nil and info.hitchance >= 2 then
 			SpellCast(_Q, Position)	
 		end
@@ -674,7 +645,7 @@ function CastE(unit)
 		end
 	end
 	if MenuGalio.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetLineAOEPrediction(unit, E.range, E.speed, E.delay, E.width)
+		local Position, info = Prodiction.GetPrediction(unit, E.range, E.speed, E.delay, E.width, myHero)
 		if Position ~= nil and info.hitchance >= 2 then
 			SpellCast(_E, Position)	
 		end
