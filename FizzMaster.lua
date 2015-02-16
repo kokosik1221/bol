@@ -2,8 +2,8 @@
 
 	Script Name: FIZZ MASTER 
     	Author: kokosik1221
-	Last Version: 1.34
-	01.02.2015
+	Last Version: 1.4
+	16.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.34"
+local version = "1.4"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/FizzMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -462,8 +462,8 @@ function Vars()
 	E2 = {name = "Trickster", range = 400, speed = 1200, delay = 0.25, width = 270}
 	R = {name = "Chum the Waters", range = 1175, speed = 1200, delay = 0.5, width = 80}
 	killstring = {}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
-	abilitylvl, lastskin, aarange = 0, 0, 175
+	QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
+	lastskin, aarange = 0, 175
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey, zhonyaslot = nil, nil
@@ -477,11 +477,9 @@ function OnLoad()
 	Menu()
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -520,8 +518,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuFizz = scriptConfig("Fizz Master "..version, "Fizz Master "..version)
-	MenuFizz:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuFizz.Orbwalking)
+	MenuFizz:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuFizz:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuFizz.orb == 1 then
+		MenuFizz:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuFizz.Orbwalking)
+	end
 	MenuFizz:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Fizz"
@@ -620,7 +622,7 @@ function Menu()
 	MenuFizz.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuFizz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuFizz.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuFizz.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuFizz.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID"})
 	MenuFizz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuFizz.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuFizz.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
@@ -646,10 +648,12 @@ function EnemyCount(point, range)
 end
 
 function caa()
+	if MenuFizz.orb == 1 then
 	if MenuFizz.comboConfig.uaa then
 		SxOrb:EnableAttacks()
 	elseif not MenuFizz.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
 	end
 end
 
@@ -670,15 +674,14 @@ function Check()
 	else
 		TargetSelector.range = Q.range
 	end
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, TargetSelector.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuFizz.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -933,44 +936,9 @@ end
 
 function autolvl()
 	if not MenuFizz.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuFizz.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuFizz.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuFizz.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuFizz.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuFizz.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuFizz.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_W,_Q,_E,_E,_E,_R,_E,_Q,_E,_Q,_R,_Q,_Q,_W,_W,_R,_W,_W}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -1180,7 +1148,7 @@ function CastR(unit)
 			end
 		end
 		if MenuFizz.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position, info = Prodiction.GetLineAOEPrediction(unit, R.range, R.speed, R.delay, R.width)
+			local Position, info = Prodiction.GetPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
 			if Position ~= nil then
 				if VIP_USER and MenuFizz.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
