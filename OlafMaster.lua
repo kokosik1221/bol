@@ -2,8 +2,8 @@
 
 	Script Name: OLAF MASTER 
     	Author: kokosik1221
-	Last Version: 0.36
-	03.02.2015
+	Last Version: 0.4
+	16.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.36"
+local version = "0.4"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/OlafMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -159,14 +159,20 @@ function Vars()
 	E = {name = "Reckless Swing", range = 325}
 	R = {name = "Ragnarok"}
 	QReady, WReady, EReady, RReady, IReady, pickaxe = false, false, false, false, false, false
-	abilitylvl, lastskin = 0, 0
+	lastskin = 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, axe = nil
+	IgniteKey, axe = nil, nil
 	killstring = {}
 	Spells = {_Q,_W,_E,_R}
 	Spells2 = {"Q","W","E","R"}
 	print("<b><font color=\"#FF0000\">Olaf Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#FF0000\">Olaf Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#FF0000\">olaf Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+	end
 end
 
 function OnLoad()
@@ -201,8 +207,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuOlaf = scriptConfig("Olaf Master "..version, "Olaf Master "..version)
-	MenuOlaf:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuOlaf.Orbwalking)
+	MenuOlaf:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuOlaf:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuOlaf.orb == 1 then
+		MenuOlaf:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuOlaf.Orbwalking)
+	end
 	MenuOlaf:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Olaf"
@@ -328,10 +338,12 @@ function Menu()
 end
 
 function caa()
+	if MenuOlaf.orb == 1 then
 	if MenuOlaf.comboConfig.uaa then
 		SxOrb:EnableAttacks()
 	elseif not MenuOlaf.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
 	end
 end
 
@@ -366,10 +378,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuOlaf.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
@@ -525,7 +536,7 @@ function CastQ(unit)
 				end	
 			end
 		elseif MenuOlaf.prConfig.pro == 2 and VIP_USER and prodstatus then
-			CastPosition, info = Prodiction.GetLineAOEPrediction(unit, Q.range - 30, Q.speed, Q.delay, Q.width)
+			CastPosition, info = Prodiction.GetPrediction(unit, Q.range-30, Q.speed, Q.delay, Q.width, myHero)
 			if CastPosition ~= nil then
 				local x,y,z = (Vector(CastPosition) - Vector(myHero)):normalized():unpack()
 				posX = CastPosition.x + (x * 150)
@@ -594,44 +605,9 @@ end
 
 function autolvl()
 	if not MenuOlaf.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuOlaf.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuOlaf.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuOlaf.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuOlaf.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuOlaf.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuOlaf.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_Q,_W,_Q,_E,_Q,_R,_Q,_E,_Q,_E,_R,_E, _E,_W, _W, _R,_W,_W}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
