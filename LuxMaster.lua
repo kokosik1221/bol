@@ -2,8 +2,8 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.224
-	01.02.2015
+	Last Version: 0.3
+	16.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.224"
+local version = "0.3"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -84,7 +84,7 @@ function Vars()
 	W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25, width = 110}
 	E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.25, width = 275}
 	R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma, recall = false, false, false, false, false, false, false, false, false
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, false
 	abilitylvl, lastskin = 0, 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -147,8 +147,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuLux = scriptConfig("Lux Master "..version, "Lux Master "..version)
-	MenuLux:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuLux.Orbwalking)
+	MenuLux:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuLux:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuLux.orb == 1 then
+		MenuLux:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuLux.Orbwalking)
+	end
 	MenuLux:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Lux"
@@ -249,7 +253,7 @@ function Menu()
 	MenuLux.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuLux.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuLux.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuLux.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuLux.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID","SUPP" })
 	MenuLux.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuLux.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuLux.comboConfig:permaShow("CEnabled")
@@ -263,11 +267,9 @@ function Menu()
 	_G.DrawCircle = DrawCircle2
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
@@ -279,10 +281,12 @@ function Menu()
 end
 
 function caa()
+	if MenuLux.orb == 1 then
 	if MenuLux.comboConfig.uaa then
 		SxOrb:EnableAttacks()
 	elseif not MenuLux.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
 	end
 end
 
@@ -305,10 +309,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuLux.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -512,44 +515,14 @@ end
 
 function autolvl()
 	if not MenuLux.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
+	if myHero.level > GetHeroLeveled() then
+		local a = {}
 		if MenuLux.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
+			a = {_Q,_E,_W,_E,_E,_R,_E,_Q,_E,_Q,_R,_Q,_Q,_W,_W,_R,_W,_W}
+		else
+			a = {_Q,_E,_W,_W,_W,_R,_W,_Q,_W,_Q,_R,_Q,_Q,_E,_E,_R,_E,_E}
 		end
-		if MenuLux.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuLux.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuLux.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuLux.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuLux.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -772,7 +745,7 @@ function CastQ(unit)
 			end
 		end
 		if MenuLux.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range, Q.speed, Q.delay, Q.width)
+			local Position, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
 			if Position ~= nil and not info.mCollision() then
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -792,7 +765,7 @@ function CastQ2(unit)
 			if MenuLux.prConfig.pro == 1 then
 				CastPosition,  HitChance, Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, false)
 			elseif MenuLux.prConfig.pro == 2 then
-				CastPosition, info = Prodiction.GetLineAOEPrediction(unit, Q.range, Q.speed, Q.delay, Q.width)
+				CastPosition, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
 			end
 			if VIP_USER and MenuLux.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -827,7 +800,7 @@ function CastE(unit)
 			end
 		end
 		if MenuLux.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position, info = Prodiction.GetCircularAOEPrediction(unit, E.range, E.speed, E.delay, E.width, myHero)
+			local Position, info = Prodiction.GetPrediction(unit, E.range, E.speed, E.delay, E.width, myHero)
 			if Position ~= nil then
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -852,7 +825,7 @@ function CastR(unit)
 			end
 		end
 		if MenuLux.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position, info = Prodiction.GetLineAOEPrediction(unit, R.range, R.speed, R.delay, R.width)
+			local Position, info = Prodiction.GetPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
 			if Position ~= nil then
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
