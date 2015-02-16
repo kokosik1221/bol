@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 0.9
-	01.02.2015
+	Last Version: 1.0
+	16.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.9"
+local version = "1.0"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -96,8 +96,8 @@ function Vars()
 	W = {name = "Overdrive"}
 	E = {name = "Power Fist", range = 140}
 	R = {name = "Static Field", range = 600}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
-	abilitylvl, lastskin = 0, 0
+	QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
+	lastskin = 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey, SmiteKey, zhonyaslot = nil, nil, nil
@@ -107,11 +107,9 @@ function Vars()
 	print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -158,8 +156,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuBlitz = scriptConfig("Blitzcrank Master "..version, "Blitzcrank Master "..version)
-	MenuBlitz:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuBlitz.Orbwalking)
+	MenuBlitz:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuBlitz:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuBlitz.orb == 1 then
+		MenuBlitz:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuBlitz.Orbwalking)
+	end
 	MenuBlitz:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Blitzcrank"
@@ -252,7 +254,7 @@ function Menu()
 	MenuBlitz.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuBlitz.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuBlitz.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "SUPP" })
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuBlitz.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
@@ -322,15 +324,14 @@ function GetCustomTarget()
 end
 
 function Check()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuBlitz.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -395,7 +396,7 @@ function Combo()
 		if MenuBlitz.comboConfig.USEW then
 			CastW()
 		end
-		if (sac or mma) and MenuBlitz.comboConfig.USEE and ValidTarget(Cel, E.range) then
+		if MenuBlitz.orb == 2 and MenuBlitz.comboConfig.USEE and ValidTarget(Cel, E.range) then
 			CastE()
 		end
 		if MenuBlitz.comboConfig.USER then
@@ -473,44 +474,9 @@ end
 
 function autolvl()
 	if not MenuBlitz.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuBlitz.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuBlitz.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuBlitz.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuBlitz.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuBlitz.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuBlitz.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_Q,_E,_W,_Q,_Q,_R,_Q,_Q,_W,_W,_R,_W,_W,_E,_E,_R,_E,_E}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -636,7 +602,7 @@ function CastQ(unit)
 					CastSpell(SmiteKey, ColTable2[1])
 				end
 			end
-			local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range-20, Q.speed, Q.delay, Q.width)
+			local Position, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
 			if Position ~= nil and not info.mCollision() then
 				if VIP_USER and MenuBlitz.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
