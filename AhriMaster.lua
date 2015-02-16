@@ -2,8 +2,8 @@
 
 	Script Name: AHRI MASTER 
     	Author: kokosik1221
-	Last Version: 0.4
-	01.02.2015
+	Last Version: 0.5
+	16.02.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Ahri" then return end
 _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
-local version = "0.4"
+local version = "0.5"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AhriMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -134,8 +134,7 @@ function Vars()
 	E = {name = "Charm", range = 975, speed = 1200, delay = 0.25, width = 100}
 	R = {name = "Spirit Rush", range = 450}
 	QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, true
-	sac, mma = false, false
-	abilitylvl, lastskin = 0, 0
+	lastskin = 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey, zhonyaslot = nil, nil
@@ -165,11 +164,9 @@ function Vars()
 	print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -205,8 +202,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuAhri = scriptConfig("Ahri Master "..version, "Ahri Master "..version)
-	MenuAhri:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuAhri.Orbwalking) 
+	MenuAhri:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuAhri:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuAhri.orb == 1 then
+		MenuAhri:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuAhri.Orbwalking) 
+	end
 	MenuAhri:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Ahri"
@@ -306,7 +307,7 @@ function Menu()
 	MenuAhri.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuAhri.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAhri.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuAhri.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuAhri.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID"})
 	MenuAhri.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAhri.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuAhri.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
@@ -343,10 +344,12 @@ function EnemyCount(point, range)
 end
 
 function caa()
+	if MenuAhri.orb == 1 then
 	if MenuAhri.comboConfig.uaa then
 		SxOrb:EnableAttacks()
 	elseif not MenuAhri.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
 	end
 end
 
@@ -382,10 +385,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if (sac == true) or (mma == true) then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuAhri.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -563,44 +565,9 @@ end
 
 function autolvl()
 	if not MenuAhri.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuAhri.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuAhri.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuAhri.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuAhri.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuAhri.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuAhri.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_Q,_E,_W,_Q,_Q,_R,_Q,_W,_Q,_W,_R,_W,_W,_E,_E,_R,_E,_E}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -719,7 +686,7 @@ function CastQ(unit)
 		end
 	end
 	if MenuAhri.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range - 30, Q.speed, Q.delay, Q.width)
+		local Position, info = Prodiction.GetPrediction(unit, Q.range-30, Q.speed, Q.delay, Q.width, myHero)
 		if Position ~= nil then
 			if VIP_USER and MenuAhri.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -750,7 +717,7 @@ function CastE(unit)
 		end
 	end
 	if MenuAhri.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetLineAOEPrediction(unit, E.range - 30, E.speed, E.delay, E.width)
+		local Position, info = Prodiction.GetPrediction(unit, E.range-30, E.speed, E.delay, E.width, myHero)
 		if Position ~= nil and not info.mCollision() then
 			if VIP_USER and MenuAhri.prConfig.pc then
 				Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -774,14 +741,14 @@ function CastR(unit)
 	end
 end
 
-function OnGainBuff(unit, buff)
-	if unit.isMe and (buff.name == "recallimproved") then
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and (buff.name == "recallimproved") then
 		recall = true
 	end 
 end
 
-function OnLoseBuff(unit, buff)
-	if unit.isMe and (buff.name == "recallimproved") then
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and (buff.name == "recallimproved") then
 		recall = false
 	end 
 end
