@@ -2,8 +2,8 @@
 
 	Script Name: MORGANA MASTER 
     	Author: kokosik1221
-	Last Version: 2.4
-	09.02.2015
+	Last Version: 2.5
+	16.02.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "2.4"
+local version = "2.5"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MorganaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -492,7 +492,7 @@ function Vars()
 	W = {name = "Tormented Soil", range = 900, speed = 1200, delay = 0.150, width = 105}
 	E = {name = "Black Shield", range = 750}
 	R = {name = "Soul Shackles", range = 600}
-	QReady, WReady, EReady, RReady, IReady, sac, mma = false, false, false, false, false, false, false
+	QReady, WReady, EReady, RReady, IReady = false, false, false, false, false
 	abilitylvl, lastskin = 0, 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -508,11 +508,9 @@ function OnLoad()
 	Menu()
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Morgana Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Morgana Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
@@ -551,8 +549,12 @@ end
 function Menu()
 	VP = VPrediction(true)
 	MenuMorg = scriptConfig("Morgana Master "..version, "Morgana Master "..version)
-	MenuMorg:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuMorg.Orbwalking)
+	MenuMorg:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuMorg:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuMorg.orb == 1 then
+		MenuMorg:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuMorg.Orbwalking)
+	end
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Morgana"
 	MenuMorg:addSubMenu("Target selector", "STS")
@@ -676,7 +678,7 @@ function Menu()
 	MenuMorg.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuMorg.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuMorg.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "SUPP"})
 	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuMorg.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
@@ -803,10 +805,12 @@ function HaveBuff(unit)
 end
 
 function caa()
+	if MenuMorg.orb == 1 then
 	if MenuMorg.comboConfig.uaa then
 		SxOrb:EnableAttacks()
 	elseif not MenuMorg.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
 	end
 end
 
@@ -827,10 +831,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuMorg.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -938,7 +941,7 @@ function Harrass()
 	end
 end
 
-function Farm(Mode)
+function Farm()
 	EnemyMinions:update()
 	QMode = MenuMorg.farm.QF
 	WMode = MenuMorg.farm.WF 
@@ -1105,44 +1108,9 @@ end
 
 function autolvl()
 	if not MenuMorg.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuMorg.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuMorg.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuMorg.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuMorg.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuMorg.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuMorg.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then		
+		local a = {_Q,_W,_E,_Q,_Q,_R,_Q,_E,_Q,_E,_R,_E,_E,_W,_W,_R,_W,_W}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -1250,7 +1218,7 @@ function CastQ(unit)
 		end
 	end
 	if MenuMorg.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range, Q.speed, Q.delay, Q.width)
+		local Position, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
 		if Position ~= nil and not info.mCollision() then
 			SpellCast(_Q, Position)
 		end
@@ -1265,7 +1233,7 @@ function CastW(unit)
 		end
 	end
 	if MenuMorg.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetCircularAOEPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
+		local Position, info = Prodiction.GetPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
 		if Position ~= nil then
 			SpellCast(_W, Position)
 		end
