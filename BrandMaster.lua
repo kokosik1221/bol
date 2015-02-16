@@ -2,8 +2,8 @@
 
 	Script Name: BRAND MASTER 
     	Author: kokosik1221
-	Last Version: 1.292
-	01.02.2015
+	Last Version: 1.3
+	16.02.2015
 	
 ]]--
 	
@@ -13,7 +13,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.292"
+local version = "1.3"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BrandMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -77,21 +77,18 @@ function Vars()
 	W = {name = "Pillar of Flame", range = 900, speed = math.huge, delay = 1, width = 240}
 	E = {name = "Conflagration", range = 625}
 	R = {name = "Pyroclasm", range = 750}
-	QReady, WReady, EReady, RReady, IReady, sac, mma = false, false, false, false, false, false, false
-	abilitylvl, lastskin = 0, 0
+	QReady, WReady, EReady, RReady, IReady = false, false, false, false, false
+	lastskin = 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey = nil
 	killstring = {}
-	cclist = {'Stun', 'BandageToss', 'CurseoftheSadMummy', 'FlashFrostSpell', 'EnchantedCrystalArrow', 'braumstundebuff', 'caitlynyordletrapdebuff', 'CassiopeiaPetrifyingGaze', 'EliseHumanE', 'GragasBodySlam', 'HeimerdingerE', 'IreliaEquilibriumStrike', 'JaxCounterStrike', 'JinxE', 'karmaspiritbindroot', 'LeonaShieldOfDaybreak', 'LeonaZenithBladeMissle', 'lissandraenemy2', 'LuxLightBindingMis', 'AlZaharNetherGrasp', 'maokaiunstablegrowthroot', 'DarkBindingMissile', 'namiqdebuff', 'Pantheon_LeapBash', 'RenektonPreExecute', 'RengarE', 'RivenMartyr', 'RunePrison', 'sejuaniglacialprison', 'CrypticGaze', 'SonaR', 'swainshadowgrasproot', 'Dazzle', 'TFW', 'udyrbearstuncheck', 'VarusR', 'VeigarStun', 'velkozestun', 'viktorgravitonfieldstun', 'infiniteduresssound', 'XerathMageSpear', 'zyragraspingrootshold', 'zhonyasringshield'}
 	print("<b><font color=\"#FF0000\">Brand Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Brand Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#FF0000\">Brand Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -148,8 +145,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuBrand = scriptConfig("Brand Master "..version, "Brand Master "..version)
-	MenuBrand:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuBrand.Orbwalking)
+	MenuBrand:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuBrand:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuBrand.orb == 1 then
+		MenuBrand:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuBrand.Orbwalking)
+	end
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Brand"
 	MenuBrand:addSubMenu("Target selector", "STS")
@@ -236,7 +237,7 @@ function Menu()
 	MenuBrand.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuBrand.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBrand.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuBrand.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuBrand.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID" })
 	MenuBrand.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBrand.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuBrand.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
@@ -252,10 +253,12 @@ function Menu()
 end
 
 function caa()
+	if MenuBrand.orb == 1 then
 	if MenuBrand.comboConfig.uaa then
 		SxOrb:EnableAttacks()
 	elseif not MenuBrand.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
 	end
 end
 
@@ -295,10 +298,9 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuBrand.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -511,7 +513,7 @@ end
 function AutoQ()
 	for _, targetq in pairs(GetEnemyHeroes()) do
         if targetq ~= nil and targetq.team ~= player.team and targetq.visible and not targetq.dead then
-            if ValidTarget(targetq, Q.range - 30) and QReady and TargetHaveBuff(cclist, targetq) then
+            if ValidTarget(targetq, Q.range - 30) and QReady and not targetq.canMove then
                 CastQ(targetq)
             end
         end
@@ -521,7 +523,7 @@ end
 function AutoW()
 	for _, target in pairs(GetEnemyHeroes()) do
         if target ~= nil and target.team ~= player.team and target.visible and not target.dead then
-            if ValidTarget(target, W.range - 30) and WReady and TargetHaveBuff(cclist, target) then
+            if ValidTarget(target, W.range - 30) and WReady and not target.canMove) then
                 CastW(target)
             end
         end
@@ -537,44 +539,9 @@ end
 
 function autolvl()
 	if not MenuBrand.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuBrand.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuBrand.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuBrand.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuBrand.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuBrand.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuBrand.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_W,_Q,_E,_W,_W,_R,_W,_Q,_W,_Q,_R,_Q,_Q,_E,_E,_R,_E,_E}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -707,7 +674,7 @@ function CastQ(unit)
 		end
 	end
 	if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetLineAOEPrediction(unit, Q.range - 30, Q.speed, Q.delay, Q.width)
+		local Position, info = Prodiction.GetPrediction(unit, Q.range-30, Q.speed, Q.delay, Q.width, myHero)
 		if Position ~= nil and not info.mCollision() then
 			SpellCast(_Q, Position)	
 		end
