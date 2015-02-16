@@ -2,8 +2,8 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.57
-	03.02.2015
+	Last Version: 0.6
+	16.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.57"
+local version = "0.6"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GragasMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -101,8 +101,8 @@ function Vars()
 	W = {name = "Drunken Rage"}
 	E = {name = "Body Slam", range = 650, speed = math.huge, delay = 0.250, width = 100}
 	R = {name = "Explosive Cask", range = 1150, speed = 1300, delay = 0.5, width = 400}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
-	abilitylvl, lastskin, aarange = 0, 0, 125
+	QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
+	lastskin, aarange = 0, 125
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey, zhonyaslot = nil, nil
@@ -110,11 +110,9 @@ function Vars()
 	print("<b><font color=\"#6699FF\">Gragas Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Gragas Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Gragas Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 end
 
@@ -168,8 +166,12 @@ end
 function Menu()
 	VP = VPrediction()
 	MenuGragy = scriptConfig("Gragas Master "..version, "Gragas Master "..version)
-	MenuGragy:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuGragy.Orbwalking)
+	MenuGragy:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuGragy:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuGragy.orb == 1 then
+		MenuGragy:addSubMenu("Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuGragy.Orbwalking)
+	end
 	MenuGragy:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Gragas"
@@ -267,7 +269,7 @@ function Menu()
 	MenuGragy.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuGragy.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MenuGragy.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuGragy.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID","JUNGLE"})
 	MenuGragy.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MenuGragy.comboConfig:permaShow("CEnabled")
@@ -304,10 +306,12 @@ function Menu()
 end
 
 function caa()
+	if MenuGragy.orb == 1 then
 	if MenuGragy.comboConfig.uaa then
 		SxOrb:EnableAttacks()
 	elseif not MenuGragy.comboConfig.uaa then
 		SxOrb:DisableAttacks()
+	end
 	end
 end
 
@@ -323,15 +327,14 @@ function GetCustomTarget()
 end
 
 function Check()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, R.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuGragy.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -442,7 +445,6 @@ end
 
 function Farm()
 	EnemyMinions:update()
-	if not SOWi:CanMove() then return end
 	QMode =  MenuGragy.farm.QF
 	WMode =  MenuGragy.farm.WF
 	EMode =  MenuGragy.farm.EF
@@ -544,44 +546,14 @@ end
 
 function autolvl()
 	if not MenuGragy.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
+	if myHero.level > GetHeroLeveled() then
+		local a = {}
 		if MenuGragy.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
+			a = {_Q,_E,_W,_Q,_Q,_R,_Q,_W,_Q,_W,_R,_W,_W,_E,_E,_R,_E,_E}
+		else
+			a = {_Q,_W,_E,_Q,_Q,_R,_Q,_E,_Q,_E,_R,_E,_E,_W,_W,_R,_W,_W}
 		end
-		if MenuGragy.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuGragy.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuGragy.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuGragy.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuGragy.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -711,7 +683,7 @@ function CastQ(unit)
 		end
 	end
 	if MenuGragy.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local CastPosition, info = Prodiction.GetCircularAOEPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
+		local CastPosition, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
 		if CastPosition ~= nil then
 			if VIP_USER and MenuGragy.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -765,7 +737,7 @@ function CastR(unit)
 		end
 	end
 	if MenuGragy.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local CastPosition, info = Prodiction.GetCircularAOEPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
+		local CastPosition, info = Prodiction.GetPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
 		if CastPosition ~= nil then
 			if VIP_USER and MenuGragy.prConfig.pc then
 				Packet("S_CAST", {spellId = _R, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
