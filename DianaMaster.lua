@@ -2,9 +2,9 @@
 
 	Script Name: DIANA MASTER 
     	Author: kokosik1221
-	Last Version: 0.3
-	13.02.2015
-	
+	Last Version: 0.4
+	17.02.2015
+
 ]]--
 
 if myHero.charName ~= "Diana" then return end
@@ -12,7 +12,7 @@ if myHero.charName ~= "Diana" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.3"
+local version = "0.4"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/DianaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -38,6 +38,7 @@ end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -94,11 +95,11 @@ local Items = {
 }
  
 function Vars()
-	Q = {name = "Crescent Strike", range = 900, speed = 1800, delay = 0.5, width = 195}
+	Q = {name = "Crescent Strike", range = 900, speed = 2000, delay = 0.5, width = 195}
 	W = {name = "Pale Cascade", range = 200}
 	E = {name = "Moonfall", range = 450}
 	R = {name = "Lunar Rush", range = 825}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, moonlight = false, false, false, false, false, false, false, false, false
+	QReady, WReady, EReady, RReady, IReady, zhonyaready, moonlight, recall = false, false, false, false, false, false, false, false, false, false
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	QCastTime, RTime, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
@@ -142,7 +143,7 @@ end
 
 function OnTick()
 	Check()
-	if MenuDiana.comboConfig.CEnabled then
+	if MenuDiana.comboConfig.CEnabled and not recall then
 		caa()
 		if ((myHero.mana/myHero.maxMana)*100) >= MenuDiana.comboConfig.manac then
 			if MenuDiana.comboConfig.oConfig.CT == 1 then
@@ -152,24 +153,26 @@ function OnTick()
 			end
 		end
 	end
-	if (MenuDiana.harrasConfig.HEnabled or MenuDiana.harrasConfig.HTEnabled) then
+	if (MenuDiana.harrasConfig.HEnabled or MenuDiana.harrasConfig.HTEnabled) and not recall then
 		if ((myHero.mana/myHero.maxMana)*100) >= MenuDiana.harrasConfig.manah then
 			Harrass()
 		end
 	end
-	if MenuDiana.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuDiana.farm.manaf then
+	if MenuDiana.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuDiana.farm.manaf and not recall then
 		Farm()
 	end
-	if MenuDiana.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuDiana.jf.manajf then
+	if MenuDiana.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuDiana.jf.manajf and not recall then
 		JungleFarmm()
 	end
-	if MenuDiana.prConfig.AZ then
+	if MenuDiana.prConfig.AZ and not recall then
 		autozh()
 	end
 	if MenuDiana.prConfig.ALS then
 		autolvl()
 	end
-	KillSteall()
+	if not recall then
+		KillSteall()
+	end
 end
 
 function Menu()
@@ -265,9 +268,9 @@ function Menu()
 	MenuDiana.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuDiana.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuDiana.prConfig:addParam("ALS", "Auto lvl skills / BROKEN", SCRIPT_PARAM_ONOFF, false)
-	MenuDiana.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
+	MenuDiana.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID","JUNGLE" })
 	MenuDiana.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuDiana.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction"}) 
+	MenuDiana.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction", "Prodiction"}) 
 	MenuDiana.comboConfig:permaShow("CEnabled")
 	MenuDiana.harrasConfig:permaShow("HEnabled")
 	MenuDiana.harrasConfig:permaShow("HTEnabled")
@@ -336,7 +339,7 @@ function Combo2()
 	if QReady and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, R.range) then
 		CastQ(Cel)
 	end
-			DelayAction(function()  
+		DelayAction(function()  
 			if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
 				CastR(Cel)
 			end
@@ -458,44 +461,14 @@ end
 
 function autolvl()
 	if not MenuDiana.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
+	if myHero.level > GetHeroLeveled() then
+		local a = {}
 		if MenuDiana.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
+			a = {_Q,_W,_Q,_E,_Q,_R,_Q,_W,_Q,_W,_R,_W,_W,_E,_E,_R,_E,_E}
+		else
+			a = {_W,_Q,_W,_E,_Q,_R,_Q,_Q,_Q,_W,_R,_W,_W,_E,_E,_R,_E,_E}
 		end
-		if MenuDiana.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuDiana.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuDiana.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuDiana.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuDiana.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -575,6 +548,18 @@ function UseItems(unit)
 	end
 end
 
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "recallimproved" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recallimproved" then
+		recall = false
+	end
+end
+
 function OnCreateObj(obj)
 	if obj.name == "Diana_Base_Q_Moonlight_Champ.troy" then
 		moonlight = true
@@ -586,7 +571,7 @@ function WCheck()
 		lasthealthchecked = myHero.health
 		lasttickchecked = GetTickCount()
 	end
-	if WReady and (MenuDiana.exConfig.USEW2 == 2 or MenuDiana.exConfig.USEW2 == 4) then
+	if WReady and (MenuDiana.exConfig.USEW2 == 2 or MenuDiana.exConfig.USEW2 == 4) and not recall then
 		if lasthealthchecked > myHero.health then
 			CastW()
 		end
@@ -608,10 +593,12 @@ function EnemyCount(point, range)
 end
 
 function caa()
-	if MenuDiana.comboConfig.oConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuDiana.comboConfig.oConfig.uaa then
-		SxOrb:DisableAttacks()
+	if MenuDiana.orb == 1 then
+		if MenuDiana.comboConfig.oConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuDiana.comboConfig.oConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
@@ -653,13 +640,25 @@ function CountObjectsNearPos(pos, range, radius, objects)
 end
 
 function CastQ(unit)
-	local CastPosition,  HitChance,  Position = VP:GetCircularAOECastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero)
-	if CastPosition and HitChance >= 2 then
-		if VIP_USER and MenuDiana.prConfig.pc then
-			Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
-		else
-			CastSpell(_Q, CastPosition.x, CastPosition.z)
-		end	
+	if MenuDiana.prConfig.pro == 1 then
+		local CastPosition,  HitChance,  Position = VP:GetCircularAOECastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero)
+		if CastPosition and HitChance >= 2 then
+			if VIP_USER and MenuDiana.prConfig.pc then
+				Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
+			else
+				CastSpell(_Q, CastPosition.x, CastPosition.z)
+			end	
+		end
+	end
+	if MenuDiana.prConfig.pro == 2 and VIP_USER and prodstatus then
+		local castPosition, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
+		if castPosition ~= nil then
+			if VIP_USER and MenuDiana.prConfig.pc then
+				Packet("S_CAST", {spellId = _Q, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
+			else
+				CastSpell(_Q, castPosition.x, castPosition.z)
+			end
+		end
 	end
 end
 
