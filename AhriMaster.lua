@@ -2,8 +2,8 @@
 
 	Script Name: AHRI MASTER 
     	Author: kokosik1221
-	Last Version: 0.5
-	16.02.2015
+	Last Version: 0.51
+	19.02.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Ahri" then return end
 _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
-local version = "0.5"
+local version = "0.51"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AhriMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -129,9 +129,9 @@ local Items = {
 }
 
 function Vars()
-	Q = {name = "Orb of Deception", range = 840, speed = 1100, delay = 0.25, width = 90}
-	W = {name = "Fox-Fire", range = 800}
-	E = {name = "Charm", range = 975, speed = 1200, delay = 0.25, width = 100}
+	Q = {name = "Orb of Deception", range = 840, speed = 1605, delay = 0.25, width = 80}
+	W = {name = "Fox-Fire", range = 750}
+	E = {name = "Charm", range = 955, speed = 1475, delay = 0.25, width = 90}
 	R = {name = "Spirit Rush", range = 450}
 	QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, true
 	lastskin = 0
