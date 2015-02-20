@@ -2,9 +2,9 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.6
-	16.02.2015
-	
+	Last Version: 0.61
+	20.02.2015
+
 ]]--
 
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.6"
+local version = "0.61"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -421,14 +421,14 @@ function Farm()
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
 			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
-				if not MenuAnnie.farm.SFS and not stun then 
+				if (MenuAnnie.farm.SFS or not MenuAnnie.farm.SFS) and not stun then 
 					CastSpell(_Q, minion)
 				end
 			end
 		elseif QMode == 2 then
 			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero) then
-					if not MenuAnnie.farm.SFS and not stun then 
+					if (MenuAnnie.farm.SFS or not MenuAnnie.farm.SFS) and not stun then 
 						CastSpell(_Q, minion)
 					end
 				end
@@ -436,14 +436,14 @@ function Farm()
 		end
 		if WMode == 3 then
 			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
-				if not MenuAnnie.farm.SFS and not stun then 
+				if (MenuAnnie.farm.SFS or not MenuAnnie.farm.SFS) and not stun then 
 					CastW(minion)
 				end
 			end
 		elseif WMode == 2 then
 			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				if minion.health <= getDmg("W", minion, myHero) then
-					if not MenuAnnie.farm.SFS and not stun then 
+					if (MenuAnnie.farm.SFS or not MenuAnnie.farm.SFS) and not stun then 
 						CastW(minion)
 					end
 				end
