@@ -2,8 +2,8 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.61
-	20.02.2015
+	Last Version: 0.62
+	21.02.2015
 
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.61"
+local version = "0.62"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -779,7 +779,7 @@ function OnProcessSpell(unit,spell)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and (buff.name == "recallimproved") then
+	if unit.isMe and buff and (buff.name == "recall") then
 		recall = true
 	end 
 	if unit.isMe and buff and (buff.name == "pyromania_particle") then
@@ -791,7 +791,7 @@ function OnApplyBuff(unit, source, buff)
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and (buff.name == "recallimproved") then
+	if unit.isMe and buff and (buff.name == "recall") then
 		recall = false
 	end 
 	if unit.isMe and buff and (buff.name == "pyromania_particle") then
