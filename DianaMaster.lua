@@ -2,9 +2,9 @@
 
 	Script Name: DIANA MASTER 
     	Author: kokosik1221
-	Last Version: 0.4
-	17.02.2015
-
+	Last Version: 0.41
+	21.02.2015
+	
 ]]--
 
 if myHero.charName ~= "Diana" then return end
@@ -12,7 +12,7 @@ if myHero.charName ~= "Diana" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.4"
+local version = "0.41"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/DianaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -343,7 +343,7 @@ function Combo2()
 			if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
 				CastR(Cel)
 			end
-		end, 0.5)
+		end, 0.75)
 	if WReady and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
 		CastW()
 	end
@@ -549,19 +549,19 @@ function UseItems(unit)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "recallimproved" then
+	if unit.isMe and buff and buff.name == "recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recallimproved" then
+	if unit.isMe and buff and buff.name == "recall" then
 		recall = false
 	end
 end
 
 function OnCreateObj(obj)
-	if obj.name == "Diana_Base_Q_Moonlight_Champ.troy" then
+	if obj.name == "Diana_Base_Q_Moonlight_Champ.troy" or obj.name == "Diana_Skin01_Q_Moonlight_Champ.troy" or obj.name == "Diana_Skin02_Q_Moonlight_Champ.troy" or obj.name == "Diana_Skin03_Q_Moonlight_Champ.troy" then
 		moonlight = true
 	end
 end
