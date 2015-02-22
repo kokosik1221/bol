@@ -2,9 +2,9 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.62
-	21.02.2015
-
+	Last Version: 0.63
+	22.02.2015
+	
 ]]--
 
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "0.62"
+local version = "0.63"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -117,36 +117,38 @@ end
 
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuAnnie.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuAnnie.comboConfig.manac then
+	if Cel ~= nil and MenuAnnie.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuAnnie.comboConfig.manac and not recall then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and (MenuAnnie.harrasConfig.HEnabled or MenuAnnie.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuAnnie.harrasConfig.manah then
+	if Cel ~= nil and (MenuAnnie.harrasConfig.HEnabled or MenuAnnie.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuAnnie.harrasConfig.manah and not recall then
 		Harrass()
 	end
-	if MenuAnnie.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuAnnie.farm.manaf then
+	if MenuAnnie.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuAnnie.farm.manaf and not recall then
 		Farm()
 	end
-	if MenuAnnie.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuAnnie.jf.manajf then
+	if MenuAnnie.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuAnnie.jf.manajf and not recall then
 		JungleFarm()
 	end
-	if MenuAnnie.prConfig.AZ then
+	if MenuAnnie.prConfig.AZ and not recall then
 		autozh()
 	end
 	if MenuAnnie.prConfig.ALS then
 		autolvl()
 	end
-	if MenuAnnie.exConfig.SP then
+	if MenuAnnie.exConfig.SP and not recall then
 		stackp()
 	end
-	if MenuAnnie.exConfig.SPF then
+	if MenuAnnie.exConfig.SPF and not recall then
 		stackp2()
 	end
-	if MenuAnnie.exConfig.FRW and FRCel ~= nil then
+	if MenuAnnie.exConfig.FRW and FRCel ~= nil and not recall then
 		FlashR()
 	end
-	KillSteall()
-	AutoWR()
+	if not recall then
+		KillSteall()
+		AutoWR()
+	end
 end
 
 function Menu()
@@ -403,12 +405,12 @@ end
 
 function Harrass()
 	if MenuAnnie.harrasConfig.HM == 1 then
-		if QReady and ValidTarget(Cel, Q.range) and not recall then
+		if QReady and ValidTarget(Cel, Q.range) then
 			CastQ(Cel)
 		end
 	end
 	if MenuAnnie.harrasConfig.HM == 2 then
-		if WReady and ValidTarget(Cel, W.range) and not recall then
+		if WReady and ValidTarget(Cel, W.range) then
 			CastW(Cel)
 		end
 	end
@@ -473,7 +475,7 @@ function AutoWR()
 		if MenuAnnie.exConfig.AW then
 			local wPos, HitChance, maxHit, Positions = VP:GetConeAOECastPosition(enemy, W.delay, W.width, W.range, W.speed, myHero)
 			if ValidTarget(enemy, W.range) and wPos ~= nil and maxHit >= MenuAnnie.exConfig.AWX then	
-				if stun and WReady and not recall then
+				if stun and WReady then
 					if VIP_USER and MenuAnnie.prConfig.pc then
 						Packet("S_CAST", {spellId = _W, fromX = wPos.x, fromY = wPos.z, toX = wPos.x, toY = wPos.z}):send()
 					else
@@ -485,7 +487,7 @@ function AutoWR()
 		if MenuAnnie.exConfig.AR then
 			local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
 			if ValidTarget(enemy, R.range) and rPos ~= nil and maxHit >= MenuAnnie.exConfig.ARX then	
-				if stun and RReady and not recall then
+				if stun and RReady then
 					if VIP_USER and MenuAnnie.prConfig.pc then
 						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
 					else
@@ -498,13 +500,13 @@ function AutoWR()
 end
 
 function stackp()
-	if not stun and EReady and not recall then
+	if not stun and EReady then
 		CastE()
 	end
 end
 
 function stackp2()
-	if not stun and not recall and InFountain() then
+	if not stun and InFountain() then
 		if EReady then
 			CastE()
 		end
