@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: OLAF MASTER 
-    	Author: kokosik1221
-	Last Version: 0.4
-	16.02.2015
+	Author: kokosik1221
+	Last Version: 0.5
+	23.02.2015
 	
 ]]--
 
@@ -11,10 +11,9 @@
 if myHero.charName ~= "Olaf" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "0.4"
+local version = "0.5"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/OlafMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -159,7 +158,6 @@ function Vars()
 	E = {name = "Reckless Swing", range = 325}
 	R = {name = "Ragnarok"}
 	QReady, WReady, EReady, RReady, IReady, pickaxe = false, false, false, false, false, false
-	lastskin = 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey, axe = nil, nil
@@ -287,9 +285,6 @@ function Menu()
 	MenuOlaf:addSubMenu("[Olaf Master]: Misc Settings", "prConfig")
 	MenuOlaf.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuOlaf.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuOlaf.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuOlaf.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 5, 1, 5)
-	MenuOlaf.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuOlaf.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuOlaf.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	MenuOlaf.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -339,11 +334,11 @@ end
 
 function caa()
 	if MenuOlaf.orb == 1 then
-	if MenuOlaf.comboConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuOlaf.comboConfig.uaa then
-		SxOrb:DisableAttacks()
-	end
+		if MenuOlaf.comboConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuOlaf.comboConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
@@ -386,12 +381,6 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuOlaf.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuOlaf.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Olaf", MenuOlaf.prConfig.skin1)
-			lastSkin = MenuOlaf.prConfig.skin1
-		end
-	end
 	if MenuOlaf.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -422,9 +411,15 @@ end
 
 function Combo()
 	UseItems(Cel)
-	CastQ(Cel)
-	CastW(Cel)
-	CastE(Cel)
+	if MenuOlaf.comboConfig.USEQ then
+		CastQ(Cel)
+	end
+	if MenuOlaf.comboConfig.USEW then
+		CastW(Cel)
+	end
+	if MenuOlaf.comboConfig.USEE then
+		CastE(Cel)
+	end
 end
 
 function Harrass()
@@ -473,9 +468,6 @@ function JungleFarmF()
 				CastE(minion)
 			end
 		end
-	end
-	if SxOrb:CanMove() then
-		myHero:MoveTo(mousePos.x, mousePos.z)
 	end
 end
 
@@ -718,30 +710,6 @@ function OnDeleteObj(object)
 		axe = nil
         pickaxe = false
     end
-end
-
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
-	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
-	end
-	p:Hide()
-	RecvPacket(p)
 end
 
 function OnWndMsg(Msg, Key)
