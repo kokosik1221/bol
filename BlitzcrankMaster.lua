@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 1.0
-	16.02.2015
+	Last Version: 1.1
+	22.02.2015
 	
 ]]--
 
@@ -14,7 +14,7 @@ _G.AUTOUPDATE = true
 _G.USESKINHACK = false
 
 
-local version = "1.0"
+local version = "1.1"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -92,24 +92,24 @@ local Items = {
 }
 
 function Vars()
-	Q = {name = "Rocket Grab", range = 925, speed = 1800, delay = 0.25, width = 60}
+	Q = {name = "Rocket Grab", range = 925, speed = 1800, delay = 0.25, width = 80}
 	W = {name = "Overdrive"}
-	E = {name = "Power Fist", range = 140}
+	E = {name = "Power Fist", range = myHero.range+65}
 	R = {name = "Static Field", range = 600}
 	QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
-	lastskin = 0
 	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	IgniteKey, SmiteKey, zhonyaslot = nil, nil, nil
+	AllCastGrabCount, FailGrabCount, PrecentGrabCount, SuccesGrabCount = 0, 0, 0, 0
 	killstring = {}
 	Spells = {_Q,_W,_E,_R}
 	Spells2 = {"Q","W","E","R"}
-	print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	print("<b><font color=\"#FF0000\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
-		print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 	end	
 	if _G.AutoCarry then
-		print("<b><font color=\"#6699FF\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 	end
 end
 
@@ -184,7 +184,7 @@ function Menu()
 	MenuBlitz.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0) 
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Harras Settings", "harrasConfig")
 	MenuBlitz.harrasConfig:addParam("HM", "Harrass Mode:", SCRIPT_PARAM_LIST, 1, {"|Q|", "|E|", "|Q|E|"}) 
-	MenuBlitz.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("K"))
+	MenuBlitz.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
 	MenuBlitz.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuBlitz.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
 	MenuBlitz.harrasConfig:addParam("MM", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
@@ -215,6 +215,7 @@ function Menu()
 	MenuBlitz.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DT", "Draw Current Target Name", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.drawConfig:addParam("DGS", "Draw Grab Stats", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.drawConfig:addParam("DQL", "Draw Q Collision Line", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DQLC", "Draw Q Collision Color", SCRIPT_PARAM_COLOR, {150,40,4,4})
@@ -245,9 +246,6 @@ function Menu()
 	MenuBlitz.blConfig:addParam("UBL", "Use Black List Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("T"))
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Misc Settings", "prConfig")
 	MenuBlitz.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
-	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuBlitz.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 1, 1, 8)
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
@@ -340,12 +338,6 @@ function Check()
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	SReady = (SmiteKey ~= nil and myHero:CanUseSpell(SmiteKey) == READY)
-	if MenuBlitz.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuBlitz.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Blitzcrank", MenuBlitz.prConfig.skin1)
-			lastSkin = MenuBlitz.prConfig.skin1
-		end
-	end
 	if MenuBlitz.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -509,6 +501,12 @@ function OnDraw()
 	if MenuBlitz.drawConfig.DRR and RReady then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuBlitz.drawConfig.DRRC[2], MenuBlitz.drawConfig.DRRC[3], MenuBlitz.drawConfig.DRRC[4]))
 	end
+	if MenuBlitz.drawConfig.DGS then
+		local pos = WorldToScreen(D3DXVECTOR3(myHero.x, myHero.y, myHero.z))
+		DrawText("Succes Grab's : "..SuccesGrabCount, 18, pos.x - 400, pos.y - 200, 0xFFFFFF00)
+		DrawText("Fail Grab's : "..FailGrabCount,18, pos.x - 400, pos.y - 220, 0xFFFFFF00)
+		DrawText("Precent Grab's: " ..PrecentGrabCount .."%", 18, pos.x - 400, pos.y - 240, 0xFFFFFF00)
+	end
 end
 
 function KillSteall()
@@ -577,6 +575,14 @@ function DmgCalc()
     end
 end
 
+function OnApplyBuff(source, unit, buff)
+	if buff.name == "rocketgrab2" and not unit.isMe and unit.type == myHero.type then 
+		SuccesGrabCount = SuccesGrabCount + 1
+		FailGrabCount = (AllCastGrabCount-SuccesGrabCount)
+		PrecentGrabCount =((SuccesGrabCount*100)/AllCastGrabCount)
+	end	
+end
+
 function CastQ(unit)
 	if QReady then
 		if MenuBlitz.prConfig.pro == 1 then
@@ -586,7 +592,7 @@ function CastQ(unit)
 					CastSpell(SmiteKey, ColTable2[1])
 				end
 			end
-			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range-20, Q.speed, myHero, true)
+			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
 			if HitChance >= MenuBlitz.prConfig.vphit - 1 then
 				if VIP_USER and MenuBlitz.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -652,30 +658,11 @@ function OnProcessSpell(object, spell)
 			end
 		end
 	end
-end
-
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
-	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
-	end
-	p:Hide()
-	RecvPacket(p)
+	if object and spell.name == "RocketGrab" and object.isMe then
+		AllCastGrabCount = AllCastGrabCount+1
+		FailGrabCount = (AllCastGrabCount-SuccesGrabCount)
+		PrecentGrabCount =((SuccesGrabCount*100)/AllCastGrabCount)
+    end
 end
 
 function OnWndMsg(Msg, Key)
