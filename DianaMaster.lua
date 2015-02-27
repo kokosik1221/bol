@@ -2,8 +2,8 @@
 
 	Script Name: DIANA MASTER 
     	Author: kokosik1221
-	Last Version: 0.41
-	21.02.2015
+	Last Version: 0.42
+	27.02.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Diana" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.41"
+local version = "0.42"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/DianaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -94,45 +94,42 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
  
-function Vars()
-	Q = {name = "Crescent Strike", range = 900, speed = 2000, delay = 0.5, width = 195}
-	W = {name = "Pale Cascade", range = 200}
-	E = {name = "Moonfall", range = 450}
-	R = {name = "Lunar Rush", range = 825}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, moonlight, recall = false, false, false, false, false, false, false, false, false, false
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	QCastTime, RTime, lasttickchecked, lasthealthchecked = 0, 0, 0, 0
-	IgniteKey, zhonyaslot = nil, nil
-	print("<b><font color=\"#FF0000\">Diana Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-	killstring = {}
-	TargetTable = {
-		AP = {
-			"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
-			"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-			"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-		},	
-		Support = {
-			"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-		},	
-		Tank = {
-			"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-			"Warwick", "Yorick", "Zac"
-		},
-		AD_Carry = {
-			"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-			"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-		},
-		Bruiser = {
-			"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-		}
+local Q = {name = "Crescent Strike", range = 900, speed = math.huge, delay = 0.5, width = 195}
+local W = {name = "Pale Cascade", range = 200}
+local E = {name = "Moonfall", range = 450}
+local R = {name = "Lunar Rush", range = 825}
+local QReady, WReady, EReady, RReady, IReady, zhonyaready, moonlight, recall = false, false, false, false, false, false, false, false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local lasttickchecked, lasthealthchecked = 0, 0
+local IgniteKey, zhonyaslot = nil, nil
+local killstring = {}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
 	}
-end
+}
 
 function OnLoad()
-	Vars()
 	Menu()
+	print("<b><font color=\"#FF0000\">Diana Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Diana Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 	end
@@ -173,6 +170,9 @@ function OnTick()
 	if not recall then
 		KillSteall()
 	end
+	if MenuDiana.comboConfig.rConfig.CRKD and Cel and RReady then
+		CastR(Cel)
+	end
 end
 
 function Menu()
@@ -199,6 +199,7 @@ function Menu()
 	MenuDiana.comboConfig:addSubMenu("[Diana Master]: R Settings", "rConfig")
 	MenuDiana.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana.comboConfig.rConfig:addParam("USER2", "Use Only If Have Q Mark", SCRIPT_PARAM_ONOFF, true)
+	MenuDiana.comboConfig.rConfig:addParam("CRKD", "Cast (R) Key Down", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 	MenuDiana.comboConfig:addSubMenu("[Diana Master]: Other Settings", "oConfig")
 	MenuDiana.comboConfig.oConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuDiana.comboConfig.oConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
@@ -267,7 +268,7 @@ function Menu()
 	MenuDiana.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuDiana.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuDiana.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuDiana.prConfig:addParam("ALS", "Auto lvl skills / BROKEN", SCRIPT_PARAM_ONOFF, false)
+	MenuDiana.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuDiana.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID","JUNGLE" })
 	MenuDiana.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuDiana.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction", "Prodiction"}) 
@@ -552,11 +553,17 @@ function OnApplyBuff(unit, source, buff)
 	if unit.isMe and buff and buff.name == "recall" then
 		recall = true
 	end
+	if unit and source and source == Cel and buff.name == "dianamoonlight" then
+		
+	end
 end
 
 function OnRemoveBuff(unit, buff)
 	if unit.isMe and buff and buff.name == "recall" then
 		recall = false
+	end
+	if unit and source and source == Cel and buff.name == "dianamoonlight" then
+		
 	end
 end
 
