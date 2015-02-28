@@ -2,19 +2,18 @@
 
 	Script Name: RUMBLE MASTER 
     	Author: kokosik1221
-	Last Version: 0.24
-	01.02.2015
-	
+	Last Version: 0.25
+	28.02.2015
+
 ]]--
 
 
 if myHero.charName ~= "Rumble" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "0.24"
+local version = "0.25"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/RumbleMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -73,45 +72,42 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
+local Q = {name = "Flamespitter", range = 600}
+local W = {name = "Scrap Shield"}
+local E = {name = "Electro-Harpoon", range = 850, speed = 1200, delay = 0.25, width = 90}
+local R = {name = "The Equalizer", range = 1700, speed = 2600, delay = 0.25, width = 100, wall = 900}
+local RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_MAGIC)
+local QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey, zhonyaslot = nil, nil
+local killstring = {}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
+
 function OnLoad()
-	Vars()
 	Menu()
 	print("<b><font color=\"#6699FF\">Rumble Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-end
-
-function Vars()
-	Q = {name = "Flamespitter", range = 600}
-	W = {name = "Scrap Shield"}
-	E = {name = "Electro-Harpoon", range = 850, speed = 1200, delay = 0.25, width = 90}
-	R = {name = "The Equalizer", range = 1700, speed = 1000, delay = 0.25, width = 120}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, sac, mma = false, false, false, false, false, false, false, false
-	abilitylvl, lastskin = 0, 0
-	EnemyMinions = minionManager(MINION_ENEMY, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, zhonyaslot = nil, nil
-	killstring = {}
-	TargetTable = {
-		AP = {
-			"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
-			"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-			"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-		},	
-		Support = {
-			"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-		},	
-		Tank = {
-			"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-			"Warwick", "Yorick", "Zac"
-		},
-		AD_Carry = {
-			"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-			"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-		},
-		Bruiser = {
-			"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-		}
-	}
 end
 
 function OnTick()
@@ -137,19 +133,26 @@ function OnTick()
 	end
 	KillSteall()
 	if MenuRumble.comboConfig.rConfig.CRKD and Cel then
-		CastR(Cel)
+		if VIP_USER then
+			CastRVIP(RCel)
+		else
+			CastRFREE(RCel)
+		end
 	end
 end
 
 function Menu()
 	VP = VPrediction()
 	MenuRumble = scriptConfig("Rumble Master "..version, "Rumble Master "..version)
-	MenuRumble:addSubMenu("Orbwalking", "Orbwalking")
-	SxOrb:LoadToMenu(MenuRumble.Orbwalking)
-	MenuRumble:addSubMenu("Target selector", "STS")
+	MenuRumble:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
+	MenuRumble:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
+	if MenuRumble.orb == 1 then
+		MenuRumble:addSubMenu("[Rumble Master]: Orbwalking", "Orbwalking")
+		SxOrb:LoadToMenu(MenuRumble.Orbwalking)
+	end
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Rumble"
-	MenuRumble.STS:addTS(TargetSelector)
+	MenuRumble:addTS(TargetSelector)
 	MenuRumble:addSubMenu("[Rumble Master]: Combo Settings", "comboConfig")
 	MenuRumble.comboConfig:addSubMenu("[Rumble Master]: Q Settings", "qConfig")
 	MenuRumble.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
@@ -210,9 +213,6 @@ function Menu()
 	MenuRumble:addSubMenu("[Rumble Master]: Misc Settings", "prConfig")
 	MenuRumble.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuRumble.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuRumble.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuRumble.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 4, 1, 4)
-	MenuRumble.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuRumble.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuRumble.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuRumble.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
@@ -232,11 +232,9 @@ function Menu()
 	_G.DrawCircle = DrawCircle2
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Rumble Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-		mma = true
 	end	
 	if _G.AutoCarry then
 		print("<b><font color=\"#6699FF\">Rumble Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-		sac = true
 	end
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
@@ -248,10 +246,12 @@ function Menu()
 end
 
 function caa()
-	if MenuRumble.comboConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuRumble.comboConfig.uaa then
-		SxOrb:DisableAttacks()
+	if MenuRumble.orb == 1 then
+		if MenuRumble.comboConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuRumble.comboConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
@@ -267,15 +267,16 @@ function GetCustomTarget()
 end
 
 function Check()
+	RTargetSelector:update()
+	RCel = RTargetSelector.target
 	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, E.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
 	end
-	if sac or mma then
-		SxOrb.SxOrbMenu.General.Enabled = false
+	if MenuRumble.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
 	zhonyaslot = GetInventorySlotItem(3157)
 	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	QReady = (myHero:CanUseSpell(_Q) == READY)
@@ -283,12 +284,6 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuRumble.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuRumble.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Rumble", MenuRumble.prConfig.skin1)
-			lastSkin = MenuRumble.prConfig.skin1
-		end
-	end
 	if MenuRumble.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -318,29 +313,41 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
+	UseItems(Cel)
 	if myHero.mana < MenuRumble.comboConfig.HEAT then
-		UseItems(Cel)
 		if MenuRumble.comboConfig.qConfig.USEQ and GetDistance(Cel) < Q.range then
 			CastQ(Cel)
 		end
+	end
+	if myHero.mana < MenuRumble.comboConfig.HEAT then
 		if MenuRumble.comboConfig.wConfig.USEW then
 			CastW()
 		end
+	end
+	if myHero.mana < MenuRumble.comboConfig.HEAT or TargetHaveBuff("RumbleGrenade", myHero) then
 		if MenuRumble.comboConfig.eConfig.USEE and GetDistance(Cel) < E.range then
 			CastE(Cel)
 		end
-		if MenuRumble.comboConfig.rConfig.USER and RReady and GetDistance(Cel) <= R.range and ValidTarget(Cel) then
-			if MenuRumble.comboConfig.rConfig.RM == 1 then
-				CastR(Cel)
+	end
+	if MenuRumble.comboConfig.rConfig.USER and RReady and GetDistance(RCel) <= R.range and ValidTarget(RCel) then
+		if MenuRumble.comboConfig.rConfig.RM == 1 then
+			if VIP_USER then
+				CastRVIP(RCel)
+			else
+				CastRFREE(RCel)
 			end
-			if MenuRumble.comboConfig.rConfig.RM == 2 then
-				if myHero.mana >= 50 then
-					r = getDmg("R", Cel, myHero, 2)
+		end
+		if MenuRumble.comboConfig.rConfig.RM == 2 then
+			if myHero.mana >= 50 then
+				r = getDmg("R", RCel, myHero, 2)
+			else
+				r = getDmg("R", RCel, myHero, 1)
+			end
+			if Cel.health < r then
+				if VIP_USER then
+					CastRVIP(RCel)
 				else
-					r = getDmg("R", Cel, myHero, 1)
-				end
-				if Cel.health < r then
-					CastR(Cel)
+					CastRFREE(RCel)
 				end
 			end
 		end
@@ -352,6 +359,8 @@ function Harrass()
 		if MenuRumble.harrasConfig.HM == 1 then
 			CastQ(Cel)
 		end
+	end
+	if myHero.mana < MenuRumble.harrasConfig.HEAT or TargetHaveBuff("RumbleGrenade", myHero) then
 		if MenuRumble.harrasConfig.HM == 2 then
 			CastE(Cel)
 		end
@@ -417,44 +426,9 @@ end
 
 function autolvl()
 	if not MenuRumble.prConfig.ALS then return end
-	if myHero.level > abilitylvl then
-		abilitylvl = abilitylvl + 1
-		if MenuRumble.prConfig.AL == 1 then			
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-			LevelSpell(_E)
-		end
-		if MenuRumble.prConfig.AL == 2 then	
-			LevelSpell(_R)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-			LevelSpell(_W)
-		end
-		if MenuRumble.prConfig.AL == 3 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-			LevelSpell(_E)
-		end
-		if MenuRumble.prConfig.AL == 4 then	
-			LevelSpell(_R)
-			LevelSpell(_W)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-		end
-		if MenuRumble.prConfig.AL == 5 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_Q)
-			LevelSpell(_W)
-		end
-		if MenuRumble.prConfig.AL == 6 then	
-			LevelSpell(_R)
-			LevelSpell(_E)
-			LevelSpell(_W)
-			LevelSpell(_Q)
-		end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_Q,_E,_W,_Q,_Q,_R,_Q,_E,_Q,_E,_R,_E,_E,_W,_W,_R,_W,_W}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -481,7 +455,7 @@ function OnDraw()
 	end
 	if MenuRumble.drawConfig.DRR and RReady then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuRumble.drawConfig.DRRC[2], MenuRumble.drawConfig.DRRC[3], MenuRumble.drawConfig.DRRC[4]))
-	end
+	end	
 end
 
 function KillSteall()
@@ -499,14 +473,18 @@ function KillSteall()
 			IDMG = (50 + (20 * myHero.level))
 		end
 		if ValidTarget(enemy) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
-			if enemy.health < QDMG and GetDistance(enemy) < Q.range and MenuRumble.ksConfig.QKS then
+			if enemy.health < IDMG and IReady and GetDistance(enemy) <= 600 and MenuRumble.ksConfig.IKS then
+				CastSpell(IgniteKey, enemy)
+			elseif enemy.health < QDMG and GetDistance(enemy) < Q.range and MenuRumble.ksConfig.QKS then
 				CastQ(enemy)
 			elseif enemy.health < EDMG and GetDistance(enemy) < E.range and MenuRumble.ksConfig.EKS then
 				CastE(enemy)
 			elseif enemy.health < RDMG and GetDistance(enemy) < R.range and MenuRumble.ksConfig.RKS then
-				CastR(Cel)
-			elseif enemy.health < IDMG and IReady and GetDistance(enemy) <= 600 and MenuRumble.ksConfig.IKS then
-				CastSpell(IgniteKey, enemy)
+				if VIP_USER then
+					CastRVIP()
+				else
+					CastRFREE(enemy)
+				end
 			end
 		end
 	end
@@ -585,19 +563,6 @@ function CastE(unit)
 	end
 end
 
-function CastR(unit)
-	if GetDistance(unit) < R.range and RReady then
-		local pos, HitChance, Position = VP:GetPredictedPos(unit, R.delay, R.speed, myHero, false)
-		if Position and HitChance >= 2 then
-			if VIP_USER then
-				Packet("S_CAST", {spellId = _R, fromX = pos.x, fromY = pos.z, toX = Position.x, toY = Position.z}):send()
-			else
-				CastSpell(_R, Position.x, Position.z)
-			end
-		end
-	end
-end
-
 function CastRFREE(unit)
 	if GetDistance(unit) < R.range and RReady then
 		local pos, HitChance, Position = VP:GetPredictedPos(unit, R.delay, R.speed, myHero, false)
@@ -608,12 +573,13 @@ function CastRFREE(unit)
 end
 
 function CastRVIP(unit)
-	if GetDistance(unit) < R.range and RReady then
-		local pos, info, object = Prodiction.GetLineAOEPrediction(unit, R.range, R.speed, R.delay, R.width)
-		local pos2 = pos + (Vector(unit) - pos):normalized()*(GetDistance(pos))
-		Packet("S_CAST", {spellId = _R, fromX = pos2.x, fromY = pos2.z, toX = pos.x, toY = pos.z}):send()
+	local CastPosition1, CastPosition2 = CalcUltVIP(unit)
+    if CastPosition1 ~= nil and CastPosition2 ~= nil then
+		Packet("S_CAST", {spellId = _R, fromX = CastPosition1.x, fromY = CastPosition1.z, toX = CastPosition2.x, toY = CastPosition2.z}):send()
 	end
 end
+
+assert(load(Base64Decode("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"), nil, "bt", _ENV))()
 
 function EnemyCount(point, range)
 	local count = 0
@@ -623,30 +589,6 @@ function EnemyCount(point, range)
 		end
 	end            
 	return count
-end
-
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
-	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
-	end
-	p:Hide()
-	RecvPacket(p)
 end
 
 function OnWndMsg(Msg, Key)
