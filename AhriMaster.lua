@@ -2,8 +2,8 @@
 
 	Script Name: AHRI MASTER 
     	Author: kokosik1221
-	Last Version: 0.51
-	19.02.2015
+	Last Version: 0.52
+	28.02.2015
 	
 ]]--
 
@@ -11,9 +11,8 @@
 if myHero.charName ~= "Ahri" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
-local version = "0.51"
+local version = "0.52"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AhriMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -109,7 +108,6 @@ local GapCloserList = {
 	{charName = "LeeSin", spellName = "BlindMonkQTwo"},
 	{charName = "Leona", spellName = "LeonaZenithBlade"},
 	{charName = "Malphite", spellName = "UFSlash"},
-	{charName = "Pantheon", spellName = "Pantheon_LeapBash"},
 	{charName = "Poppy", spellName = "PoppyHeroicCharge"},
 	{charName = "Renekton", spellName = "RenektonSliceAndDice"},
 	{charName = "Riven", spellName = "RivenTriCleave"},
@@ -128,39 +126,39 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-function Vars()
-	Q = {name = "Orb of Deception", range = 840, speed = 1605, delay = 0.25, width = 80}
-	W = {name = "Fox-Fire", range = 750}
-	E = {name = "Charm", range = 955, speed = 1475, delay = 0.25, width = 90}
-	R = {name = "Spirit Rush", range = 450}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, true
-	lastskin = 0
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, zhonyaslot = nil, nil
-	killstring = {}
-	TargetTable = {
-		AP = {
-			"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
-			"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-			"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-		},	
-		Support = {
-			"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-		},	
-		Tank = {
-			"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-			"Warwick", "Yorick", "Zac"
-		},
-		AD_Carry = {
-			"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-			"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-		},
-		Bruiser = {
-			"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-		}
+local Q = {name = "Orb of Deception", range = 880, speed = 1600, delay = 0.5, width = 80}
+local W = {name = "Fox-Fire", range = 700}
+local E = {name = "Charm", range = 975, speed = 1500, delay = 0.25, width = 85}
+local R = {name = "Spirit Rush", range = 450}
+local QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, true
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey, zhonyaslot = nil, nil
+local killstring = {}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
 	}
+}
+	
+function Vars()
 	print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -299,9 +297,6 @@ function Menu()
 	MenuAhri:addSubMenu("[Ahri Master]: Misc Settings", "prConfig")
 	MenuAhri.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuAhri.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuAhri.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuAhri.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 5, 1, 5)
-	MenuAhri.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAhri.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuAhri.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
@@ -345,25 +340,21 @@ end
 
 function caa()
 	if MenuAhri.orb == 1 then
-	if MenuAhri.comboConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuAhri.comboConfig.uaa then
-		SxOrb:DisableAttacks()
-	end
+		if MenuAhri.comboConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuAhri.comboConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
 function GetRange()
-	if QReady and EReady then
+	if EReady then
 		return E.range
-	elseif not QReady and EReady then
-		return E.range
-	elseif QReady and not EReady then
+	elseif not EReady and QReady then
 		return Q.range
-	elseif not QReady and not EReady then
-		return R.range
 	else
-		return E.range
+		return Q.range
 	end
 end
 
@@ -380,7 +371,7 @@ end
 
 function Check()
 	TargetSelector.range = GetRange()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, E.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
@@ -395,12 +386,6 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuAhri.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuAhri.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Ahri", MenuAhri.prConfig.skin1)
-			lastSkin = MenuAhri.prConfig.skin1
-		end
-	end
 	if MenuAhri.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
 
@@ -428,28 +413,33 @@ end
 function Combo()
 	if Cel ~= nil and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.comboConfig.manac then
 		UseItems(Cel)
-		if MenuAhri.comboConfig.USER then
-			if RReady and ValidTarget(Cel, E.range) then
+		if MenuAhri.comboConfig.USER and not MenuAhri.comboConfig.Kilable then
+			if GetDistance(Cel) < Q.range then
+				CastR(Cel)
+			end
+		elseif MenuAhri.comboConfig.USER and MenuAhri.comboConfig.Kilable then
+			local DMG = CalcDMG(Cel)
+			if Cel.health <= DMG then
 				CastR(Cel)
 			end
 		end
 		if MenuAhri.comboConfig.USEE then
-			if EReady and ValidTarget(Cel, E.range - 30) then
+			if GetDistance(Cel) < E.range then
 				CastE(Cel)
 			end
 		end
 		if MenuAhri.comboConfig.USEW then
-			if WReady and ValidTarget(Cel, W.range) then
-				CastW()
+			if GetDistance(Cel) < W.range then
+				CastW(Cel)
 			end
 		end
 		if MenuAhri.comboConfig.USEQ and not MenuAhri.comboConfig.USEQ2 then
-			if QReady and ValidTarget(Cel, Q.range - 30) then
+			if GetDistance(Cel) < Q.range then
 				CastQ(Cel)
 			end
 		end
 		if MenuAhri.comboConfig.USEQ and MenuAhri.comboConfig.USEQ2 then
-			if QReady and ValidTarget(Cel, Q.range - 30) and TargetHaveBuff("AhriSeduce", Cel) then
+			if GetDistance(Cel) < Q.range and TargetHaveBuff("AhriSeduce", Cel) then
 				CastQ(Cel)
 			end
 		end
@@ -459,17 +449,17 @@ end
 function Harrass()
 	if Cel ~= nil and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.harrasConfig.manah then
 		if MenuAhri.harrasConfig.QH then
-			if QReady and ValidTarget(Cel, Q.range - 30) then
+			if GetDistance(Cel) < Q.range then
 				CastQ(Cel)
 			end
 		end
 		if MenuAhri.harrasConfig.WH then
-			if WReady and ValidTarget(Cel, W.range) then
-				CastW()
+			if GetDistance(Cel) < W.range then
+				CastW(Cel)
 			end
 		end
 		if MenuAhri.harrasConfig.EH then
-			if WReady and ValidTarget(Cel, E.range - 30) then
+			if GetDistance(Cel) < E.range then
 				CastE(Cel)
 			end
 		end
@@ -482,27 +472,27 @@ function Farm()
 	WMode =  MenuAhri.farm.WF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if minion ~= nil and not minion.dead and GetDistance(minion) < Q.range then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then		
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
 			end
 		elseif QMode == 2 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if minion ~= nil and not minion.dead and GetDistance(minion) < Q.range then
 				if minion.health <= getDmg("Q", minion, myHero, 1) then
 					CastSpell(_Q, minion.x, minion.z)
 				end
 			end
 		end
 		if WMode == 3 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
-				CastW()
+			if minion ~= nil and not minion.dead and GetDistance(minion) < W.range then
+				CastW(minion)
 			end
 		elseif WMode == 2 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if minion ~= nil and not minion.dead and GetDistance(minion) < W.range then
 				if minion.health <= getDmg("W", minion, myHero, 3) then
-					CastW()
+					CastW(minion)
 				end
 			end
 		end
@@ -541,7 +531,7 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuAhri.jf.QJF then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if minion ~= nil and not minion.dead and GetDistance(minion) < Q.range then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then		
 					CastSpell(_Q, Pos.x, Pos.z)
@@ -549,8 +539,8 @@ function JungleFarmm()
 			end
 		end
 		if MenuAhri.jf.WJF then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
-				CastW()
+			if minion ~= nil and not minion.dead and GetDistance(minion) < W.range then
+				CastW(minion)
 			end
 		end
 	end
@@ -595,26 +585,35 @@ function OnDraw()
 	end
 end
 
+function CalcDMG(unit)
+	local dmg = 0
+	dmg = dmg + ((RReady and getDmg("R", unit, myHero, 3)) or 0)*3
+	dmg = dmg + ((EReady and getDmg("E", unit, myHero, 3)) or 0)
+	dmg = dmg + ((QReady and getDmg("Q", unit, myHero, 3)) or 0)
+	dmg = dmg + ((WReady and getDmg("W", unit, myHero, 3)) or 0)
+	return dmg
+end
+
 function KillSteall()
 	for _, Enemy in pairs(GetEnemyHeroes()) do
 		local health = Enemy.health
 		local qDmg = getDmg("Q", Enemy, myHero, 1)
 		local wDmg = getDmg("W", Enemy, myHero, 3) 
 		local eDmg = getDmg("E", Enemy, myHero, 3)
-		local rDmg = getDmg("R", Enemy, myHero, 3)
+		local rDmg = getDmg("R", Enemy, myHero, 3)*3
 		local iDmg = getDmg("IGNITE", Enemy, myHero) 
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if health <= qDmg and QReady and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif health <= wDmg and WReady and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS then
-				CastW()
+				CastW(Enemy)
 			elseif health <= eDmg and EReady and ValidTarget(Enemy, E.range - 30) and MenuAhri.ksConfig.EKS then
 				CastE(Enemy)
 			elseif health <= rDmg and RReady and ValidTarget(Enemy, R.range) and MenuAhri.ksConfig.RKS then
 				CastR(Enemy)
 			elseif health <= (qDmg + wDmg) and QReady and WReady and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.WKS then
 				CastQ(Enemy)
-				CastW()
+				CastW(Enemy)
 			elseif health <= (qDmg + eDmg) and QReady and EReady and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.EKS then
 				CastQ(Enemy)
 				CastE(Enemy)
@@ -622,14 +621,14 @@ function KillSteall()
 				CastQ(Enemy)
 				CastR(Enemy)
 			elseif health <= (wDmg + eDmg) and WReady and EReady and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.EKS then
-				CastW()
+				CastW(Enemy)
 				CastE(Enemy)
 			elseif health <= (wDmg + rDmg) and WReady and RReady and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.RKS then
-				CastW()
+				CastW(Enemy)
 				CastR(Enemy)
 			elseif health <= (qDmg + wDmg + eDmg + rDmg) and QReady and WReady and EReady and RReady and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.EKS and MenuAhri.ksConfig.RKS then
 				CastQ(Enemy)
-				CastW()
+				CastW(Enemy)
 				CastE(Enemy)
 				CastR(Enemy)
 			end
@@ -646,7 +645,7 @@ function DmgCalc()
             local qDmg = getDmg("Q", enemy, myHero, 1)
             local wDmg = getDmg("W", enemy, myHero, 3)
 			local eDmg = getDmg("E", enemy, myHero, 3)
-			local rDmg = getDmg("R", enemy, myHero, 3)
+			local rDmg = getDmg("R", enemy, myHero, 3)*3
             if enemy.health > (qDmg + wDmg + rDmg) then
 				killstring[enemy.networkID] = "Harass Him!!!"
 			elseif enemy.health < qDmg then
@@ -675,69 +674,77 @@ function DmgCalc()
 end
 
 function CastQ(unit)
-	if MenuAhri.prConfig.pro == 1 then
-		local castPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range - 30, Q.speed, myHero, false)
-		if HitChance >= MenuAhri.prConfig.vphit - 1 then
-			if VIP_USER and MenuAhri.prConfig.pc then
-				Packet("S_CAST", {spellId = _Q, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
-			else
-				CastSpell(_Q, castPosition.x, castPosition.z)
+	if QReady and ValidTarget(unit) then
+		if MenuAhri.prConfig.pro == 1 then
+			local castPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range - 30, Q.speed, myHero, false)
+			if HitChance >= MenuAhri.prConfig.vphit - 1 then
+				if VIP_USER and MenuAhri.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
+				else
+					CastSpell(_Q, castPosition.x, castPosition.z)
+				end
 			end
 		end
-	end
-	if MenuAhri.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetPrediction(unit, Q.range-30, Q.speed, Q.delay, Q.width, myHero)
-		if Position ~= nil then
-			if VIP_USER and MenuAhri.prConfig.pc then
-				Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
-			else
-				CastSpell(_Q, Position.x, Position.z)
+		if MenuAhri.prConfig.pro == 2 and VIP_USER and prodstatus then
+			local Position, info = Prodiction.GetPrediction(unit, Q.range-30, Q.speed, Q.delay, Q.width, myHero)
+			if Position ~= nil then
+				if VIP_USER and MenuAhri.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
 			end
 		end
 	end
 end
 
-function CastW()
-	if VIP_USER and MenuAhri.prConfig.pc then
-		Packet("S_CAST", {spellId = _W}):send()
-	else
-		CastSpell(_W)
+function CastW(unit)
+	if WReady and ValidTarget(unit) then
+		if VIP_USER and MenuAhri.prConfig.pc then
+			Packet("S_CAST", {spellId = _W}):send()
+		else
+			CastSpell(_W)
+		end
 	end
 end
 
 function CastE(unit)
-	if MenuAhri.prConfig.pro == 1 then
-		local castPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, E.delay, E.width, E.range - 30, E.speed, myHero, true)
-		if HitChance >= MenuAhri.prConfig.vphit - 1 then
-			if VIP_USER and MenuAhri.prConfig.pc then
-				Packet("S_CAST", {spellId = _E, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
-			else
-				CastSpell(_E, castPosition.x, castPosition.z)
+	if EReady and ValidTarget(unit) then
+		if MenuAhri.prConfig.pro == 1 then
+			local castPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, E.delay, E.width, E.range - 30, E.speed, myHero, true)
+			if HitChance >= MenuAhri.prConfig.vphit - 1 then
+				if VIP_USER and MenuAhri.prConfig.pc then
+					Packet("S_CAST", {spellId = _E, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
+				else
+					CastSpell(_E, castPosition.x, castPosition.z)
+				end
 			end
 		end
-	end
-	if MenuAhri.prConfig.pro == 2 and VIP_USER and prodstatus then
-		local Position, info = Prodiction.GetPrediction(unit, E.range-30, E.speed, E.delay, E.width, myHero)
-		if Position ~= nil and not info.mCollision() then
-			if VIP_USER and MenuAhri.prConfig.pc then
-				Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
-			else
-				CastSpell(_E, Position.x, Position.z)
+		if MenuAhri.prConfig.pro == 2 and VIP_USER and prodstatus then
+			local Position, info = Prodiction.GetPrediction(unit, E.range-30, E.speed, E.delay, E.width, myHero)
+			if Position ~= nil and not info.mCollision() then
+				if VIP_USER and MenuAhri.prConfig.pc then
+					Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_E, Position.x, Position.z)
+				end
 			end
 		end
 	end
 end
 
 function CastR(unit)
-	if MenuAhri.comboConfig.RM == 1 then
-		pos = Vector(myHero) + 400 * (Vector(mousePos) - Vector(myHero)):normalized()
-	elseif MenuAhri.comboConfig.RM == 2 then
-		pos = unit
-	end
-	if VIP_USER and MenuAhri.prConfig.pc then
-		Packet("S_CAST", {spellId = _R, fromX = pos.x, fromY = pos.z, toX = pos.x, toY = pos.z}):send()
-	else
-		CastSpell(_R, pos.x, pos.z)
+	if RReady and ValidTarget(unit) then
+		if MenuAhri.comboConfig.RM == 1 then
+			pos = Vector(myHero) + 400 * (Vector(mousePos) - Vector(myHero)):normalized()
+		elseif MenuAhri.comboConfig.RM == 2 then
+			pos = VP:GetPredictedPos(unit, 1, 2*myHero.ms, myHero, false)
+		end
+		if VIP_USER and MenuAhri.prConfig.pc then
+			Packet("S_CAST", {spellId = _R, fromX = pos.x, fromY = pos.z, toX = pos.x, toY = pos.z}):send()
+		else
+			CastSpell(_R, pos.x, pos.z)
+		end
 	end
 end
 
@@ -751,30 +758,6 @@ function OnRemoveBuff(unit, buff)
 	if unit.isMe and buff and (buff.name == "recallimproved") then
 		recall = false
 	end 
-end
-
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
-	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
-	end
-	p:Hide()
-	RecvPacket(p)
 end
 
 function OnWndMsg(Msg, Key)
