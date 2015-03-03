@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: GRAVES MASTER 
-  Author: kokosik1221
-	Last Version: 0.1
-	28.02.2015
+    	Author: kokosik1221
+	Last Version: 0.2
+	03.03.2015
 
 ]]--
 
@@ -11,7 +11,7 @@ if myHero.charName ~= "Graves" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.1"
+local version = "0.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GravesMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -106,16 +106,18 @@ function Menu()
 	if MenuGraves.orb == 1 then
 		MenuGraves:addSubMenu("[Graves Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuGraves.Orbwalking)
+		SxOrb:RegisterAfterAttackCallback(function(t) aa() end)
 	end
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, myHero.range+65, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Graves"
 	MenuGraves:addTS(TargetSelector)
 	MenuGraves:addSubMenu("[Graves Master]: Combo Settings", "comboConfig")
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: Q Settings", "qConfig")
-	MenuGraves.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
-	MenuGraves.comboConfig.qConfig:addParam("USEQ2", "Dash With E", SCRIPT_PARAM_ONOFF, true)
+	MenuGraves.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "After AA"})
+	MenuGraves.comboConfig.qConfig:addParam("USEQ2", "Dash With E", SCRIPT_PARAM_ONOFF, false)
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: W Settings", "wConfig")
 	MenuGraves.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
+	MenuGraves.comboConfig.wConfig:addParam("USEW2", "Min. Mana To Cast", SCRIPT_PARAM_SLICE, 50, 0, 100, 0)
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: E Settings", "eConfig")
 	MenuGraves.comboConfig.eConfig:addParam("USEE", "Use " .. E.name .. " (E)", SCRIPT_PARAM_LIST, 2, { "No", "To Mouse", "To Target"})
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: R Settings", "rConfig")
@@ -237,12 +239,14 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	QTargetSelector:update()	
-	QCel = QTargetSelector.target
-	WTargetSelector:update()	
-	WCel = WTargetSelector.target
-	RTargetSelector:update()	
-	RCel = RTargetSelector.target
+	if MenuGraves.comboConfig.CEnabled or MenuGraves.harrasConfig.HEnabled then
+		QTargetSelector:update()	
+		QCel = QTargetSelector.target
+		WTargetSelector:update()	
+		WCel = WTargetSelector.target
+		RTargetSelector:update()	
+		RCel = RTargetSelector.target
+	end
 	QReady = (myHero:CanUseSpell(_Q) == READY)
 	WReady = (myHero:CanUseSpell(_W) == READY)
 	EReady = (myHero:CanUseSpell(_E) == READY)
@@ -260,14 +264,21 @@ function Check()
 end
 
 function Combo()
-	if QCel and QCel ~= nil and MenuGraves.comboConfig.qConfig.USEQ and GetDistance(QCel) < Q.range then
+	if QCel and QCel ~= nil and MenuGraves.comboConfig.qConfig.USEQ == 2 and GetDistance(QCel) < Q.range then
 		if MenuGraves.comboConfig.qConfig.USEQ2 then
 			CastE(QCel)
 		end
 		CastQ(QCel)
 	end
+	if MenuGraves.orb == 2 and _G.AutoCarry and QCel and QCel ~= nil and MenuGraves.comboConfig.qConfig.USEQ == 3 and GetDistance(QCel) < Q.range then
+		if AutoCarry.Orbwalker:IsAfterAttack() then
+			CastQ(QCel)
+		end
+	end
 	if WCel and WCel ~= nil and MenuGraves.comboConfig.wConfig.USEW and GetDistance(WCel) < W.range then
-		CastW(WCel)
+		if ((myHero.mana/myHero.maxMana)*100) >= MenuGraves.comboConfig.wConfig.USEW2 then
+			CastW(WCel)
+		end
 	end
 	if QCel and QCel ~= nil and MenuGraves.comboConfig.eConfig.USEE == 2 and GetDistance(QCel) <= myHero.range+65 then
 		CastE(mousePos)
@@ -432,9 +443,17 @@ function CountObjectsNearPos(pos, range, radius, objects)
     return n
 end
 
+function aa()
+	if MenuGraves.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGraves.comboConfig.manac then
+		if QCel and QCel ~= nil and MenuGraves.comboConfig.qConfig.USEQ == 3 and GetDistance(QCel) < Q.range then
+			CastQ(QCel)
+		end
+	end
+end
+
 function AutoHeal()
-	if HReady then
-		if ((myHero.health/myHero.maxHealth)*100) < MenuGraves.exConfig.UAHHP then
+	if ((myHero.health/myHero.maxHealth)*100) < MenuGraves.exConfig.UAHHP then
+		if HReady then
 			CastSpell(HealKey)
 		end
 	end
