@@ -2,8 +2,8 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.3
-	16.02.2015
+	Last Version: 0.4
+	05.03.2015
 	
 ]]--
 
@@ -11,10 +11,9 @@
 if myHero.charName ~= "Lux" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "0.3"
+local version = "0.4"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -73,71 +72,69 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
+local Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, width = 70}
+local W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25, width = 110}
+local E = {name = "Lucent Singularity", range = 1100, speed = math.huge, delay = 0.25, width = 275}
+local R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190}
+local QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local KSMinions = minionManager(MINION_JUNGLE, R.range, myHero, MINION_SORT_HEALTH_ASC)
+local QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
+local ETargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
+local RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_MAGIC)
+local IgniteKey, zhonyaslot = nil, nil
+local killstring = {}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
+
 function OnLoad()
-	Vars()
 	Menu()
 	print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 end
 
-function Vars()
-	Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, width = 70}
-	W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25, width = 110}
-	E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.25, width = 275}
-	R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, false
-	abilitylvl, lastskin = 0, 0
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	KSMinions = minionManager(MINION_JUNGLE, R.range, myHero, MINION_SORT_HEALTH_ASC)
-	RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_MAGIC)
-	IgniteKey, zhonyaslot = nil, nil
-	killstring = {}
-	TargetTable = {
-		AP = {
-			"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
-			"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-			"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-		},	
-		Support = {
-			"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-		},	
-		Tank = {
-			"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-			"Warwick", "Yorick", "Zac"
-		},
-		AD_Carry = {
-			"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-			"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-		},
-		Bruiser = {
-			"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-		}
-	}
-end
-
 function OnTick()
 	Check()
-	if MenuLux.comboConfig.CEnabled then
+	if MenuLux.comboConfig.CEnabled and myHero.mana >= MenuLux.comboConfig.manac and not recall then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and (MenuLux.harrasConfig.HEnabled or MenuLux.harrasConfig.HTEnabled) then
+	if (MenuLux.harrasConfig.HEnabled or MenuLux.harrasConfig.HTEnabled) and myHero.mana >= MenuLux.harrasConfig.manah and not recall then
 		Harrass()
 	end
-	if MenuLux.farm.LaneClear then
+	if MenuLux.farm.LaneClear and myHero.mana >= MenuLux.farm.manaf and not recall then
 		Farm()
 	end
-	if MenuLux.jf.JFEnabled then
+	if MenuLux.jf.JFEnabled and myHero.mana >= MenuLux.jf.manajf and not recall then
 		JungleFarm()
 	end
-	if MenuLux.prConfig.AZ then
+	if MenuLux.prConfig.AZ and not recall then
 		autozh()
 	end
 	if MenuLux.prConfig.ALS then
 		autolvl()
 	end
-	if MenuLux.comboConfig.rConfig.CRKD and RCel then
+	if MenuLux.comboConfig.rConfig.CRKD and RCel and not recall then
 		CastR(RCel)
 	end
 	KSandAUTO()
@@ -150,13 +147,12 @@ function Menu()
 	MenuLux:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuLux:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuLux.orb == 1 then
-		MenuLux:addSubMenu("Orbwalking", "Orbwalking")
+		MenuLux:addSubMenu("[Lux Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuLux.Orbwalking)
 	end
-	MenuLux:addSubMenu("Target selector", "STS")
-	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
+	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, myHero.range+65, DAMAGE_MAGIC)
 	TargetSelector.name = "Lux"
-	MenuLux.STS:addTS(TargetSelector)
+	MenuLux:addTS(TargetSelector)
 	MenuLux:addSubMenu("[Lux Master]: Combo Settings", "comboConfig")
 	MenuLux.comboConfig:addSubMenu("[Lux Master]: Q Settings", "qConfig")
 	MenuLux.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
@@ -245,9 +241,6 @@ function Menu()
 	MenuLux:addSubMenu("[Lux Master]: Misc Settings", "prConfig")
 	MenuLux.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuLux.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuLux.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuLux.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 4, 1, 6)
-	MenuLux.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuLux.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuLux.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
@@ -282,11 +275,11 @@ end
 
 function caa()
 	if MenuLux.orb == 1 then
-	if MenuLux.comboConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuLux.comboConfig.uaa then
-		SxOrb:DisableAttacks()
-	end
+		if MenuLux.comboConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuLux.comboConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
@@ -302,9 +295,13 @@ function GetCustomTarget()
 end
 
 function Check()
+	QTargetSelector:update()
+	QCel = QTargetSelector.target
+	ETargetSelector:update()
+	ECel = ETargetSelector.target
 	RTargetSelector:update()
 	RCel = RTargetSelector.target
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, E.range) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
 		Cel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
@@ -319,12 +316,6 @@ function Check()
 	EReady = (myHero:CanUseSpell(_E) == READY)
 	RReady = (myHero:CanUseSpell(_R) == READY)
 	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuLux.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuLux.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Lux", MenuLux.prConfig.skin1)
-			lastSkin = MenuLux.prConfig.skin1
-		end
-	end
 	if MenuLux.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -354,54 +345,56 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
-	if myHero.mana >= MenuLux.comboConfig.manac and not recall then
-		if Cel ~= nil then
-			UseItems(Cel)
-			if MenuLux.comboConfig.qConfig.USEQ and not MenuLux.comboConfig.qConfig.USEQ2 and GetDistance(Cel) < Q.range then
-				CastQ(Cel)
-			elseif MenuLux.comboConfig.qConfig.USEQ and MenuLux.comboConfig.qConfig.USEQ2 and GetDistance(Cel) < Q.range then
-				CastQ2(Cel)
-			end
-			if MenuLux.comboConfig.wConfig.USEW then
-				CastW(myHero)
-			end
-			if MenuLux.comboConfig.eConfig.USEE and GetDistance(Cel) < E.range then
-				CastE(Cel)
-			end
+	if Cel ~= nil then
+		UseItems(Cel)
+		if MenuLux.comboConfig.wConfig.USEW then
+			CastW(myHero)
 		end
-		if RCel ~= nil then
-			if MenuLux.comboConfig.rConfig.USER and RReady and GetDistance(RCel) <= R.range and ValidTarget(RCel) then
-				if MenuLux.comboConfig.rConfig.RM == 1 then
+	end
+	if QCel ~= nil then
+		if MenuLux.comboConfig.qConfig.USEQ and not MenuLux.comboConfig.qConfig.USEQ2 and GetDistance(QCel) < Q.range then
+			CastQ(QCel)
+		elseif MenuLux.comboConfig.qConfig.USEQ and MenuLux.comboConfig.qConfig.USEQ2 and GetDistance(QCel) < Q.range then
+			CastQ2(QCel)
+		end
+	end
+	if ECel ~= nil then
+		if MenuLux.comboConfig.eConfig.USEE and GetDistance(ECel) < E.range then
+			CastE(ECel)
+		end
+	end
+	if RCel ~= nil then
+		if MenuLux.comboConfig.rConfig.USER and RReady and GetDistance(RCel) <= R.range and ValidTarget(RCel) then
+			if MenuLux.comboConfig.rConfig.RM == 1 then
+				CastR(RCel)
+			end
+			if MenuLux.comboConfig.rConfig.RM == 2 then
+				local r = getDmg("R", RCel, myHero, 1)
+				if RCel.health < r then
 					CastR(RCel)
 				end
-				if MenuLux.comboConfig.rConfig.RM == 2 then
-					local r = getDmg("R", RCel, myHero, 1)
-					if RCel.health < r then
-						CastR(RCel)
+			end
+			if MenuLux.comboConfig.rConfig.RM == 3 then
+				for _, enemy in pairs(GetEnemyHeroes()) do
+					local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
+					if ValidTarget(enemy) and rPos ~= nil and maxHit >= MenuLux.comboConfig.rConfig.USERX and HitChance >=2 then		
+						if VIP_USER and MenuLux.prConfig.pc then
+							Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
+						else
+							CastSpell(_R, rPos.x, rPos.z)
+						end	
 					end
 				end
-				if MenuLux.comboConfig.rConfig.RM == 3 then
-					for _, enemy in pairs(GetEnemyHeroes()) do
-						local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
-						if ValidTarget(enemy) and rPos ~= nil and maxHit >= MenuLux.comboConfig.rConfig.USERX and HitChance >=2 then		
-							if VIP_USER and MenuLux.prConfig.pc then
-								Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
-							else
-								CastSpell(_R, rPos.x, rPos.z)
-							end	
-						end
-					end
+			end
+			if MenuLux.comboConfig.rConfig.RM == 4 then
+				if RCel.canMove == false then
+					CastR(RCel)
 				end
-				if MenuLux.comboConfig.rConfig.RM == 4 then
-					if RCel.canMove == false then
-						CastR(RCel)
-					end
-				end
-				if MenuLux.comboConfig.rConfig.RM == 5 then
-					local r = getDmg("R", RCel, myHero, 1)
-					if RCel.health < r and RCel.canMove == false then
-						CastR(RCel)
-					end
+			end
+			if MenuLux.comboConfig.rConfig.RM == 5 then
+				local r = getDmg("R", RCel, myHero, 1)
+				if RCel.health < r and RCel.canMove == false then
+					CastR(RCel)
 				end
 			end
 		end
@@ -409,15 +402,15 @@ function Combo()
 end
 
 function Harrass()
-	if myHero.mana >= MenuLux.harrasConfig.manah and not recall then
-		if MenuLux.harrasConfig.HM == 1 and GetDistance(Cel) < Q.range then
-			CastQ(Cel)
-		elseif MenuLux.harrasConfig.HM == 1 and GetDistance(Cel) < Q.range and MenuLux.comboConfig.qConfig.USEQ2 then
-			CastQ2(Cel)
+	if QCel ~= nil then
+		if MenuLux.harrasConfig.HM == 1 and GetDistance(QCel) < Q.range then
+			CastQ(QCel)
+		elseif MenuLux.harrasConfig.HM == 1 and GetDistance(QCel) < Q.range and MenuLux.comboConfig.qConfig.USEQ2 then
+			CastQ2(QCel)
 		end
-		if MenuLux.harrasConfig.HM == 2 and GetDistance(Cel) < E.range then
-			CastE(Cel)
-		end
+	end
+	if ECel ~= nil and MenuLux.harrasConfig.HM == 2 and GetDistance(ECel) < E.range then
+		CastE(ECel)
 	end
 end
 
@@ -425,33 +418,31 @@ function Farm()
 	EnemyMinions:update()
 	QMode =  MenuLux.farm.QF
 	EMode =  MenuLux.farm.EF
-	if myHero.mana >= MenuLux.farm.manaf and not recall then
-		for i, minion in pairs(EnemyMinions.objects) do
-			if QMode == 3 then
-				if minion ~= nil and not minion.dead then
+	for i, minion in pairs(EnemyMinions.objects) do
+		if QMode == 3 then
+			if minion ~= nil and not minion.dead then
+				CastQ(minion)
+			end
+		elseif QMode == 2 then
+			if minion ~= nil and not minion.dead then
+				if minion.health <= getDmg("Q", minion, myHero, 1) then
 					CastQ(minion)
 				end
-			elseif QMode == 2 then
-				if minion ~= nil and not minion.dead then
-					if minion.health <= getDmg("Q", minion, myHero, 1) then
-						CastQ(minion)
-					end
-				end
 			end
-			if EMode == 3 then
-				if minion ~= nil and not minion.dead then
-					local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
-					if Pos ~= nil then
-						CastSpell(_E, Pos.x, Pos.z)
-					end
-					CastSpell(_E)
+		end
+		if EMode == 3 then
+			if minion ~= nil and not minion.dead then
+				local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
+				if Pos ~= nil then
+					CastSpell(_E, Pos.x, Pos.z)
 				end
-			elseif EMode == 2 then
-				if minion ~= nil and not minion.dead then
-					if minion.health <= getDmg("E", minion, myHero, 1) then
-						CastE(minion)
-						CastSpell(_E)
-					end
+				CastSpell(_E)
+			end
+		elseif EMode == 2 then
+			if minion ~= nil and not minion.dead then
+				if minion.health <= getDmg("E", minion, myHero, 1) then
+					CastE(minion)
+					CastSpell(_E)
 				end
 			end
 		end
@@ -459,22 +450,20 @@ function Farm()
 end
 
 function JungleFarm()
-	if myHero.mana >= MenuLux.jf.manajf and not recall then
-		JungleMinions:update()
-		for i, minion in pairs(JungleMinions.objects) do
-			if MenuLux.jf.EJF then
-				if minion ~= nil and not minion.dead then
-					local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
-					if Pos ~= nil then
-						CastSpell(_E, Pos.x, Pos.z)
-					end
-					CastSpell(_E)
+	JungleMinions:update()
+	for i, minion in pairs(JungleMinions.objects) do
+		if MenuLux.jf.EJF then
+			if minion ~= nil and not minion.dead then
+				local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
+				if Pos ~= nil then
+					CastSpell(_E, Pos.x, Pos.z)
 				end
+				CastSpell(_E)
 			end
-			if MenuLux.jf.QJF then
-				if minion ~= nil and not minion.dead then
-					CastQ(minion)
-				end
+		end
+		if MenuLux.jf.QJF then
+			if minion ~= nil and not minion.dead then
+				CastQ(minion)
 			end
 		end
 	end
@@ -508,7 +497,7 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuLux.prConfig.AZMR)
-	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuLux.prConfig.AZHP and count == 0 and not recall then
+	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuLux.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
 end
@@ -735,7 +724,7 @@ end
 function CastQ(unit)
 	if unit and QReady and ValidTarget(unit) then
 		if MenuLux.prConfig.pro == 1 then
-			local CastPosition,  HitChance, Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
+			local CastPosition, HitChance, Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
 			if HitChance >= 2 then
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -778,7 +767,7 @@ end
 
 function CastW(unit)
 	if unit and WReady then
-		local CastPosition,  HitChance, Position = VP:GetLineCastPosition(unit, W.delay, W.width, W.range, W.speed, myHero, false)
+		local CastPosition, HitChance, Position = VP:GetLineCastPosition(unit, W.delay, W.width, W.range, W.speed, myHero, false)
 		if VIP_USER and MenuLux.prConfig.pc then
 			Packet("S_CAST", {spellId = _W, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
 		else
@@ -790,7 +779,7 @@ end
 function CastE(unit)
 	if unit and EReady and ValidTarget(unit) and myHero:GetSpellData(_E).name == "LuxLightStrikeKugel" then
 		if MenuLux.prConfig.pro == 1 then
-			local CastPosition,  HitChance, Position = VP:GetCircularAOECastPosition(unit, E.delay, E.width, E.range, E.speed, myHero)
+			local CastPosition, HitChance, Position = VP:GetCircularAOECastPosition(unit, E.delay, E.width, E.range, E.speed, myHero)
 			if HitChance >= 2 then
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _E, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -815,7 +804,7 @@ end
 function CastR(unit)
 	if unit and RReady and ValidTarget(unit) then
 		if MenuLux.prConfig.pro == 1 then
-			local CastPosition,  HitChance, Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range, R.speed, myHero, false)
+			local CastPosition, HitChance, Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range, R.speed, myHero, false)
 			if HitChance >= 2 then
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -871,7 +860,7 @@ function CechkRecal()
 		tBuff = myHero:getBuff(i)
 		if BuffIsValid(tBuff) then
 			recall = false 
-			if tBuff.name == "recallimproved" then
+			if tBuff.name == "recall" then
 				recall = true
 			end	
 		end
@@ -900,30 +889,6 @@ function EnemyCount(point, range)
 		end
 	end            
 	return count
-end
-
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
-	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
-	end
-	p:Hide()
-	RecvPacket(p)
 end
 
 function OnWndMsg(Msg, Key)
