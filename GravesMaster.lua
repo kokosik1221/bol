@@ -2,16 +2,16 @@
 
 	Script Name: GRAVES MASTER 
     	Author: kokosik1221
-	Last Version: 0.2
-	03.03.2015
-
+	Last Version: 0.3
+	16.03.2015
+	
 ]]--
 
 if myHero.charName ~= "Graves" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.2"
+local version = "0.3"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GravesMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -74,6 +74,8 @@ local QReady, WReady, EReady, RReady, HReady, recall = false, false, false, fals
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local HealKey = nil
+local Spells = {_Q,_W,_E,_R}
+local Spells2 = {"Q","W","E","R"}
 local killstring = {}
 local TargetTable = {
 	AP = {
@@ -97,6 +99,62 @@ local TargetTable = {
 		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
 	}
 }
+local DodgeTable =
+{
+	['GalioIdolOfDurand'] = {charName = "Galio", spellSlot = "R", SpellType = "skillshot"},
+    ['GnarBigW'] = {charName = "Gnar", spellSlot = "W", SpellType = "skillshot"},
+    ['GnarBigR'] = {charName = "Gnar", spellSlot = "R", SpellType = "skillshot"},	
+	['NamiQ'] = {charName = "Nami", spellSlot = "Q", SpellType = "skillshot"},
+    ['NamiR'] = {charName = "Nami", spellSlot = "R", SpellType = "skillshot"},
+	['LuxLightBinding'] = {charName = "Lux", spellSlot = "Q", SpellType = "skillshot"},
+	['RenektonPreExecute'] = {charName = "Renekton", spellSlot = "W", SpellType = "skillshot"},
+	['LeonaZenithBlade'] = {charName = "Leona", spellSlot = "E", SpellType = "skillshot"},
+    ['LeonaZenithBladeMissle'] = {charName = "Leona", spellSlot = "E", SpellType = "skillshot"},
+    ['LeonaSolarFlare'] = {charName = "Leona", spellSlot = "R", SpellType = "skillshot"},
+	['RengarE'] = {charName = "Rengar", spellSlot = "E", SpellType = "skillshot"},
+	['LeblancSoulShackle'] = {charName = "Leblanc", spellSlot = "E", SpellType = "skillshot"},
+	['LeblancSoulShackleM'] = {charName = "Leblanc", spellSlot = "R", SpellType = "skillshot"},
+	['RivenMartyr'] = {charName = "Riven", spellSlot = "W", SpellType = "skillshot"},
+	['LissandraW'] = {charName = "Lissandra", spellSlot = "W", SpellType = "skillshot"},
+    ['LissandraR'] = {charName = "Lissandra", spellSlot = "R", SpellType = "skillshot"},
+	['UFSlash'] = {charName = "Malphite", spellSlot = "R", SpellType = "skillshot"},
+	['DarkBindingMissile'] = {charName = "Morgana", spellSlot = "Q", SpellType = "skillshot"},
+	['SoulShackles'] = {charName = "Morgana", spellSlot = "R", SpellType = "skillshot"},
+	['VarusR'] = {charName = "Varus", spellSlot = "R", SpellType = "skillshot"},
+	['VeigarEventHorizon'] = {charName = "Veigar", spellSlot = "E", SpellType = "skillshot"},
+	['VelkozE'] = {charName = "Velkoz", spellSlot = "E", SpellType = "skillshot"},
+	['BraumR'] = {charName = "Braum", spellSlot = "R", SpellType = "skillshot"},
+	['ViktorGravitonField'] = {charName = "Viktor", spellSlot = "W", SpellType = "skillshot"},
+	['SejuaniGlacialPrisonStart'] = {charName = "Sejuani", spellSlot = "R", SpellType = "skillshot"},
+	['SonaCrescendo'] = {charName = "Sona", spellSlot = "R", SpellType = "skillshot"},
+	['InfuseWrapper'] = {charName = "Soraka", spellSlot = "E", SpellType = "skillshot"},
+	['ShenShadowDash'] = {charName = "Shen", spellSlot = "E", SpellType = "skillshot"},
+	['SwainShadowGrasp'] = {charName = "Swain", spellSlot = "W", SpellType = "skillshot"},
+	['ThreshQ'] = {charName = "Thresh", spellSlot = "Q", SpellType = "skillshot"},
+	['ThreshE'] = {charName = "Thresh", spellSlot = "E", SpellType = "skillshot"},
+	['ThreshRPenta'] = {charName = "Thresh", spellSlot = "R", SpellType = "skillshot"},
+	['AhriSeduce'] = {charName = "Ahri", spellSlot = "E", SpellType = "skillshot"},
+	['BandageToss'] = {charName = "Amumu", spellSlot = "Q", SpellType = "skillshot"},
+	['CurseoftheSadMummy'] = {charName = "Amumu", spellSlot = "R", SpellType = "skillshot"},
+	['FlashFrost'] = {charName = "Anivia", spellSlot = "Q", SpellType = "skillshot"},
+	['EnchantedCrystalArrow'] = {charName = "Ashe", spellSlot = "R", SpellType = "skillshot"},
+	['yasuoq3w'] = {charName = "Yasuo", spellSlot = "Q", SpellType = "skillshot"},
+	['EliseHumanE'] = {charName = "Elise", spellSlot = "E", SpellType = "skillshot"},
+	['MonkeyKingSpinToWin'] = {charName = "MonkeyKing", spellSlot = "R", SpellType = "skillshot"},
+	['monkeykingspintowinleave'] = {charName = "MonkeyKing", spellSlot = "R", SpellType = "skillshot"},
+	['OrianaDetonateCommand'] = {charName = "Orianna", spellSlot = "R", SpellType = "skillshot"},
+	['ZyraGraspingRoots'] = {charName = "Zyra", spellSlot = "E", SpellType = "skillshot"},
+	['ZyraBrambleZone'] = {charName = "Zyra", spellSlot = "R", SpellType = "skillshot"},
+	['HowlingGale'] = {charName = "Janna", spellSlot = "Q", SpellType = "skillshot"},
+	['ReapTheWhirlwind'] = {charName = "Janna", spellSlot = "R", SpellType = "skillshot"},
+	['XerathMageSpear'] = {charName = "Xerath", spellSlot = "E", SpellType = "skillshot"},
+	['Rupture'] = {charName = "Chogath", spellSlot = "Q", SpellType = "skillshot"},
+	['FeralScream'] = {charName = "Chogath", spellSlot = "W", SpellType = "skillshot"},
+	['CassiopeiaPetrifyingGaze'] = {charName = "Cassiopeia", spellSlot = "R", SpellType = "skillshot"},
+	['KennenShurikenStorm ']= {charName = "Kennen", spellSlot = "R", SpellType = "skillshot"},
+	['FizzMarinerDoom'] = {charName = "Fizz", spellSlot = "R", SpellType = "skillshot"},
+	['HecarimUlt'] = {charName = "Hecarim", spellSlot = "R", SpellType = "skillshot"},
+}
 
 function Menu()
 	VP = VPrediction()
@@ -116,13 +174,15 @@ function Menu()
 	MenuGraves.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "After AA"})
 	MenuGraves.comboConfig.qConfig:addParam("USEQ2", "Dash With E", SCRIPT_PARAM_ONOFF, false)
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: W Settings", "wConfig")
-	MenuGraves.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
+	MenuGraves.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "Can Hit X"})
+	MenuGraves.comboConfig.wConfig:addParam("USEWX", "X = ", SCRIPT_PARAM_SLICE, 3, 1, 5, 0)
 	MenuGraves.comboConfig.wConfig:addParam("USEW2", "Min. Mana To Cast", SCRIPT_PARAM_SLICE, 50, 0, 100, 0)
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: E Settings", "eConfig")
 	MenuGraves.comboConfig.eConfig:addParam("USEE", "Use " .. E.name .. " (E)", SCRIPT_PARAM_LIST, 2, { "No", "To Mouse", "To Target"})
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: R Settings", "rConfig")
 	MenuGraves.comboConfig.rConfig:addParam("USER", "Use " .. R.name .. " (R)", SCRIPT_PARAM_ONOFF, true)
-	MenuGraves.comboConfig.rConfig:addParam("USER2", "Cast If:", SCRIPT_PARAM_LIST, 2, { "Easy Kill", "Medium Kill", "Hard Kill"})
+	MenuGraves.comboConfig.rConfig:addParam("USER2", "Cast If:", SCRIPT_PARAM_LIST, 2, { "Easy Kill", "Medium Kill", "Hard Kill", "Can Hit X"})
+	MenuGraves.comboConfig.rConfig:addParam("USERX", "X = ", SCRIPT_PARAM_SLICE, 3, 1, 5, 0)
 	MenuGraves.comboConfig.rConfig:addParam("CRKD", "Cast (R) Key Down", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("R"))
 	MenuGraves.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
 	MenuGraves.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
@@ -134,6 +194,17 @@ function Menu()
 	MenuGraves.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuGraves.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
 	MenuGraves:addSubMenu("[Graves Master]: Extra Settings", "exConfig")
+	MenuGraves.exConfig:addSubMenu("[Graves Master]: Dodge Spells", "dspells")
+	Enemies = GetEnemyHeroes() 
+    for i,enemy in pairs (Enemies) do
+		for j,spell in pairs (Spells) do 
+			if DodgeTable[enemy:GetSpellData(spell).name] then 
+				MenuGraves.exConfig.dspells:addParam(tostring(enemy:GetSpellData(spell).name),"Dodge "..tostring(enemy.charName).." Spell "..tostring(Spells2[j]),SCRIPT_PARAM_ONOFF,true)
+			end 
+		end 
+	end 
+	MenuGraves.exConfig:addParam("ED", "Try Dodge Enemy Spells", SCRIPT_PARAM_ONOFF, true)
+	MenuGraves.exConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGraves.exConfig:addParam("UAH", "Auto Heal Summoner", SCRIPT_PARAM_ONOFF, true)
 	MenuGraves.exConfig:addParam("UAHHP", "Min. HP% To Heal", SCRIPT_PARAM_SLICE, 35, 0, 100, 0)
 	MenuGraves:addSubMenu("[Graves Master]: KS Settings", "ksConfig")
@@ -234,12 +305,13 @@ function OnTick()
 end
 
 function Check()
-	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
+	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, R.range) then
 		Cel = SelectedTarget
+		QCel = SelectedTarget
+		WCel = SelectedTarget
+		RCel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
-	end
-	if MenuGraves.comboConfig.CEnabled or MenuGraves.harrasConfig.HEnabled then
 		QTargetSelector:update()	
 		QCel = QTargetSelector.target
 		WTargetSelector:update()	
@@ -275,9 +347,23 @@ function Combo()
 			CastQ(QCel)
 		end
 	end
-	if WCel and WCel ~= nil and MenuGraves.comboConfig.wConfig.USEW and GetDistance(WCel) < W.range then
+	if WCel and WCel ~= nil and MenuGraves.comboConfig.wConfig.USEW == 2 and GetDistance(WCel) < W.range then
 		if ((myHero.mana/myHero.maxMana)*100) >= MenuGraves.comboConfig.wConfig.USEW2 then
 			CastW(WCel)
+		end
+	end
+	if MenuGraves.comboConfig.wConfig.USEW == 3 then
+		if ((myHero.mana/myHero.maxMana)*100) >= MenuGraves.comboConfig.wConfig.USEW2 then
+			for _, enemy in pairs(GetEnemyHeroes()) do
+				local WPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, W.delay, W.width, W.range, W.speed, myHero)
+				if WReady and ValidTarget(enemy, W.range) and WPos ~= nil and maxHit >= MenuGraves.comboConfig.wConfig.USEWX then		
+					if VIP_USER and MenuGraves.prConfig.pc then
+						Packet("S_CAST", {spellId = _W, fromX = WPos.x, fromY = WPos.z, toX = WPos.x, toY = WPos.z}):send()
+					else
+						CastSpell(_W, WPos.x, WPos.z)
+					end	
+				end
+			end
 		end
 	end
 	if QCel and QCel ~= nil and MenuGraves.comboConfig.eConfig.USEE == 2 and GetDistance(QCel) <= myHero.range+65 then
@@ -286,8 +372,11 @@ function Combo()
 	if QCel and QCel ~= nil and MenuGraves.comboConfig.eConfig.USEE == 3 and GetDistance(QCel) <= myHero.range+65 then
 		CastE(QCel)
 	end
-	if RCel and RCel ~= nil and MenuGraves.comboConfig.rConfig.USER and GetDistance(RCel) < R.range then
+	if RCel and RCel ~= nil and MenuGraves.comboConfig.rConfig.USER and GetDistance(RCel) < R.range and MenuGraves.comboConfig.rConfig.USER2 ~= 4 then
 		CastR(RCel)
+	end
+	if MenuGraves.comboConfig.rConfig.USER and MenuGraves.comboConfig.rConfig.USER2 == 4 then
+		CastR2()
 	end
 end
 
@@ -500,6 +589,21 @@ function CastR(unit)
 	end
 end
 
+function CastR2()
+	for _, enemy in pairs(GetEnemyHeroes()) do
+		if RReady and ValidTarget(enemy, R.range) then
+			local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
+			if rPos ~= nil and maxHit >= MenuGraves.comboConfig.rConfig.USERX and HitChance >= 2 then		
+				if VIP_USER and MenuLux.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
+				else
+					CastSpell(_R, rPos.x, rPos.z)
+				end
+			end
+		end
+	end
+end
+
 function CastE(unit)
 	if EReady then
 		if VIP_USER and MenuGraves.prConfig.pc then
@@ -538,8 +642,8 @@ end
 function CastQ(unit)
 	if QReady and ValidTarget(unit) then
 		if MenuGraves.prConfig.pro == 1 then
-			local CastPosition, HitChance, Position = VP:GetConeAOECastPosition(unit, Q.delay, Q.angle, Q.range, Q.speed, myHero)
-			if CastPosition and HitChance >= 2  then
+			local CastPosition, HitChance, Position = VP:GetConeAOECastPosition(unit, Q.delay, Q.angle, Q.range-20, Q.speed, myHero)
+			if CastPosition and HitChance >= 2 then
 				if VIP_USER and MenuGraves.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
 				else
@@ -548,7 +652,7 @@ function CastQ(unit)
 			end
 		end
 		if MenuGraves.prConfig.pro == 2 then
-			local Position, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
+			local Position, info = Prodiction.GetPrediction(unit, Q.range-20, Q.speed, Q.delay, Q.width, myHero)
 			if Position ~= nil then
 				if VIP_USER and MenuGraves.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -596,6 +700,47 @@ function KillSteal()
 				CastW(Enemy)
 			elseif health < rDmg and MenuGraves.ksConfig.RKS and GetDistance(Enemy) < R.range then
 				CastR(Enemy)
+			end
+		end
+	end
+end
+
+function OnProcessSpell(unit, spell)
+	if MenuGraves.exConfig.ED then
+		if unit and unit.team ~= myHero.team and not myHero.dead and unit.type == myHero.type and spell then
+		    shottype,radius,maxdistance = 0,0,0
+		    if unit.type == "obj_AI_Hero" then
+			    spelltype, casttype = getSpellType(unit, spell.name)
+			    if casttype == 4 or casttype == 5 or casttype == 6 then return end
+			    if (spelltype == "Q" or spelltype == "W" or spelltype == "E" or spelltype == "R") and DodgeTable[spell.name] then
+				    shottype = skillData[unit.charName][spelltype]["type"]
+				    radius = skillData[unit.charName][spelltype]["radius"]
+				    maxdistance = skillData[unit.charName][spelltype]["maxdistance"]
+			    end
+		    end
+			if not myHero.dead and myHero.health > 0 then
+				local hb = myHero.boundingRadius
+				hitchampion = false
+				if shottype == 0 then 
+					hitchampion = spell.target and spell.target.networkID == myHero.networkID
+				elseif shottype == 1 then 
+					hitchampion = checkhitlinepass(unit, spell.endPos, radius, maxdistance, myHero, hb)
+				elseif shottype == 2 then 
+					hitchampion = checkhitlinepoint(unit, spell.endPos, radius, maxdistance, myHero, hb)
+				elseif shottype == 3 then 
+					hitchampion = checkhitaoe(unit, spell.endPos, radius, maxdistance, myHero, hb)
+				elseif shottype == 4 then 
+					hitchampion = checkhitcone(unit, spell.endPos, radius, maxdistance, myHero, hb)
+				elseif shottype == 5 then 
+					hitchampion = checkhitwall(unit, spell.endPos, radius, maxdistance, myHero, hb)
+				elseif shottype == 6 then 
+					hitchampion = checkhitlinepass(unit, spell.endPos, radius, maxdistance, myHero, hb) or checkhitlinepass(unit, Vector(unit)*2-spell.endPos, radius, maxdistance, tar, hb)
+				elseif shottype == 7 then 
+					hitchampion = checkhitcone(spell.endPos, unit, radius, maxdistance, myHero, hb)
+				end
+				if hitchampion and EReady and MenuGraves.exConfig.dspells[spell.name] then
+					CastE(mousePos)
+				end
 			end
 		end
 	end
