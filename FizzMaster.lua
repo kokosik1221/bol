@@ -2,8 +2,8 @@
 
 	Script Name: FIZZ MASTER 
     	Author: kokosik1221
-	Last Version: 1.4
-	16.02.2015
+	Last Version: 1.5
+	18.03.2015
 	
 ]]--
 
@@ -11,10 +11,8 @@
 if myHero.charName ~= "Fizz" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
-
-local version = "1.4"
+local version = "1.5"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/FizzMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -455,26 +453,44 @@ local DodgeSpells = {
   ['ZyraBrambleZone'] = {charName = "Zyra", spellSlot = "R", SpellType = "skillshot"},
  }
  
-function Vars()
-	Q = {name = "Urchin Strike", range = 550}
-	W = {name = "Seastone Trident"}
-	E = {name = "Playful", range = 400, speed = 1200, delay = 0.25, width = 330}
-	E2 = {name = "Trickster", range = 400, speed = 1200, delay = 0.25, width = 270}
-	R = {name = "Chum the Waters", range = 1175, speed = 1200, delay = 0.5, width = 80}
-	killstring = {}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
-	lastskin, aarange = 0, 175
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, zhonyaslot = nil, nil
-	Spells = {_Q,_W,_E,_R}
-	Spells2 = {"Q","W","E","R"}
-	print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-end
+local Q = {name = "Urchin Strike", range = 550, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Seastone Trident", Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Playful", range = 400, speed = 1200, delay = 0.25, width = 330, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local E2 = {name = "Trickster", range = 400, speed = 1200, delay = 0.25, width = 270}
+local R = {name = "Chum the Waters", range = 1175, speed = 1200, delay = 0.5, width = 80, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local killstring = {}
+local IReady, zhonyaready, recall = false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey, zhonyaslot = nil, nil
+local Spells = {_Q,_W,_E,_R}
+local Spells2 = {"Q","W","E","R"}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
 
 function OnLoad()
-	Vars()
 	Menu()
+	print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 	end	
@@ -485,34 +501,36 @@ end
 
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuFizz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.comboConfig.manac then
+	if Cel ~= nil and MenuFizz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.comboConfig.manac and not recall then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and (MenuFizz.harrasConfig.HEnabled or MenuFizz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.harrasConfig.manah then
+	if Cel ~= nil and (MenuFizz.harrasConfig.HEnabled or MenuFizz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.harrasConfig.manah and not recall then
 		Harrass()
 	end
-	if MenuFizz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.farm.manaf then
+	if MenuFizz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.farm.manaf and not recall then
 		Farm()
 	end
-	if MenuFizz.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.jf.manajf then
+	if MenuFizz.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuFizz.jf.manajf and not recall then
 		JungleFarmm()
 	end
-	if MenuFizz.prConfig.AZ then
+	if MenuFizz.prConfig.AZ and not recall then
 		autozh()
 	end
-	if MenuFizz.prConfig.ALS then
+	if MenuFizz.prConfig.ALS and not recall then
 		autolvl()
 	end
-	if MenuFizz.exConfig.ESCAPE then
+	if MenuFizz.exConfig.ESCAPE and not recall then
 		Escape()
 	end
-	if MenuFizz.comboConfig.FU then
+	if MenuFizz.comboConfig.FU and not recall then
 		if ValidTarget(Cel, R.range) and not Cel.dead then
 			CastR(Cel)
 		end
 	end
-	KillSteall()
+	if not recall then
+		KillSteall()
+	end
 end
 
 function Menu()
@@ -521,13 +539,12 @@ function Menu()
 	MenuFizz:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuFizz:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuFizz.orb == 1 then
-		MenuFizz:addSubMenu("Orbwalking", "Orbwalking")
+		MenuFizz:addSubMenu("[Fizz Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuFizz.Orbwalking)
 	end
-	MenuFizz:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Fizz"
-	MenuFizz.STS:addTS(TargetSelector)
+	MenuFizz:addTS(TargetSelector)
 	MenuFizz:addSubMenu("[Fizz Master]: Combo Settings", "comboConfig")
 	MenuFizz.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuFizz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -614,9 +631,6 @@ function Menu()
 	MenuFizz:addSubMenu("[Fizz Master]: Misc Settings", "prConfig")
 	MenuFizz.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuFizz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuFizz.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuFizz.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 5, 1, 5)
-	MenuFizz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuFizz.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuFizz.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuFizz.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
@@ -635,6 +649,13 @@ function Menu()
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
+	if heroManager.iCount < 10 then
+		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
+	elseif heroManager.iCount == 6 then
+		arrangePrioritysTT()
+    else
+		arrangePrioritys()
+	end
 end
 
 function EnemyCount(point, range)
@@ -649,11 +670,11 @@ end
 
 function caa()
 	if MenuFizz.orb == 1 then
-	if MenuFizz.comboConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuFizz.comboConfig.uaa then
-		SxOrb:DisableAttacks()
-	end
+		if MenuFizz.comboConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuFizz.comboConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
@@ -669,7 +690,7 @@ function GetCustomTarget()
 end
 
 function Check()
-	if RReady and MenuFizz.comboConfig.CT == 2 then
+	if R.Ready() and MenuFizz.comboConfig.CT == 2 then
 		TargetSelector.range = R.range
 	else
 		TargetSelector.range = Q.range
@@ -681,19 +702,6 @@ function Check()
 	end
 	if MenuFizz.orb == 1 then
 		SxOrb:ForceTarget(Cel)
-	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuFizz.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuFizz.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Fizz", MenuFizz.prConfig.skin1)
-			lastSkin = MenuFizz.prConfig.skin1
-		end
 	end
 	if MenuFizz.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
@@ -751,7 +759,7 @@ function comboQRWE()
 		end
 	end
 	if MenuFizz.comboConfig.USEW then
-		if ValidTarget(Cel, aarange) and not Cel.dead then
+		if ValidTarget(Cel, myHero.range+120) and not Cel.dead then
 			CastW()
 		end
 	end
@@ -784,7 +792,7 @@ function comboRQWE()
 		end
 	end
 	if MenuFizz.comboConfig.USEW then
-		if ValidTarget(Cel, aarange) and not Cel.dead then
+		if ValidTarget(Cel, myHero.range+120) and not Cel.dead then
 			CastW()
 		end
 	end
@@ -798,7 +806,7 @@ function comboRQWE()
 	end
 end
 
-function Harrass()
+function Harrass() 
 	QMana = myHero:GetSpellData(_Q).mana
     WMana = myHero:GetSpellData(_W).mana
     EMana = myHero:GetSpellData(_E).mana
@@ -808,21 +816,21 @@ function Harrass()
 		end
 	end
 	if MenuFizz.harrasConfig.HM == 2 then
-		if WReady and QReady and ValidTarget(Cel, Q.range) and myHero.mana > (WMana + QMana) then
+		if W.Ready() and Q.Ready() and ValidTarget(Cel, Q.range) and myHero.mana > (WMana + QMana) then
 			CastW()
 			CastQ(Cel)
 		end
 	end
 	if MenuFizz.harrasConfig.HM == 3 then
-		if WReady and QReady and ValidTarget(Cel, Q.range) and myHero.mana > (WMana + QMana + EMana) then
+		if W.Ready() and Q.Ready() and ValidTarget(Cel, Q.range) and myHero.mana > (WMana + QMana + EMana) then
 			CastW()
 			CastQ(Cel)
 		end
-		if EReady then
+		if E.Ready() then
 			CastSpell(_E, mousePos.x, mousePos.z)
 		end
 	end
-	if ValidTarget(Cel, aarange) then
+	if ValidTarget(Cel, myHero.range+120) then
 		myHero:Attack(Cel)
 	end
 end
@@ -835,23 +843,23 @@ function Farm()
 	EMode =  MenuFizz.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastSpell(_Q, minion)
 			end
 		elseif QMode == 2 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero) then
 					CastSpell(_Q, minion)
 				end
 			end
 		end
 		if WMode == 2 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				CastW()
 			end
 		end
 		if EMode == 2 then
-			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if E.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
 				local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					if myE.name == "FizzJump" then
@@ -904,12 +912,12 @@ function JungleFarmm()
 			end
 		end
 		if MenuFizz.jf.WJF then
-			if minion ~= nil and not minion.dead and GetDistance(minion) <= aarange then
+			if minion ~= nil and not minion.dead and GetDistance(minion) <= myHero.range+120 then
 				CastW()
 			end
 		end
 		if MenuFizz.jf.EJF then
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
+			if E.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
 				local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					if myE.name == "FizzJump" then
@@ -929,6 +937,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuFizz.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuFizz.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -960,13 +970,13 @@ function OnDraw()
 	if MenuFizz.drawConfig.DAAR then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, myHero.range + 65, RGB(MenuFizz.drawConfig.DAARC[2], MenuFizz.drawConfig.DAARC[3], MenuFizz.drawConfig.DAARC[4]))
 	end
-	if MenuFizz.drawConfig.DQR and QReady then			
+	if MenuFizz.drawConfig.DQR and Q.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuFizz.drawConfig.DQRC[2], MenuFizz.drawConfig.DQRC[3], MenuFizz.drawConfig.DQRC[4]))
 	end
-	if MenuFizz.drawConfig.DER and EReady then			
+	if MenuFizz.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuFizz.drawConfig.DERC[2], MenuFizz.drawConfig.DERC[3], MenuFizz.drawConfig.DERC[4]))
 	end
-	if MenuFizz.drawConfig.DRR and RReady then			
+	if MenuFizz.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuFizz.drawConfig.DRRC[2], MenuFizz.drawConfig.DRRC[3], MenuFizz.drawConfig.DRRC[4]))
 	end
 end
@@ -982,11 +992,11 @@ function KillSteall()
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
 			if hp < QDMG and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS then
 				CastQ(Enemy)
-			elseif hp < WDMG and ValidTarget(Enemy, aarange) and MenuFizz.ksConfig.WKS then
+			elseif hp < WDMG and ValidTarget(Enemy, myHero.range+120) and MenuFizz.ksConfig.WKS then
 				CastW()
 				myHero:Attack(Enemy)
 			elseif hp < EDMG and ValidTarget(Enemy, E.range + 50) and MenuFizz.ksConfig.EKS then
-				if EReady and ValidTarget(Enemy, E.range + 50) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
+				if E.Ready() and ValidTarget(Enemy, E.range + 50) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
 					CastE(Enemy)
 				end
 				if GetDistance(Enemy, myHero) > 330 and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
@@ -994,29 +1004,30 @@ function KillSteall()
 				end
 			elseif hp < RDMG and ValidTarget(Enemy, R.range) and MenuFizz.ksConfig.RKS then	
 				CastR(Enemy)
-			elseif hp < (QDMG+WDMG) and QReady and WReady and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.WKS then
+			elseif hp < (QDMG+WDMG) and Q.Ready() and W.Ready() and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.WKS then
 				CastW()
 				CastQ(Enemy)
-			elseif hp < (QDMG+EDMG) and QReady and EReady and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.EKS then
+			elseif hp < (QDMG+EDMG) and Q.Ready() and E.Ready() and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.EKS then
 				CastQ(Enemy)
-				if EReady and ValidTarget(Enemy, E.range + 50) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
+				if E.Ready() and ValidTarget(Enemy, E.range + 50) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
 					CastE(Enemy)
 				end
 				if GetDistance(Enemy, myHero) > 330 and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead then
 					CastE2(Enemy)
 				end			
-			elseif hp < (QDMG+RDMG) and QReady and RReady and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.RKS then
+			elseif hp < (QDMG+RDMG) and Q.Ready() and R.Ready() and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.RKS then
 				CastR(Enemy)
 				CastQ(Enemy)
-			elseif hp < (RDMG+WDMG) and WReady and RReady and ValidTarget(Enemy, aarange) and MenuFizz.ksConfig.RKS and MenuFizz.ksConfig.WKS then
+			elseif hp < (RDMG+WDMG) and W.Ready() and R.Ready() and ValidTarget(Enemy, myHero.range+120) and MenuFizz.ksConfig.RKS and MenuFizz.ksConfig.WKS then
 				CastR(Enemy)
 				CastW()
 				myHero:Attack(Enemy)
-			elseif hp < (QDMG+WDMG+RDMG) and QReady and WReady and RReady and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.RKS and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.WKS then
+			elseif hp < (QDMG+WDMG+RDMG) and Q.Ready() and W.Ready() and R.Ready() and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.RKS and MenuFizz.ksConfig.QKS and MenuFizz.ksConfig.WKS then
 				CastR(Enemy)
 				CastW()
 				CastQ(Enemy)
 			end
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if IReady and hp < IDMG and MenuFizz.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(IgniteKey, Enemy)
 			end
@@ -1060,7 +1071,7 @@ function DmgCalc()
 end
 
 function CastQ(unit)
-	if QReady then
+	if Q.Ready() then
 		if VIP_USER and MenuFizz.prConfig.pc then
 			Packet("S_CAST", {spellId = _Q, targetNetworkId = unit.networkID}):send()
 		else
@@ -1070,7 +1081,7 @@ function CastQ(unit)
 end
 
 function CastW()
-	if WReady then
+	if W.Ready() then
 		if VIP_USER and MenuFizz.prConfig.pc then
 			Packet("S_CAST", {spellId = _W}):send()
 		else
@@ -1080,7 +1091,7 @@ function CastW()
 end
 
 function CastE(unit)
-	if EReady then
+	if E.Ready() then
 		local myE = myHero:GetSpellData(_E)
 		if myE.name == "FizzJump" then
 			if MenuFizz.prConfig.pro == 1 then
@@ -1108,7 +1119,7 @@ function CastE(unit)
 end
 
 function CastE2(unit)
-	if EReady then
+	if E.Ready() then
 		local myE = myHero:GetSpellData(_E)
 		if myE.name == "fizzjumptwo" then
 			if MenuFizz.prConfig.pro == 1 then
@@ -1136,7 +1147,7 @@ function CastE2(unit)
 end
 
 function CastR(unit)
-	if RReady then
+	if R.Ready() then
 		if MenuFizz.prConfig.pro == 1 then
 			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range - 100, R.speed, myHero, false)
 			if HitChance >= MenuFizz.prConfig.vphit - 1 then
@@ -1187,7 +1198,7 @@ function OnProcessSpell(unit, spell)
 					elseif shottype == 7 then hitchampion = checkhitcone(spell.endPos, unit, radius, maxdistance, allytarget, allyHitBox)
 				end
 				if hitchampion then
-					if EReady and DodgeSpells[spell.name] and MenuFizz.exConfig.ES[spell.name] then
+					if E.Ready() and DodgeSpells[spell.name] and MenuFizz.exConfig.ES[spell.name] then
 						CastSpell(_E, mousePos.x, mousePos.z)
 				    end
 			    end
@@ -1197,10 +1208,10 @@ function OnProcessSpell(unit, spell)
 end
 
 function Escape()
-	if MenuFizz.exConfig.EUE and EReady then
+	if MenuFizz.exConfig.EUE and E.Ready() then
 		CastSpell(_E, mousePos.x, mousePos.z)
 	end
-	if MenuFizz.exConfig.EUQ and QReady then
+	if MenuFizz.exConfig.EUQ and Q.Ready() then
 		EnemyMinions:update()
 		for i, minion in pairs(EnemyMinions.objects) do
 			if ValidTarget(minion, Q.range) and minion ~= nil then
@@ -1213,28 +1224,44 @@ function Escape()
 	myHero:MoveTo(mousePos.x, mousePos.z)
 end
 
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = true
 	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = false
 	end
-	p:Hide()
-	RecvPacket(p)
+end
+
+function SetPriority(table, hero, priority)
+	for i=1, #table, 1 do
+		if hero.charName:find(table[i]) ~= nil then
+			TS_SetHeroPriority(priority, hero.charName)
+		end
+	end
+end
+
+function arrangePrioritysTT()
+    for i, enemy in ipairs(GetEnemyHeroes()) do
+		SetPriority(TargetTable.AD_Carry, enemy, 1)
+		SetPriority(TargetTable.AP,       enemy, 1)
+		SetPriority(TargetTable.Support,  enemy, 2)
+		SetPriority(TargetTable.Bruiser,  enemy, 2)
+		SetPriority(TargetTable.Tank,     enemy, 3)
+    end
+end
+
+function arrangePrioritys()
+	for i, enemy in ipairs(GetEnemyHeroes()) do
+		SetPriority(TargetTable.AD_Carry, enemy, 1)
+		SetPriority(TargetTable.AP, enemy, 2)
+		SetPriority(TargetTable.Support, enemy, 3)
+		SetPriority(TargetTable.Bruiser, enemy, 4)
+		SetPriority(TargetTable.Tank, enemy, 5)
+	end
 end
 
 function OnWndMsg(Msg, Key)
