@@ -2,19 +2,18 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.6
-	16.02.2015
-	
+	Last Version: 0.7
+	18.03.2015
+
 ]]--
 
 
 if myHero.charName ~= "Gragas" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "0.6"
+local version = "0.7"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GragasMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -96,17 +95,40 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-function Vars()
-	Q = {name = "Barrel Roll", range = 850, speed = 1100, delay = 0.250, width = 330}
-	W = {name = "Drunken Rage"}
-	E = {name = "Body Slam", range = 650, speed = math.huge, delay = 0.250, width = 100}
-	R = {name = "Explosive Cask", range = 1150, speed = 1300, delay = 0.5, width = 400}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
-	lastskin, aarange = 0, 125
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, zhonyaslot = nil, nil
-	killstring = {}
+local Q = {name = "Barrel Roll", range = 850, speed = 1100, delay = 0.250, width = 330, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Drunken Rage", Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Body Slam", range = 650, speed = math.huge, delay = 0.250, width = 100, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Explosive Cask", range = 1150, speed = 1300, delay = 0.5, width = 400, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, zhonyaready, recall  = false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey, zhonyaslot = nil, nil
+local killstring = {}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
+
+function OnLoad()
+	Menu()
 	print("<b><font color=\"#6699FF\">Gragas Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Gragas Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -116,50 +138,40 @@ function Vars()
 	end
 end
 
-function OnLoad()
-	Vars()
-	Menu()
-	if heroManager.iCount < 10 then
-		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
-	elseif heroManager.iCount == 6 then
-		arrangePrioritysTT()
-    else
-		arrangePrioritys()
-	end
-end
-
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuGragy.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGragy.comboConfig.manac then
+	if Cel ~= nil and MenuGragy.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGragy.comboConfig.manac and not recall then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and (MenuGragy.harrasConfig.HEnabled or MenuGragy.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuGragy.harrasConfig.manah then
+	if Cel ~= nil and (MenuGragy.harrasConfig.HEnabled or MenuGragy.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuGragy.harrasConfig.manah and not recall then
 		Harrass()
 	end
-	if MenuGragy.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuGragy.farm.manaf then
+	if MenuGragy.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuGragy.farm.manaf and not recall then
 		Farm()
 	end
-	if MenuGragy.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGragy.jf.manajf then
+	if MenuGragy.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGragy.jf.manajf and not recall then
 		JungleFarm()
 	end
-	if MenuGragy.prConfig.AZ then
+	if MenuGragy.prConfig.AZ and not recall then
 		autozh()
 	end
-	if MenuGragy.prConfig.ALS then
+	if MenuGragy.prConfig.ALS and not recall then
 		autolvl()
 	end
 	if MenuGragy.comboConfig.qConfig.ADQ then
 		AutoQ()
 	end
-	if MenuGragy.comboConfig.rConfig.CRKD and Cel then
+	if MenuGragy.comboConfig.rConfig.CRKD and Cel and not recall then
 		if not MenuGragy.comboConfig.rConfig.CBE then
 			CastR(Cel)
 		else
 			CastRBehind(Cel)
 		end
 	end
-	KillSteall()
+	if not recall then
+		KillSteall()
+	end
 end
 
 
@@ -169,13 +181,12 @@ function Menu()
 	MenuGragy:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuGragy:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuGragy.orb == 1 then
-		MenuGragy:addSubMenu("Orbwalking", "Orbwalking")
+		MenuGragy:addSubMenu("[Gragas Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuGragy.Orbwalking)
 	end
-	MenuGragy:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Gragas"
-	MenuGragy.STS:addTS(TargetSelector)
+	MenuGragy:addTS(TargetSelector)
 	MenuGragy:addSubMenu("[Gragas Master]: Combo Settings", "comboConfig")
 	MenuGragy.comboConfig:addSubMenu("[Gragas Master]: Q Settings", "qConfig")
 	MenuGragy.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
@@ -261,9 +272,6 @@ function Menu()
 	MenuGragy:addSubMenu("[Gragas Master]: Misc Settings", "prConfig")
 	MenuGragy.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuGragy.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGragy.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuGragy.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 9, 1, 9)
-	MenuGragy.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGragy.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuGragy.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuGragy.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
@@ -281,37 +289,22 @@ function Menu()
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
-	TargetTable = {
-		AP = {
-			"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
-			"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-			"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-		},	
-		Support = {
-			"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-		},	
-		Tank = {
-			"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-			"Warwick", "Yorick", "Zac"
-		},
-		AD_Carry = {
-			"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-			"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-		},
-		Bruiser = {
-			"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-		}
-	}
+	if heroManager.iCount < 10 then
+		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
+	elseif heroManager.iCount == 6 then
+		arrangePrioritysTT()
+    else
+		arrangePrioritys()
+	end
 end
 
 function caa()
 	if MenuGragy.orb == 1 then
-	if MenuGragy.comboConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuGragy.comboConfig.uaa then
-		SxOrb:DisableAttacks()
-	end
+		if MenuGragy.comboConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuGragy.comboConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
@@ -334,19 +327,6 @@ function Check()
 	end
 	if MenuGragy.orb == 1 then
 		SxOrb:ForceTarget(Cel)
-	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuGragy.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuGragy.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Gragas", MenuGragy.prConfig.skin1)
-			lastSkin = MenuGragy.prConfig.skin1
-		end
 	end
 	if MenuGragy.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
@@ -389,7 +369,7 @@ end
 
 function Combo()
 	UseItems(Cel)
-	if RReady and MenuGragy.comboConfig.rConfig.USER and GetDistance(Cel) < R.range then
+	if R.Ready() and MenuGragy.comboConfig.rConfig.USER and GetDistance(Cel) < R.range then
 		if MenuGragy.comboConfig.rConfig.RMODE == 1 then
 			if not MenuGragy.comboConfig.rConfig.CBE then
 				CastR(Cel)
@@ -416,25 +396,25 @@ function Combo()
 			end
 		end
 	end
-	if QReady and MenuGragy.comboConfig.qConfig.USEQ and GetDistance(Cel) < Q.range then
+	if Q.Ready() and MenuGragy.comboConfig.qConfig.USEQ and GetDistance(Cel) < Q.range then
 		CastQ(Cel)
 	end
-	if EReady and MenuGragy.comboConfig.eConfig.USEE and GetDistance(Cel) <= E.range then
+	if E.Ready() and MenuGragy.comboConfig.eConfig.USEE and GetDistance(Cel) <= E.range then
 		CastE(Cel)
 	end
-	if WReady and MenuGragy.comboConfig.wConfig.USEW and GetDistance(Cel) < E.range and not QReady and not EReady then
+	if W.Ready() and MenuGragy.comboConfig.wConfig.USEW and GetDistance(Cel) < E.range and not Q.Ready() and not E.Ready() then
 		CastW()
 	end
 end
 
 function Harrass()
 	if MenuGragy.harrasConfig.HM == 1 then
-		if QReady and GetDistance(Cel) < Q.range then
+		if Q.Ready() and GetDistance(Cel) < Q.range then
 			CastQ(Cel)
 		end
 	end
 	if MenuGragy.harrasConfig.HM == 2 then
-		if QReady and EReady and GetDistance(Cel) <= E.range then
+		if Q.Ready() and E.Ready() and GetDistance(Cel) <= E.range then
 			CastE(Cel)
 		end
 		if TargetHaveBuff("Stun", Cel) and GetDistance(Cel) <= Q.range then
@@ -450,32 +430,32 @@ function Farm()
 	EMode =  MenuGragy.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
 			end
 		elseif QMode == 2 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero) then
 					CastSpell(_Q, minion.x, minion.z)
 				end
 			end
 		end
 		if EMode == 3 then
-			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if E.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
 				CastE(minion)
 			end
 		elseif EMode == 2 then
-			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if E.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
 				if minion.health <= getDmg("E", minion, myHero) then
 					CastE(minion)
 				end
 			end
 		end
 		if WMode == 2 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
 				CastW()
 			end
 		end
@@ -486,12 +466,12 @@ function JungleFarm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuGragy.jf.EJF then
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
+			if E.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
 				CastE(minion)
 			end
 		end
 		if MenuGragy.jf.QJF then
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
+			if Q.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, JungleMinions.objects)
 				if Pos ~= nil and myHero:GetSpellData(_Q).name ~= "GragasQToggle" then
 					CastSpell(_Q, Pos.x, Pos.z)
@@ -499,7 +479,7 @@ function JungleFarm()
 				DelayAction(function() Q2JF() end, 2)
 			end
 		end
-		if ValidTarget(minion, aarange) then
+		if ValidTarget(minion, myHero.range+65) then
 			myHero:Attack(minion)
 		end
 	end
@@ -539,6 +519,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuGragy.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuGragy.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -572,13 +554,13 @@ function OnDraw()
             end
         end
 	end
-	if MenuGragy.drawConfig.DQR and QReady then			
+	if MenuGragy.drawConfig.DQR and Q.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuGragy.drawConfig.DQRC[2], MenuGragy.drawConfig.DQRC[3], MenuGragy.drawConfig.DQRC[4]))
 	end
-	if MenuGragy.drawConfig.DER and EReady then			
+	if MenuGragy.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuGragy.drawConfig.DERC[2], MenuGragy.drawConfig.DERC[3], MenuGragy.drawConfig.DERC[4]))
 	end
-	if MenuGragy.drawConfig.DRR and RReady then			
+	if MenuGragy.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuGragy.drawConfig.DRRC[2], MenuGragy.drawConfig.DRRC[3], MenuGragy.drawConfig.DRRC[4]))
 	end
 end
@@ -591,22 +573,23 @@ function KillSteall()
 		local RDMG = myHero:CalcDamage(enemy, (100 * myHero:GetSpellData(3).level + 100 + 0.7 * myHero.ap))
 		local IDMG = 50 + (20 * myHero.level)
 		if ValidTarget(enemy) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
-			if health < QDMG and MenuGragy.ksConfig.QKS and GetDistance(enemy) < Q.range and QReady then
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+			if health < QDMG and MenuGragy.ksConfig.QKS and GetDistance(enemy) < Q.range and Q.Ready() then
 				CastQ(enemy)
-			elseif health < QDMG and MenuGragy.ksConfig.EKS and GetDistance(enemy) < E.range and EReady then
+			elseif health < QDMG and MenuGragy.ksConfig.EKS and GetDistance(enemy) < E.range and E.Ready() then
 				CastE(enemy)
-			elseif health < RDMG and MenuGragy.ksConfig.RKS and GetDistance(enemy) < R.range and RReady then
+			elseif health < RDMG and MenuGragy.ksConfig.RKS and GetDistance(enemy) < R.range and R.Ready() then
 				CastR(enemy)	
-			elseif health < (QDMG + EDMG) and MenuGragy.ksConfig.QKS and MenuGragy.ksConfig.EKS and GetDistance(enemy) < E.range and QReady and EReady then
+			elseif health < (QDMG + EDMG) and MenuGragy.ksConfig.QKS and MenuGragy.ksConfig.EKS and GetDistance(enemy) < E.range and Q.Ready() and E.Ready() then
 				CastE(enemy)
 				CastQ(enemy)
-			elseif health < (QDMG + RDMG) and MenuGragy.ksConfig.QKS and MenuGragy.ksConfig.RKS and GetDistance(enemy) < Q.range and QReady and RReady then
+			elseif health < (QDMG + RDMG) and MenuGragy.ksConfig.QKS and MenuGragy.ksConfig.RKS and GetDistance(enemy) < Q.range and Q.Ready() and R.Ready() then
 				CastQ(enemy)
 				CastR(enemy)
-			elseif health < (EDMG + RDMG) and MenuGragy.ksConfig.EKS and MenuGragy.ksConfig.RKS and GetDistance(enemy) < E.range and EReady and RReady then
+			elseif health < (EDMG + RDMG) and MenuGragy.ksConfig.EKS and MenuGragy.ksConfig.RKS and GetDistance(enemy) < E.range and E.Ready() and R.Ready() then
 				CastE(enemy)
 				CastR(enemy)
-			elseif health < (QDMG + EDMG + RDMG) and MenuGragy.ksConfig.QKS and MenuGragy.ksConfig.EKS and MenuGragy.ksConfig.RKS and GetDistance(enemy) < E.range and QReady and EReady and RReady then
+			elseif health < (QDMG + EDMG + RDMG) and MenuGragy.ksConfig.QKS and MenuGragy.ksConfig.EKS and MenuGragy.ksConfig.RKS and GetDistance(enemy) < E.range and Q.Ready() and E.Ready() and R.Ready() then
 				CastE(enemy)
 				CastQ(enemy)
 				CastR(enemy)
@@ -617,7 +600,7 @@ function KillSteall()
 	end
 	for _, enemy in pairs(GetEnemyHeroes()) do
 		if MenuGragy.exConfig.AQF then
-			if QReady and ValidTarget(enemy) and GetDistance(enemy) < Q.range then
+			if Q.Ready() and ValidTarget(enemy) and GetDistance(enemy) < Q.range then
 				local qPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, Q.delay, Q.width, Q.range, Q.speed, myHero)
 				if qPos ~= nil and maxHit >= MenuGragy.exConfig.AQX and HitChance >=2 then		
 					if VIP_USER and MenuGragy.prConfig.pc then
@@ -629,7 +612,7 @@ function KillSteall()
 			end
 		end
 		if MenuGragy.exConfig.ARF then
-			if RReady and ValidTarget(enemy) and GetDistance(enemy) < R.range then
+			if R.Ready() and ValidTarget(enemy) and GetDistance(enemy) < R.range then
 				local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
 				if rPos ~= nil and maxHit >= MenuGragy.exConfig.ARX and HitChance >=2 then		
 					if VIP_USER and MenuGragy.prConfig.pc then
@@ -763,7 +746,7 @@ function CastRBehind(unit)
 end
 
 function OnProcessSpell(unit, spell)
-	if MenuGragy.iConfig.UI and EReady then
+	if MenuGragy.iConfig.UI and E.Ready() then
 		for _, x in pairs(InterruptList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
 				if spell.name == x.spellName and MenuGragy.iConfig.ES[x.spellName] and ValidTarget(unit, E.range) then
@@ -800,28 +783,16 @@ function EnemyCount(point, range)
 	return count
 end
 
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = true
 	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = false
 	end
-	p:Hide()
-	RecvPacket(p)
 end
 
 function OnWndMsg(Msg, Key)
