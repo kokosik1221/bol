@@ -2,9 +2,9 @@
 
 	Script Name: OLAF MASTER 
 	Author: kokosik1221
-	Last Version: 0.5
-	23.02.2015
-	
+	Last Version: 0.6
+	18.03.2015
+
 ]]--
 
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Olaf" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.5"
+local version = "0.6"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/OlafMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -152,18 +152,42 @@ local ccspells = {
 	['AlZaharNetherGrasp'] = {charName = "Malzahar", spellSlot = "R", SpellType = "castcel"},
 }
  
-function Vars()
-	Q = {name = "Undertow", range = 1000, speed = 1600, delay = 0.25, width = 60}
-	W = {name = "Vicious Strikes"}
-	E = {name = "Reckless Swing", range = 325}
-	R = {name = "Ragnarok"}
-	QReady, WReady, EReady, RReady, IReady, pickaxe = false, false, false, false, false, false
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, axe = nil, nil
-	killstring = {}
-	Spells = {_Q,_W,_E,_R}
-	Spells2 = {"Q","W","E","R"}
+local Q = {name = "Undertow", range = 1000, speed = 1600, delay = 0.25, width = 60, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Vicious Strikes", Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Reckless Swing", range = 325, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Ragnarok", Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, pickaxe, recall = false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey, axe = nil, nil
+local killstring = {}
+local Spells = {_Q,_W,_E,_R}
+local Spells2 = {"Q","W","E","R"}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
+	
+function OnLoad()
+	Menu()
 	print("<b><font color=\"#FF0000\">Olaf Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Olaf Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -173,33 +197,30 @@ function Vars()
 	end
 end
 
-function OnLoad()
-	Vars()
-	Menu()
-end
-
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuOlaf.comboConfig.CEnabled then
+	if Cel ~= nil and MenuOlaf.comboConfig.CEnabled and not recall then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and (MenuOlaf.harrasConfig.HEnabled or MenuOlaf.harrasConfig.HTEnabled) then
+	if Cel ~= nil and (MenuOlaf.harrasConfig.HEnabled or MenuOlaf.harrasConfig.HTEnabled) and not recall then
 		Harrass()
 	end
-	if MenuOlaf.farm.LaneClear then
+	if MenuOlaf.farm.LaneClear and not recall then
 		Farm()
 	end
-	if MenuOlaf.jf.JFEnabled then
+	if MenuOlaf.jf.JFEnabled and not recall then
 		JungleFarmF()
 	end
-	if MenuOlaf.prConfig.ALS then
+	if MenuOlaf.prConfig.ALS and not recall then
 		autolvl()
 	end
-	if MenuOlaf.exConfig.APA or MenuOlaf.exConfig.APA2 then
+	if MenuOlaf.exConfig.APA or MenuOlaf.exConfig.APA2 and not recall then
 		AutoAxe()
 	end
-	KillSteall()
+	if not recall then
+		KillSteall()
+	end
 end
 
 function Menu()
@@ -208,13 +229,12 @@ function Menu()
 	MenuOlaf:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuOlaf:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuOlaf.orb == 1 then
-		MenuOlaf:addSubMenu("Orbwalking", "Orbwalking")
+		MenuOlaf:addSubMenu("[Olaf Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuOlaf.Orbwalking)
 	end
-	MenuOlaf:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Olaf"
-	MenuOlaf.STS:addTS(TargetSelector)
+	MenuOlaf:addTS(TargetSelector)
 	MenuOlaf:addSubMenu("[Olaf Master]: Combo Settings", "comboConfig")
 	MenuOlaf.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuOlaf.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -301,28 +321,6 @@ function Menu()
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
-	TargetTable = {
-		AP = {
-			"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
-			"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-			"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-		},	
-		Support = {
-			"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-		},	
-		Tank = {
-			"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-			"Warwick", "Yorick", "Zac"
-		},
-		AD_Carry = {
-			"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-			"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-		},
-		Bruiser = {
-			"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-		}
-	}
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
@@ -339,20 +337,6 @@ function caa()
 		elseif not MenuOlaf.comboConfig.uaa then
 			SxOrb:DisableAttacks()
 		end
-	end
-end
-
-function GetRange()
-	if QReady and EReady then
-		return Q.range
-	elseif not QReady and EReady then
-		return E.range
-	elseif QReady and not EReady then
-		return Q.range
-	elseif not QReady and not EReady then
-		return 250
-	else
-		return Q.range
 	end
 end
 
@@ -376,11 +360,6 @@ function Check()
 	if MenuOlaf.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	if MenuOlaf.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -504,16 +483,16 @@ function AutoAxe()
         pickaxe = true
         myHero:MoveTo(axe.x, axe.z)
 	end
-	if axe and not QReady and GetDistance(myHero, axe) > 365 then
+	if axe and not Q.Ready() and GetDistance(myHero, axe) > 365 then
         pickaxe = false
     end
-	if QReady then 
+	if Q.Ready() then 
 		pickaxe = false 
 	end
 end
 
 function CastQ(unit)
-	if QReady and ValidTarget(unit, Q.range) then
+	if Q.Ready() and ValidTarget(unit, Q.range) then
 		if MenuOlaf.prConfig.pro == 1 then
 			CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range - 30, Q.speed, myHero, false)
 			if HitChance >= 2 then
@@ -545,7 +524,7 @@ function CastQ(unit)
 end
 
 function CastW(unit)
-	if WReady and ValidTarget(unit, 200) then
+	if W.Ready() and ValidTarget(unit, myHero.range+120) then
 		if VIP_USER and MenuOlaf.prConfig.pc then
 			Packet("S_CAST", {spellId = _W}):send()
 		else
@@ -555,7 +534,7 @@ function CastW(unit)
 end
 
 function CastE(unit)
-	if EReady and ValidTarget(unit, E.range) then
+	if E.Ready() and ValidTarget(unit, E.range) then
 		if VIP_USER and MenuOlaf.prConfig.pc then
 			Packet("S_CAST", {spellId = _E, targetNetworkId = unit.networkID}):send()
 		else
@@ -571,22 +550,23 @@ function KillSteall()
 		local EDMG = myHero:CalcDamage(enemy, (45 * myHero:GetSpellData(2).level + 25 + 0.4 * myHero.totalDamage))
 		local IDMG = (50 + (20 * myHero.level))
 		if ValidTarget(enemy, 1100) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
-			if health < QDMG and MenuOlaf.ksConfig.QKS and GetDistance(enemy) < Q.range - 30 and QReady then
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+			if health < QDMG and MenuOlaf.ksConfig.QKS and GetDistance(enemy) < Q.range - 30 and Q.Ready() then
 				CastQ(enemy)
-			elseif health < EDMG and MenuOlaf.ksConfig.EKS and GetDistance(enemy) <= E.range and EReady then
+			elseif health < EDMG and MenuOlaf.ksConfig.EKS and GetDistance(enemy) <= E.range and E.Ready() then
 				CastE(enemy)
 			elseif health < IDMG and MenuOlaf.ksConfig.IKS and GetDistance(enemy) <= 600 and IReady then
 				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG + EDMG) and MenuOlaf.ksConfig.QKS and MenuOlaf.ksConfig.EKS and GetDistance(enemy) <= E.range and QReady and EReady then
+			elseif health < (QDMG + EDMG) and MenuOlaf.ksConfig.QKS and MenuOlaf.ksConfig.EKS and GetDistance(enemy) <= E.range and Q.Ready() and E.Ready() then
 				CastE(enemy)
 				CastQ(enemy)
-			elseif health < (QDMG + IDMG) and MenuOlaf.ksConfig.QKS and MenuOlaf.ksConfig.IKS and GetDistance(enemy) <= E.range and QReady and IReady then
+			elseif health < (QDMG + IDMG) and MenuOlaf.ksConfig.QKS and MenuOlaf.ksConfig.IKS and GetDistance(enemy) <= E.range and Q.Ready() and IReady then
 				CastQ(enemy)
 				CastSpell(IgniteKey, enemy)
-			elseif health < (EDMG + IDMG) and MenuOlaf.ksConfig.EKS and MenuOlaf.ksConfig.IKS and GetDistance(enemy) <= E.range and EReady and IReady then
+			elseif health < (EDMG + IDMG) and MenuOlaf.ksConfig.EKS and MenuOlaf.ksConfig.IKS and GetDistance(enemy) <= E.range and E.Ready() and IReady then
 				CastE(enemy)
 				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG + EDMG + IDMG) and MenuOlaf.ksConfig.QKS and MenuOlaf.ksConfig.EKS and MenuOlaf.ksConfig.IKS and GetDistance(enemy) <= E.range and QReady and EReady and IReady then
+			elseif health < (QDMG + EDMG + IDMG) and MenuOlaf.ksConfig.QKS and MenuOlaf.ksConfig.EKS and MenuOlaf.ksConfig.IKS and GetDistance(enemy) <= E.range and Q.Ready() and E.Ready() and IReady then
 				CastQ(enemy)
 				CastE(enemy)
 				CastSpell(IgniteKey, enemy)
@@ -621,10 +601,10 @@ function OnDraw()
 	if MenuOlaf.drawConfig.DAAR then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, myHero.range + VP:GetHitBox(myHero), RGB(MenuOlaf.drawConfig.DQRC[2], MenuOlaf.drawConfig.DQRC[3], MenuOlaf.drawConfig.DQRC[4]))
 	end
-	if MenuOlaf.drawConfig.DQR and QReady then			
+	if MenuOlaf.drawConfig.DQR and Q.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuOlaf.drawConfig.DQRC[2], MenuOlaf.drawConfig.DQRC[3], MenuOlaf.drawConfig.DQRC[4]))
 	end
-	if MenuOlaf.drawConfig.DER and EReady then			
+	if MenuOlaf.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuOlaf.drawConfig.DERC[2], MenuOlaf.drawConfig.DERC[3], MenuOlaf.drawConfig.DERC[4]))
 	end
 end
@@ -690,11 +670,23 @@ function OnProcessSpell(unit, spell)
 				elseif shottype == 7 then 
 					hitchampion = checkhitcone(spell.endPos, unit, radius, maxdistance, htar, hb)
 				end
-				if hitchampion and RReady and MenuOlaf.exConfig.ES[spell.name] then
+				if hitchampion and R.Ready() and MenuOlaf.exConfig.ES[spell.name] then
 					CastSpell(_R)
 				end
 			end
 		end
+	end
+end
+
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = false
 	end
 end
 
