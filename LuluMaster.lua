@@ -1,18 +1,18 @@
 --[[
 
 	Script Name: LULU MASTER 
-    Author: kokosik1221
-	Last Version: 0.1
-	15.03.2015
+    	Author: kokosik1221
+	Last Version: 0.2
+	18.03.2015
 	
-]]--
+]]-- 
 
 if myHero.charName ~= "Lulu" then return end
 
 _G.AUTOUPDATE = true
 
 
-local version = "0.1"
+local version = "0.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuluMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -507,15 +507,16 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local Q = {name = "Glitterlance", range = 925, speed = 1600, delay = 0.25, width = 60}
-local W = {name = "Whimsy", range = 650}
-local E = {name = "Help, Pix!", range = 650}
-local R = {name = "Wild Growth", range = 900}
+local Q = {name = "Glitterlance", range = 925, speed = 1600, delay = 0.25, width = 60, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Whimsy", range = 650, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Help, Pix!", range = 650, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Wild Growth", range = 900, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local killstring = {}
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, recall, ECasted = false, false, false, false, false, false, false, false
+local IReady, ExhaustReady, HealReady, zhonyaready, recall, ECasted = false, false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, 925, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, 925, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, zhonyaslot = nil, nil
+local AllMinions = minionManager(MINION_ALLY, 650, myHero, MINION_SORT_MAXHEALTH_DES)
+local IgniteKey, ExhaustKey, HealKey, zhonyaslot = nil, nil, nil, nil
 local ECastTime = 0
 local Spells = {_Q,_W,_E,_R}
 local Spells2 = {"Q","W","E","R"}
@@ -556,12 +557,16 @@ function OnTick()
 	if MenuLulu.prConfig.AZ and not recall then
 		autozh()
 	end
+	if MenuLulu.prConfig.ALS then
+		autolvl()
+	end
 	if MenuLulu.exConfig.SE and not recall then
 		Escape()
 	end
 	if not recall then
 		KillSteal()
 		AutoR()
+		Support()
 	end
 end
 
@@ -617,6 +622,25 @@ function Menu()
 	MenuLulu.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
 	MenuLulu.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuLulu.harrasConfig:addParam("manah", "Min. Mana To Harass", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuLulu:addSubMenu("[Lulu Master]: Support Settings", "ss")
+	MenuLulu.ss:addParam("qqq", "---- Mikael's Crucible ----", SCRIPT_PARAM_INFO,"")
+	MenuLulu.ss:addParam("mchp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuLulu.ss:addParam("umc", "Use Mikael's Crucible", SCRIPT_PARAM_ONOFF, true)
+	MenuLulu.ss:addParam("qqq", "---- Frost Queen's Claim ----", SCRIPT_PARAM_INFO,"")
+	MenuLulu.ss:addParam("fqhp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuLulu.ss:addParam("ufq", "Use Frost Queen's Claim", SCRIPT_PARAM_ONOFF, true)
+	MenuLulu.ss:addParam("qqq", "---- Locket of the Iron Solari ----", SCRIPT_PARAM_INFO,"")
+	MenuLulu.ss:addParam("ishp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuLulu.ss:addParam("uis", "Use Locket of the Iron Solari", SCRIPT_PARAM_ONOFF, true)
+	MenuLulu.ss:addParam("qqq", "---- Twin Shadows ----", SCRIPT_PARAM_INFO,"")
+	MenuLulu.ss:addParam("tshp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuLulu.ss:addParam("uts", "Use Twin Shadows", SCRIPT_PARAM_ONOFF, true)
+	MenuLulu.ss:addParam("qqq", "---- Exhaust ----", SCRIPT_PARAM_INFO,"")
+	MenuLulu.ss:addParam("exhp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuLulu.ss:addParam("uex", "Use Exhaust", SCRIPT_PARAM_ONOFF, true)
+	MenuLulu.ss:addParam("qqq", "---- Heal ----", SCRIPT_PARAM_INFO,"")
+	MenuLulu.ss:addParam("hhp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuLulu.ss:addParam("uh", "Use Heal", SCRIPT_PARAM_ONOFF, true)
 	MenuLulu:addSubMenu("[Lulu Master]: KS Settings", "ksConfig")
 	MenuLulu.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuLulu.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -710,27 +734,22 @@ end
 
 function Check()
 	QTargetSelector:update()
-	QCel = QTargetSelector.target
 	WETargetSelector:update()
-	WECel = WETargetSelector.target
 	QETargetSelector:update()
-	QECel = QETargetSelector.target
 	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, E.range) then
 		Cel = SelectedTarget
+		QCel = SelectedTarget
+		WECel = SelectedTarget
+		QECel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
+		QCel = QTargetSelector.target
+		WECel = WETargetSelector.target
+		QECel = QETargetSelector.target
 	end
 	if MenuLulu.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	SxOrb:ForceTarget(Cel)
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	if MenuLulu.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -815,7 +834,7 @@ function Farm()
 	EMode =  MenuLulu.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) and QReady then
+			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) and Q.Ready() then
 				local BestPos, BestHit = GetBestLineFarmPosition(Q.range, Q.width, EnemyMinions.objects)
 				if BestPos ~= nil then
 					CastSpell(_Q, BestPos.x, BestPos.z)
@@ -846,7 +865,7 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuLulu.jf.QJF then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) and QReady then
+			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) and Q.Ready() then
 				local BestPos, BestHit = GetBestLineFarmPosition(Q.range, Q.width, JungleMinions.objects)
 				if BestPos ~= nil then
 					CastSpell(_Q, BestPos.x, BestPos.z)
@@ -863,6 +882,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuLulu.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuLulu.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -886,13 +907,13 @@ function OnDraw()
 	if MenuLulu.drawConfig.DAAR then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, myHero.range + 65, RGB(MenuLulu.drawConfig.DAARC[2], MenuLulu.drawConfig.DAARC[3], MenuLulu.drawConfig.DAARC[4]))
 	end
-	if MenuLulu.drawConfig.DQR and QReady then			
+	if MenuLulu.drawConfig.DQR and Q.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuLulu.drawConfig.DQRC[2], MenuLulu.drawConfig.DQRC[3], MenuLulu.drawConfig.DQRC[4]))
 	end
-	if MenuLulu.drawConfig.DWR and (WReady or EReady) then			
+	if MenuLulu.drawConfig.DWR and (W.Ready() or E.Ready()) then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuLulu.drawConfig.DWRC[2], MenuLulu.drawConfig.DWRC[3], MenuLulu.drawConfig.DWRC[4]))
 	end
-	if MenuLulu.drawConfig.DRR and RReady then			
+	if MenuLulu.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuLulu.drawConfig.DRRC[2], MenuLulu.drawConfig.DRRC[3], MenuLulu.drawConfig.DRRC[4]))
 	end
 end
@@ -926,7 +947,7 @@ function DmgCalc()
 end
 
 function CastQ(unit, from)
-	if QReady then
+	if Q.Ready() then
 		if MenuLulu.prConfig.pro == 1 then
 			local CastPosition, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(unit, Q.delay, Q.width, Q.range - 30, Q.speed, from)
 			if HitChance >= 2 then
@@ -951,7 +972,7 @@ function CastQ(unit, from)
 end
 
 function CastW(unit)
-	if WReady then
+	if W.Ready() then
 		if VIP_USER and MenuLulu.prConfig.pc then
 			Packet("S_CAST", {spellId = _W, targetNetworkId = unit.networkID}):send()
 		else
@@ -961,7 +982,7 @@ function CastW(unit)
 end
 
 function CastE(unit)
-	if EReady then
+	if E.Ready() then
 		if VIP_USER and MenuLulu.prConfig.pc then
 			Packet("S_CAST", {spellId = _E, targetNetworkId = unit.networkID}):send()
 		else
@@ -971,12 +992,105 @@ function CastE(unit)
 end
 
 function CastR(unit)
-	if RReady then
+	if R.Ready() then
 		if VIP_USER and MenuLulu.prConfig.pc then
 			Packet("S_CAST", {spellId = _R, targetNetworkId = unit.networkID}):send()
 		else
 			CastSpell(_R, unit)
 		end
+	end
+end
+
+function Support()
+	if MenuLulu.ss.umc then
+		mikael = GetInventorySlotItem(3222)
+		mikaelready = (mikael ~= nil and (myHero:CanUseSpell(mikael) == READY))
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 750) and ((((hero.health/hero.maxHealth)*100) < MenuLulu.ss.mchp) or HaveBuff(hero)) then
+					if mikaelready then
+						CastSpell(mikael)
+					end
+				end
+			end
+		end
+	end
+	if MenuLulu.ss.ufq then
+		frost = GetInventorySlotItem(3092)
+		frostready = (frost ~= nil and (myHero:CanUseSpell(frost) == READY))
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 880) and ((enemy.health/enemy.maxHealth)*100) < MenuLulu.ss.fqhp then
+				if frostready then
+					CastSpell(frost, enemy.x, enemy.z)
+				end
+			end
+		end
+	end
+	if MenuLulu.ss.uis then
+		solari = GetInventorySlotItem(3190)
+		solariready = (solari ~= nil and (myHero:CanUseSpell(solari) == READY))
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 700) and ((hero.health/hero.maxHealth)*100) < MenuLulu.ss.ishp then
+					if solariready then
+						CastSpell(solari)
+					end
+				end
+			end
+		end
+	end
+	if MenuLulu.ss.uts then
+		twin = GetInventorySlotItem(3023)
+		twinready = (twin ~= nil and (myHero:CanUseSpell(twin) == READY))
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 1000) and ((enemy.health/enemy.maxHealth)*100) < MenuLulu.ss.tshp then
+				if twinready then
+					CastSpell(twin)
+				end
+			end
+		end
+	end
+	if MenuLulu.ss.uex then
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 550) and ((enemy.health/enemy.maxHealth)*100) < MenuLulu.ss.exhp then
+				ExhaustReady = (ExhaustKey ~= nil and myHero:CanUseSpell(ExhaustKey) == READY)
+				if ExhaustReady then
+					CastSpell(ExhaustKey, enemy)
+				end
+			end
+		end
+	end
+	if MenuLulu.ss.uh then
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 700) and ((hero.health/hero.maxHealth)*100) < MenuLulu.ss.hhp then
+					HealReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
+					if HealReady then
+						CastSpell(HealKey, enemy)
+					end
+				end
+			end
+		end
+	end
+end
+
+function HaveBuff(unit)
+	for i = 1, unit.buffCount, 1 do      
+        local buff = unit:getBuff(i) 
+        if (buff.valid == true) and (buff.type == BUFF_STUN or buff.type == BUFF_ROOT or buff.type == BUFF_FEAR or buff.type == BUFF_TAUNT or buff.type == BUFF_SILENCE) then
+            return true                     
+        end                    
+    end
+end
+
+function autolvl()
+	if not MenuLulu.prConfig.ALS then return end
+	if myHero.level > GetHeroLeveled() then
+		local a = {_Q,_W,_Q,_E,_Q,_R,_W,_W,_W,_W,_R,_E,_E,_E,_E,_R,_Q,_Q}
+		LevelSpell(a[GetHeroLeveled() + 1])
 	end
 end
 
@@ -987,20 +1101,20 @@ function OnProcessSpell(unit, spell)
 			ECastTime = os.clock()
 		end
 	end
-	if MenuLulu.exConfig.UI and WReady then
+	if MenuLulu.exConfig.UI and W.Ready() then
 		for _, x in pairs(InterruptList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
 				if spell.name == x.spellName and MenuLulu.exConfig.ES[x.spellName] and ValidTarget(unit) then
-					if x.typ == "hard" and RReady and GetDistance(unit) < 300 then
+					if x.typ == "hard" and R.Ready() and GetDistance(unit) < 300 then
 						CastR(myHero)
-					elseif x.typ ~= "hard" and WReady and GetDistance(unit) < W.range then
+					elseif x.typ ~= "hard" and W.Ready() and GetDistance(unit) < W.range then
 						CastW(unit)
 					end
 				end
 			end
 		end
 	end
-	if MenuLulu.exConfig.UG and WReady then
+	if MenuLulu.exConfig.UG and W.Ready() then
 		for _, x in pairs(GapCloserList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
 				if spell.name == x.spellName and MenuLulu.exConfig.ES2[x.spellName] and ValidTarget(unit, W.range) then
@@ -1087,6 +1201,7 @@ function KillSteal()
 		local EDMG = getDmg("E", Enemy, myHero, 3)
 		local IDMG = 50 + (20 * myHero.level)
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if hp < QDMG and MenuLulu.ksConfig.QKS and ValidTarget(Enemy, Q.range - 30) then
 				CastQ(Enemy, myHero)
 			elseif hp < EDMG and MenuLulu.ksConfig.EKS and ValidTarget(Enemy, E.range) then
@@ -1131,9 +1246,9 @@ function GetHero()
 end
 
 function GetMinion()
-	EnemyMinions:update()
-	for i, minion in pairs(EnemyMinions.objects) do
-		if minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+	AllMinions:update()
+	for i, minion in pairs(AllMinions.objects) do
+		if minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
 			return minion
 		end
 	end
@@ -1197,6 +1312,18 @@ function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
 		end
 	end
 	return n
+end
+
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = false
+	end
 end
 
 function OnWndMsg(Msg, Key)
