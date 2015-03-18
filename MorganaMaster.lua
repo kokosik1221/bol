@@ -2,18 +2,17 @@
 
 	Script Name: MORGANA MASTER 
     	Author: kokosik1221
-	Last Version: 2.5
-	16.02.2015
+	Last Version: 2.51
+	18.03.2015
 	
 ]]--
 
 if myHero.charName ~= "Morgana" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "2.5"
+local version = "2.51"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MorganaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -487,25 +486,21 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-function Vars()
-	Q = {name = "Dark Binding", range = 1200, speed = 1200, delay = 0, width = 60}
-	W = {name = "Tormented Soil", range = 900, speed = 1200, delay = 0.150, width = 105}
-	E = {name = "Black Shield", range = 750}
-	R = {name = "Soul Shackles", range = 600}
-	QReady, WReady, EReady, RReady, IReady = false, false, false, false, false
-	abilitylvl, lastskin = 0, 0
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, ExhaustKey, HealKey = nil, nil, nil
-	Spells = {_Q,_W,_E,_R}
-	Spells2 = {"Q","W","E","R"}
-	killstring = {}
-	print("<b><font color=\"#6699FF\">Morgana Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-end
+local Q = {name = "Dark Binding", range = 1200, speed = 1200, delay = 0, width = 60, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Tormented Soil", range = 900, speed = 1200, delay = 0.150, width = 105, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Black Shield", range = 750, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Soul Shackles", range = 600, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, ExhaustReady, HealReady, zhonyaready, recall = false, false, false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey, ExhaustKey, HealKey, zhonyaslot = nil, nil, nil, nil
+local Spells = {_Q,_W,_E,_R}
+local Spells2 = {"Q","W","E","R"}
+local killstring = {}
 
 function OnLoad()
-	Vars()
 	Menu()
+	print("<b><font color=\"#6699FF\">Morgana Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Morgana Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 	end	
@@ -523,27 +518,29 @@ end
 
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuMorg.comboConfig.CEnabled then
+	if Cel ~= nil and MenuMorg.comboConfig.CEnabled and not recall then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and (MenuMorg.harrasConfig.HEnabled or MenuMorg.harrasConfig.HTEnabled) then
+	if Cel ~= nil and (MenuMorg.harrasConfig.HEnabled or MenuMorg.harrasConfig.HTEnabled) and not recall then
 		Harrass()
 	end
-	if MenuMorg.farm.LaneClear then
+	if MenuMorg.farm.LaneClear and not recall then
 		Farm()
 	end
-	if MenuMorg.jf.JFEnabled then
+	if MenuMorg.jf.JFEnabled and not recall then
 		JungleFarmm()
 	end
-	if MenuMorg.prConfig.AZ then
+	if MenuMorg.prConfig.AZ and not recall then
 		autozh()
 	end
-	if MenuMorg.prConfig.ALS then
+	if MenuMorg.prConfig.ALS and not recall then
 		autolvl()
 	end
-	KillSteall()
-	Support()
+	if not recall then
+		KillSteall()
+		Support()
+	end
 end
 		
 function Menu()
@@ -552,13 +549,12 @@ function Menu()
 	MenuMorg:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuMorg:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuMorg.orb == 1 then
-		MenuMorg:addSubMenu("Orbwalking", "Orbwalking")
+		MenuMorg:addSubMenu("[Morgana Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuMorg.Orbwalking)
 	end
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Morgana"
-	MenuMorg:addSubMenu("Target selector", "STS")
-	MenuMorg.STS:addTS(TargetSelector)
+	MenuMorg:addTS(TargetSelector)
 	MenuMorg:addSubMenu("[Morgana Master]: Combo Settings", "comboConfig")
     MenuMorg.comboConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -670,9 +666,6 @@ function Menu()
 	MenuMorg:addSubMenu("[Morgana Master]: Misc Settings", "prConfig")
 	MenuMorg.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuMorg.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuMorg.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 7, 1, 7)
-	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuMorg.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuMorg.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuMorg.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
@@ -775,6 +768,7 @@ function Support()
 	if MenuMorg.ss.uex then
 		for i, enemy in ipairs(GetEnemyHeroes()) do
 			if ValidTarget(enemy, 550) and ((enemy.health/enemy.maxHealth)*100) < MenuMorg.ss.exhp then
+				ExhaustReady = (ExhaustKey ~= nil and myHero:CanUseSpell(ExhaustKey) == READY)
 				if ExhaustReady then
 					CastSpell(ExhaustKey, enemy)
 				end
@@ -786,6 +780,7 @@ function Support()
 			local hero = heroManager:GetHero(i)
 			if hero.team == myHero.team then
 				if ValidTarget(hero, 700) and ((hero.health/hero.maxHealth)*100) < MenuMorg.ss.hhp then
+					HealReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
 					if HealReady then
 						CastSpell(HealKey, enemy)
 					end
@@ -806,11 +801,11 @@ end
 
 function caa()
 	if MenuMorg.orb == 1 then
-	if MenuMorg.comboConfig.uaa then
-		SxOrb:EnableAttacks()
-	elseif not MenuMorg.comboConfig.uaa then
-		SxOrb:DisableAttacks()
-	end
+		if MenuMorg.comboConfig.uaa then
+			SxOrb:EnableAttacks()
+		elseif not MenuMorg.comboConfig.uaa then
+			SxOrb:DisableAttacks()
+		end
 	end
 end
 
@@ -833,21 +828,6 @@ function Check()
 	end
 	if MenuMorg.orb == 1 then
 		SxOrb:ForceTarget(Cel)
-	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	ExhaustReady = (ExhaustKey ~= nil and myHero:CanUseSpell(ExhaustKey) == READY)
-	HealReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
-	if MenuMorg.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuMorg.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Morgana", MenuMorg.prConfig.skin1)
-			lastSkin = MenuMorg.prConfig.skin1
-		end
 	end
 	if MenuMorg.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
@@ -886,12 +866,12 @@ end
 function Combo()
 	UseItems(Cel)
 	if MenuMorg.comboConfig.USEQ then
-		if QReady and MenuMorg.comboConfig.USEQ and ValidTarget(Cel, Q.range) then
+		if Q.Ready() and MenuMorg.comboConfig.USEQ and ValidTarget(Cel, Q.range) then
 			CastQ(Cel)
 		end
 	end
 	if MenuMorg.comboConfig.USEW then
-		if WReady and MenuMorg.comboConfig.USEW and ValidTarget(Cel, W.range) then
+		if W.Ready() and MenuMorg.comboConfig.USEW and ValidTarget(Cel, W.range) then
 			if MenuMorg.comboConfig.USEW2 == 1 then
 				CastW(Cel)
 			elseif MenuMorg.comboConfig.USEW2 == 2 then
@@ -906,13 +886,13 @@ function Combo()
 		end
 	end
 	if MenuMorg.comboConfig.USEE then
-		if EReady and MenuMorg.comboConfig.USEE then
+		if E.Ready() and MenuMorg.comboConfig.USEE then
 			CastSpell(_E)
 		end
 	end
 	if MenuMorg.comboConfig.USER then
 		local enemyCount = EnemyCount(myHero, R.range)
-		if RReady and ValidTarget(Cel, R.range) and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR then
+		if R.Ready() and ValidTarget(Cel, R.range) and MenuMorg.comboConfig.USER and enemyCount >= MenuMorg.comboConfig.ENEMYTOR then
 			CastSpell(_R)
 		end
 	end
@@ -920,12 +900,12 @@ end
 
 function Harrass()
 	if MenuMorg.harrasConfig.QH then
-		if QReady and ValidTarget(Cel, Q.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
+		if Q.Ready() and ValidTarget(Cel, Q.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
 			CastQ(Cel)
 		end
 	end
 	if MenuMorg.harrasConfig.WH then
-		if WReady and ValidTarget(Cel, W.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
+		if W.Ready() and ValidTarget(Cel, W.range) and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
 			if MenuMorg.harrasConfig.WH2 == 1 then
 				CastW(Cel)
 			elseif MenuMorg.harrasConfig.WH2 == 2 then
@@ -947,25 +927,25 @@ function Farm()
 	WMode = MenuMorg.farm.WF 
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
 		elseif QMode == 2 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero, 3) then
 					CastQ(minion)
 				end
 			end
 		end
 		if WMode == 3 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				local Pos, Hit = BestWFarmPos(W.range, W.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_W, Pos.x, Pos.z)
 				end
 			end
 		elseif WMode == 2 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				if minion.health <= getDmg("W", minion, myHero, 3) then
 					CastW(minion)
 				end
@@ -1004,12 +984,12 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuMorg.jf.QJF then
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
+			if Q.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
 				CastQ(minion)
 			end
 		end
 		if MenuMorg.jf.WJF then
-			if WReady and minion ~= nil and not minion.dead and GetDistance(minion) <= W.range then
+			if W.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= W.range then
 				local Pos, Hit = BestWFarmPos(W.range, W.width, JungleMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_W, Pos.x, Pos.z)
@@ -1028,26 +1008,27 @@ function KillSteall()
 		local rDmg = myHero:CalcMagicDamage(Enemy, (75*myHero:GetSpellData(3).level)+75+0.7*myHero.ap)
 		local iDmg = 50 + (20 * myHero.level)
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health <= qDmg and QReady and ValidTarget(Enemy, Q.range) and MenuMorg.ksConfig.QKS then
+			if health <= qDmg and Q.Ready() and ValidTarget(Enemy, Q.range) and MenuMorg.ksConfig.QKS then
 				CastQ(Enemy)
-			elseif health < wDmg and WReady and ValidTarget(Enemy, W.range) and MenuMorg.ksConfig.WKS then
+			elseif health < wDmg and W.Ready() and ValidTarget(Enemy, W.range) and MenuMorg.ksConfig.WKS then
 				CastW(Enemy)
-			elseif health < rDmg and RReady and ValidTarget(Enemy, R.range) and MenuMorg.ksConfig.RKS then
+			elseif health < rDmg and R.Ready() and ValidTarget(Enemy, R.range) and MenuMorg.ksConfig.RKS then
 				CastSpell(_R)
-			elseif health < (qDmg + wDmg) and QReady and WReady and ValidTarget(Enemy, W.range) and MenuMorg.ksConfig.QKS and MenuMorg.ksConfig.WKS then
+			elseif health < (qDmg + wDmg) and Q.Ready() and W.Ready() and ValidTarget(Enemy, W.range) and MenuMorg.ksConfig.QKS and MenuMorg.ksConfig.WKS then
 				CastQ(Enemy)
 				CastW(Enemy)
-			elseif health < (qDmg + rDmg) and QReady and RReady and ValidTarget(Enemy, R.range) and MenuMorg.ksConfig.QKS and MenuMorg.ksConfig.RKS then
+			elseif health < (qDmg + rDmg) and Q.Ready() and R.Ready() and ValidTarget(Enemy, R.range) and MenuMorg.ksConfig.QKS and MenuMorg.ksConfig.RKS then
 				CastQ(Enemy)
 				CastSpell(_R)
-			elseif health < (wDmg + rDmg) and WReady and RReady and ValidTarget(Enemy, W.range) and MenuMorg.ksConfig.WKS and MenuMorg.ksConfig.RKS then
+			elseif health < (wDmg + rDmg) and W.Ready() and R.Ready() and ValidTarget(Enemy, W.range) and MenuMorg.ksConfig.WKS and MenuMorg.ksConfig.RKS then
 				CastW(Enemy)
 				CastSpell(_R)
-			elseif health < (qDmg + wDmg + rDmg) and QReady and WReady and RReady and ValidTarget(Enemy, R.range) and MenuMorg.ksConfig.QKS and MenuMorg.ksConfig.WKS and MenuMorg.ksConfig.RKS then
+			elseif health < (qDmg + wDmg + rDmg) and Q.Ready() and W.Ready() and R.Ready() and ValidTarget(Enemy, R.range) and MenuMorg.ksConfig.QKS and MenuMorg.ksConfig.WKS and MenuMorg.ksConfig.RKS then
 				CastQ(Enemy)
 				CastW(Enemy)
 				CastSpell(_R)
 			end
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if health < iDmg and MenuMorg.ksConfig.IKS and ValidTarget(Enemy, 600) and IReady then
 				CastSpell(IgniteKey, Enemy)
 			end
@@ -1085,22 +1066,24 @@ function OnDraw()
             end
         end
 	end
-	if MenuMorg.drawConfig.DQR and QReady then
+	if MenuMorg.drawConfig.DQR and Q.Ready() then
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuMorg.drawConfig.DQRC[2], MenuMorg.drawConfig.DQRC[3], MenuMorg.drawConfig.DQRC[4]))
 	end
-	if MenuMorg.drawConfig.DWR and WReady then			
+	if MenuMorg.drawConfig.DWR and W.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuMorg.drawConfig.DWRC[2], MenuMorg.drawConfig.DWRC[3], MenuMorg.drawConfig.DWRC[4]))
 	end
-	if MenuMorg.drawConfig.DER and EReady then			
+	if MenuMorg.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuMorg.drawConfig.DERC[2], MenuMorg.drawConfig.DERC[3], MenuMorg.drawConfig.DERC[4]))
 	end
-	if MenuMorg.drawConfig.DRR and RReady then		
+	if MenuMorg.drawConfig.DRR and R.Ready() then		
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuMorg.drawConfig.DRRC[2], MenuMorg.drawConfig.DRRC[3], MenuMorg.drawConfig.DRRC[4]))
 	end
 end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuMorg.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuMorg.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -1147,7 +1130,7 @@ function OnProcessSpell(unit,spell)
 				    elseif shottype == 7 then hitchampion = checkhitcone(spell.endPos, unit, radius, maxdistance, allytarget, allyHitBox)
 				    end
 				    if hitchampion then
-					    if EReady and Shieldspells[spell.name] and MenuMorg.exConfig.ES[spell.name] and GetDistance(allytarget) <= E.range then
+					    if E.Ready() and Shieldspells[spell.name] and MenuMorg.exConfig.ES[spell.name] and GetDistance(allytarget) <= E.range then
 						    CastSpell(_E, allytarget)
 					    end
 				    end
@@ -1155,7 +1138,7 @@ function OnProcessSpell(unit,spell)
 		    end	
 		end
 	end
-	if MenuMorg.gpConfig.UG and QReady then
+	if MenuMorg.gpConfig.UG and Q.Ready() then
 		for _, x in pairs(GapCloserList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
 				if spell.name == x.spellName and MenuMorg.gpConfig.ES2[x.spellName] and ValidTarget(unit, Q.range - 30) then
@@ -1202,6 +1185,18 @@ function DmgCalc()
     end
 end
 
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = false
+	end
+end
+
 function SpellCast(spellSlot,castPosition)
 	if VIP_USER and MenuMorg.prConfig.pc then
 		Packet("S_CAST", {spellId = spellSlot, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
@@ -1238,31 +1233,6 @@ function CastW(unit)
 			SpellCast(_W, Position)
 		end
 	end
-end
-
--- Change skin function, made by Shalzuth
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
-	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
-	end
-	p:Hide()
-	RecvPacket(p)
 end
 
 function OnWndMsg(Msg, Key)
