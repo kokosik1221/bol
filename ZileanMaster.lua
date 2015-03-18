@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: ZILEAN MASTER 
-  Author: kokosik1221
-	Last Version: 0.1
-	09.03.2015
+    	Author: kokosik1221
+	Last Version: 0.2
+	18.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Zilean" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.1"
+local version = "0.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/ZileanMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -70,14 +70,14 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
  
-local Q = {name = "Time Bomb", range = 900, speed = 1800, delay = 0.25, width = 170}
-local W = {name = "Rewind"}
-local E = {name = "Time Warp", range = 700}
-local R = {name = "Chronoshift", range = 900}
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, recall, MAQCel = false, false, false, false, false, false, false, false, false, false
+local Q = {name = "Time Bomb", range = 900, speed = 1800, delay = 0.25, width = 170, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Rewind", Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Time Warp", range = 700, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Chronoshift", range = 900, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, ExhaustReady, HealReady, zhonyaready, recall, MAQCel = false, false, false, false, false, false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, zhonyaslot = nil, nil
+local IgniteKey, ExhaustKey, HealKey, zhonyaslot = nil, nil, nil, nil
 local killstring = {}
 local TargetTable = {
 	AP = {
@@ -142,6 +142,7 @@ function OnTick()
 	end
 	if not recall then
 		KillSteall()
+		Support()
 	end
 	if MenuZilean.uConfig.UAU and not recall then
 		AutoULT()
@@ -183,6 +184,25 @@ function Menu()
 	end
 	MenuZilean.uConfig:addParam("UAUHP", "Min. HP% To Use", SCRIPT_PARAM_SLICE, 10, 0, 50, 0)
     MenuZilean.uConfig:addParam("UAU", "Use Auto Ultimate", SCRIPT_PARAM_ONOFF, true)
+	MenuZilean:addSubMenu("[Zilean Master]: Support Settings", "ss")
+	MenuZilean.ss:addParam("qqq", "---- Mikael's Crucible ----", SCRIPT_PARAM_INFO,"")
+	MenuZilean.ss:addParam("mchp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuZilean.ss:addParam("umc", "Use Mikael's Crucible", SCRIPT_PARAM_ONOFF, true)
+	MenuZilean.ss:addParam("qqq", "---- Frost Queen's Claim ----", SCRIPT_PARAM_INFO,"")
+	MenuZilean.ss:addParam("fqhp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuZilean.ss:addParam("ufq", "Use Frost Queen's Claim", SCRIPT_PARAM_ONOFF, true)
+	MenuZilean.ss:addParam("qqq", "---- Locket of the Iron Solari ----", SCRIPT_PARAM_INFO,"")
+	MenuZilean.ss:addParam("ishp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuZilean.ss:addParam("uis", "Use Locket of the Iron Solari", SCRIPT_PARAM_ONOFF, true)
+	MenuZilean.ss:addParam("qqq", "---- Twin Shadows ----", SCRIPT_PARAM_INFO,"")
+	MenuZilean.ss:addParam("tshp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuZilean.ss:addParam("uts", "Use Twin Shadows", SCRIPT_PARAM_ONOFF, true)
+	MenuZilean.ss:addParam("qqq", "---- Exhaust ----", SCRIPT_PARAM_INFO,"")
+	MenuZilean.ss:addParam("exhp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuZilean.ss:addParam("uex", "Use Exhaust", SCRIPT_PARAM_ONOFF, true)
+	MenuZilean.ss:addParam("qqq", "---- Heal ----", SCRIPT_PARAM_INFO,"")
+	MenuZilean.ss:addParam("hhp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuZilean.ss:addParam("uh", "Use Heal", SCRIPT_PARAM_ONOFF, true)
 	MenuZilean:addSubMenu("[Zilean Master]: KS Settings", "ksConfig")
 	MenuZilean.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuZilean.ksConfig:addParam("QKS", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
@@ -244,13 +264,6 @@ function Check()
 	if MenuZilean.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	if MenuZilean.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
 
@@ -262,7 +275,7 @@ function Combo()
 	if MenuZilean.comboConfig.USEE and ValidTarget(Cel, E.range) then
 		CastE(Cel)
 	end
-	if MenuZilean.comboConfig.USEW and ValidTarget(Cel, Q.range) and not QReady or not EReady then
+	if MenuZilean.comboConfig.USEW and ValidTarget(Cel, Q.range) and not Q.Ready() or not E.Ready() then
 		CastW()
 	end
 end
@@ -271,14 +284,14 @@ function StunCombo()
 	CheckBomb()
 	local QMana = myHero:GetSpellData(_Q).mana
     local WMana = myHero:GetSpellData(_W).mana
-	if QReady and WReady and ValidTarget(Cel, Q.range) and myHero.mana >= (QMana*2) + WMana then
+	if Q.Ready() and W.Ready() and ValidTarget(Cel, Q.range) and myHero.mana >= (QMana*2) + WMana then
 		CastQ(Cel)
 	end
 	if MAQCel then
-		if not QReady then
+		if not Q.Ready() then
 			CastW()
 		end
-		if QReady and ValidTarget(Cel, Q.range) then
+		if Q.Ready() and ValidTarget(Cel, Q.range) then
 			CastQ(Cel)
 		end
 	end
@@ -313,21 +326,21 @@ function Farm()
 	local WMode =  MenuZilean.farm.WF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
 			end
 		elseif QMode == 2 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero, 3) then
 					CastQ(minion)
 				end
 			end
 		end
 		if WMode == 2 and QMode == 3 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) and not QReady then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) and not Q.Ready() then
 				CastW()
 			end
 		end
@@ -338,12 +351,12 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuZilean.jf.QJF then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
 		end
 		if MenuZilean.jf.WJF then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) and not QReady then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) and not Q.Ready() then
 				CastW()
 			end
 		end
@@ -356,6 +369,7 @@ function KillSteall()
 		local QDMG = getDmg("Q", Enemy, myHero, 3)
 		local IDMG = 50 + (20 * myHero.level)
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if IReady and hp < IDMG and MenuZilean.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(IgniteKey, Enemy)
 			elseif hp < QDMG and MenuZilean.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
@@ -378,6 +392,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuZilean.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuZilean.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -424,10 +440,10 @@ function OnDraw()
             end
         end
 	end
-	if MenuZilean.drawConfig.DER and EReady then			
+	if MenuZilean.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuZilean.drawConfig.DERC[2], MenuZilean.drawConfig.DERC[3], MenuZilean.drawConfig.DERC[4]))
 	end
-	if MenuZilean.drawConfig.DRR and QReady or RReady then			
+	if MenuZilean.drawConfig.DRR and Q.Ready() or R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuZilean.drawConfig.DRRC[2], MenuZilean.drawConfig.DRRC[3], MenuZilean.drawConfig.DRRC[4]))
 	end
 end
@@ -475,6 +491,91 @@ function EnemyCount(point, range)
 	return count
 end
 
+function Support()
+	if MenuZilean.ss.umc then
+		mikael = GetInventorySlotItem(3222)
+		mikaelready = (mikael ~= nil and (myHero:CanUseSpell(mikael) == READY))
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 750) and ((((hero.health/hero.maxHealth)*100) < MenuZilean.ss.mchp) or HaveBuff(hero)) then
+					if mikaelready then
+						CastSpell(mikael)
+					end
+				end
+			end
+		end
+	end
+	if MenuZilean.ss.ufq then
+		frost = GetInventorySlotItem(3092)
+		frostready = (frost ~= nil and (myHero:CanUseSpell(frost) == READY))
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 880) and ((enemy.health/enemy.maxHealth)*100) < MenuZilean.ss.fqhp then
+				if frostready then
+					CastSpell(frost, enemy.x, enemy.z)
+				end
+			end
+		end
+	end
+	if MenuZilean.ss.uis then
+		solari = GetInventorySlotItem(3190)
+		solariready = (solari ~= nil and (myHero:CanUseSpell(solari) == READY))
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 700) and ((hero.health/hero.maxHealth)*100) < MenuZilean.ss.ishp then
+					if solariready then
+						CastSpell(solari)
+					end
+				end
+			end
+		end
+	end
+	if MenuZilean.ss.uts then
+		twin = GetInventorySlotItem(3023)
+		twinready = (twin ~= nil and (myHero:CanUseSpell(twin) == READY))
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 1000) and ((enemy.health/enemy.maxHealth)*100) < MenuZilean.ss.tshp then
+				if twinready then
+					CastSpell(twin)
+				end
+			end
+		end
+	end
+	if MenuZilean.ss.uex then
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 550) and ((enemy.health/enemy.maxHealth)*100) < MenuZilean.ss.exhp then
+				ExhaustReady = (ExhaustKey ~= nil and myHero:CanUseSpell(ExhaustKey) == READY)
+				if ExhaustReady then
+					CastSpell(ExhaustKey, enemy)
+				end
+			end
+		end
+	end
+	if MenuZilean.ss.uh then
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 700) and ((hero.health/hero.maxHealth)*100) < MenuZilean.ss.hhp then
+					HealReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
+					if HealReady then
+						CastSpell(HealKey, enemy)
+					end
+				end
+			end
+		end
+	end
+end
+
+function HaveBuff(unit)
+	for i = 1, unit.buffCount, 1 do      
+        local buff = unit:getBuff(i) 
+        if (buff.valid == true) and (buff.type == BUFF_STUN or buff.type == BUFF_ROOT or buff.type == BUFF_FEAR or buff.type == BUFF_TAUNT or buff.type == BUFF_SILENCE) then
+            return true                     
+        end                    
+    end
+end
+
 function BestQFarmPos(range, radius, objects)
     local Pos 
     local BHit = 0
@@ -513,7 +614,7 @@ function GetCustomTarget()
 end
 
 function CastQ(unit)
-	if QReady then
+	if Q.Ready() then
 		local CastPosition,  HitChance,  Position = VP:GetCircularAOECastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero)
 		if CastPosition and HitChance >= 2 then
 			if VIP_USER and MenuZilean.prConfig.pc then
@@ -526,7 +627,7 @@ function CastQ(unit)
 end
 
 function CastW()
-	if WReady then
+	if W.Ready() then
 		if VIP_USER and MenuZilean.prConfig.pc then
 			Packet("S_CAST", {spellId = _W}):send()
 		else
@@ -536,7 +637,7 @@ function CastW()
 end
 
 function CastE(unit)
-	if EReady then
+	if E.Ready() then
 		if VIP_USER and MenuZilean.prConfig.pc then
 			Packet("S_CAST", {spellId = _E, targetNetworkId = unit.networkID}):send()
 		else
@@ -546,7 +647,7 @@ function CastE(unit)
 end
 
 function CastR(unit)
-	if RReady then
+	if R.Ready() then
 		if VIP_USER and MenuZilean.prConfig.pc then
 			Packet("S_CAST", {spellId = _R, targetNetworkId = unit.networkID}):send()
 		else
