@@ -2,9 +2,9 @@
 
 	Script Name: AHRI MASTER 
     	Author: kokosik1221
-	Last Version: 0.52
-	28.02.2015
-	
+	Last Version: 0.53
+	18.03.2015
+
 ]]--
 
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Ahri" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.52"
+local version = "0.53"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AhriMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -126,11 +126,11 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local Q = {name = "Orb of Deception", range = 880, speed = 1600, delay = 0.5, width = 80}
-local W = {name = "Fox-Fire", range = 700}
-local E = {name = "Charm", range = 975, speed = 1500, delay = 0.25, width = 85}
-local R = {name = "Spirit Rush", range = 450}
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, true
+local Q = {name = "Orb of Deception", range = 880, speed = 1600, delay = 0.5, width = 80, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Fox-Fire", range = 700, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Charm", range = 975, speed = 1500, delay = 0.25, width = 85, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Spirit Rush", range = 450, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, zhonyaready, recall = false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local IgniteKey, zhonyaslot = nil, nil
@@ -157,8 +157,9 @@ local TargetTable = {
 		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
 	}
 }
-	
-function Vars()
+
+function OnLoad()
+	Menu()
 	print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Ahri Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -168,33 +169,30 @@ function Vars()
 	end
 end
 
-function OnLoad()
-	Vars()
-	Menu()
-end
-
 function OnTick()
 	Check()
-	if MenuAhri.comboConfig.Combo then
+	if MenuAhri.comboConfig.Combo and not recall then
 		caa()
 		Combo()
 	end
-	if (MenuAhri.harrasConfig.Mixed or MenuAhri.harrasConfig.MixedT) then
+	if (MenuAhri.harrasConfig.Mixed or MenuAhri.harrasConfig.MixedT) and not recall then
 		Harrass()
 	end
-	if MenuAhri.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.farm.manaf then
+	if MenuAhri.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.farm.manaf and not recall then
 		Farm()
 	end
-	if MenuAhri.jf.JungleFarm and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.jf.manajf then
+	if MenuAhri.jf.JungleFarm and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.jf.manajf and not recall then
 		JungleFarmm()
 	end
-	if MenuAhri.prConfig.AZ then
+	if MenuAhri.prConfig.AZ and not recall then
 		autozh()
 	end
-	if MenuAhri.prConfig.ALS then
+	if MenuAhri.prConfig.ALS and not recall then
 		autolvl()
 	end
-	KillSteall()
+	if not recall then
+		KillSteall()
+	end
 end
 
 function Menu()
@@ -203,13 +201,12 @@ function Menu()
 	MenuAhri:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuAhri:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuAhri.orb == 1 then
-		MenuAhri:addSubMenu("Orbwalking", "Orbwalking")
+		MenuAhri:addSubMenu("[Ahri Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuAhri.Orbwalking) 
 	end
-	MenuAhri:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Ahri"
-	MenuAhri.STS:addTS(TargetSelector)
+	MenuAhri:addTS(TargetSelector)
 	MenuAhri:addSubMenu("[Ahri Master]: Combo Settings", "comboConfig")
 	MenuAhri.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuAhri.comboConfig:addParam("USEQ2", "Use Only If Enemy Is Charmed", SCRIPT_PARAM_ONOFF, false)
@@ -349,9 +346,9 @@ function caa()
 end
 
 function GetRange()
-	if EReady then
+	if E.Ready() then
 		return E.range
-	elseif not EReady and QReady then
+	elseif not E.Ready() and Q.Ready() then
 		return Q.range
 	else
 		return Q.range
@@ -379,13 +376,6 @@ function Check()
 	if MenuAhri.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	if MenuAhri.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
 
@@ -548,6 +538,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuAhri.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuAhri.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -571,26 +563,26 @@ function OnDraw()
             end
         end
 	end
-	if MenuAhri.drawConfig.DQR and QReady then
+	if MenuAhri.drawConfig.DQR and Q.Ready() then
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuAhri.drawConfig.DQRC[2], MenuAhri.drawConfig.DQRC[3], MenuAhri.drawConfig.DQRC[4]))
 	end
-	if MenuAhri.drawConfig.DWR and WReady then
+	if MenuAhri.drawConfig.DWR and W.Ready() then
 		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuAhri.drawConfig.DWRC[2], MenuAhri.drawConfig.DWRC[3], MenuAhri.drawConfig.DWRC[4]))
 	end
-	if MenuAhri.drawConfig.DER and EReady then			
+	if MenuAhri.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuAhri.drawConfig.DERC[2], MenuAhri.drawConfig.DERC[3], MenuAhri.drawConfig.DERC[4]))
 	end
-	if MenuAhri.drawConfig.DRR and RReady then			
+	if MenuAhri.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuAhri.drawConfig.DRRC[2], MenuAhri.drawConfig.DRRC[3], MenuAhri.drawConfig.DRRC[4]))
 	end
 end
 
 function CalcDMG(unit)
 	local dmg = 0
-	dmg = dmg + ((RReady and getDmg("R", unit, myHero, 3)) or 0)*3
-	dmg = dmg + ((EReady and getDmg("E", unit, myHero, 3)) or 0)
-	dmg = dmg + ((QReady and getDmg("Q", unit, myHero, 3)) or 0)
-	dmg = dmg + ((WReady and getDmg("W", unit, myHero, 3)) or 0)
+	dmg = dmg + ((R.Ready() and getDmg("R", unit, myHero, 3)) or 0)*3
+	dmg = dmg + ((E.Ready() and getDmg("E", unit, myHero, 3)) or 0)
+	dmg = dmg + ((Q.Ready() and getDmg("Q", unit, myHero, 3)) or 0)
+	dmg = dmg + ((W.Ready() and getDmg("W", unit, myHero, 3)) or 0)
 	return dmg
 end
 
@@ -603,35 +595,36 @@ function KillSteall()
 		local rDmg = getDmg("R", Enemy, myHero, 3)*3
 		local iDmg = getDmg("IGNITE", Enemy, myHero) 
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health <= qDmg and QReady and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS then
+			if health <= qDmg and Q.Ready() and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS then
 				CastQ(Enemy)
-			elseif health <= wDmg and WReady and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS then
+			elseif health <= wDmg and W.Ready() and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS then
 				CastW(Enemy)
-			elseif health <= eDmg and EReady and ValidTarget(Enemy, E.range - 30) and MenuAhri.ksConfig.EKS then
+			elseif health <= eDmg and E.Ready() and ValidTarget(Enemy, E.range - 30) and MenuAhri.ksConfig.EKS then
 				CastE(Enemy)
-			elseif health <= rDmg and RReady and ValidTarget(Enemy, R.range) and MenuAhri.ksConfig.RKS then
+			elseif health <= rDmg and R.Ready() and ValidTarget(Enemy, R.range) and MenuAhri.ksConfig.RKS then
 				CastR(Enemy)
-			elseif health <= (qDmg + wDmg) and QReady and WReady and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.WKS then
+			elseif health <= (qDmg + wDmg) and Q.Ready() and W.Ready() and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.WKS then
 				CastQ(Enemy)
 				CastW(Enemy)
-			elseif health <= (qDmg + eDmg) and QReady and EReady and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.EKS then
+			elseif health <= (qDmg + eDmg) and Q.Ready() and E.Ready() and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.EKS then
 				CastQ(Enemy)
 				CastE(Enemy)
-			elseif health <= (qDmg + rDmg) and QReady and RReady and ValidTarget(Enemy, R.range) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.RKS then
+			elseif health <= (qDmg + rDmg) and Q.Ready() and R.Ready() and ValidTarget(Enemy, R.range) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.RKS then
 				CastQ(Enemy)
 				CastR(Enemy)
-			elseif health <= (wDmg + eDmg) and WReady and EReady and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.EKS then
+			elseif health <= (wDmg + eDmg) and W.Ready() and E.Ready() and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.EKS then
 				CastW(Enemy)
 				CastE(Enemy)
-			elseif health <= (wDmg + rDmg) and WReady and RReady and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.RKS then
+			elseif health <= (wDmg + rDmg) and W.Ready() and R.Ready() and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.RKS then
 				CastW(Enemy)
 				CastR(Enemy)
-			elseif health <= (qDmg + wDmg + eDmg + rDmg) and QReady and WReady and EReady and RReady and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.EKS and MenuAhri.ksConfig.RKS then
+			elseif health <= (qDmg + wDmg + eDmg + rDmg) and Q.Ready() and W.Ready() and E.Ready() and R.Ready() and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS and MenuAhri.ksConfig.WKS and MenuAhri.ksConfig.EKS and MenuAhri.ksConfig.RKS then
 				CastQ(Enemy)
 				CastW(Enemy)
 				CastE(Enemy)
 				CastR(Enemy)
 			end
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if IReady and health <= iDmg and MenuAhri.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(IgniteKey, Enemy)
 			end
@@ -674,7 +667,7 @@ function DmgCalc()
 end
 
 function CastQ(unit)
-	if QReady and ValidTarget(unit) then
+	if Q.Ready() and ValidTarget(unit) then
 		if MenuAhri.prConfig.pro == 1 then
 			local castPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range - 30, Q.speed, myHero, false)
 			if HitChance >= MenuAhri.prConfig.vphit - 1 then
@@ -699,7 +692,7 @@ function CastQ(unit)
 end
 
 function CastW(unit)
-	if WReady and ValidTarget(unit) then
+	if W.Ready() and ValidTarget(unit) then
 		if VIP_USER and MenuAhri.prConfig.pc then
 			Packet("S_CAST", {spellId = _W}):send()
 		else
@@ -709,7 +702,7 @@ function CastW(unit)
 end
 
 function CastE(unit)
-	if EReady and ValidTarget(unit) then
+	if E.Ready() and ValidTarget(unit) then
 		if MenuAhri.prConfig.pro == 1 then
 			local castPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, E.delay, E.width, E.range - 30, E.speed, myHero, true)
 			if HitChance >= MenuAhri.prConfig.vphit - 1 then
@@ -734,7 +727,7 @@ function CastE(unit)
 end
 
 function CastR(unit)
-	if RReady and ValidTarget(unit) then
+	if R.Ready() and ValidTarget(unit) then
 		if MenuAhri.comboConfig.RM == 1 then
 			pos = Vector(myHero) + 400 * (Vector(mousePos) - Vector(myHero)):normalized()
 		elseif MenuAhri.comboConfig.RM == 2 then
@@ -749,13 +742,13 @@ function CastR(unit)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and (buff.name == "recallimproved") then
+	if unit.isMe and buff and (buff.name == "recall") then
 		recall = true
 	end 
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and (buff.name == "recallimproved") then
+	if unit.isMe and buff and (buff.name == "recall") then
 		recall = false
 	end 
 end
@@ -847,7 +840,7 @@ function DrawCircle2(x, y, z, radius, color)
 end
 
 function OnProcessSpell(unit, spell)
-	if MenuAhri.exConfig.UI and EReady then
+	if MenuAhri.exConfig.UI and E.Ready() then
 		for _, x in pairs(InterruptList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
 				if spell.name == x.spellName and MenuAhri.exConfig.ES[x.spellName] and ValidTarget(unit, E.range - 30) then
@@ -856,7 +849,7 @@ function OnProcessSpell(unit, spell)
 			end
 		end
 	end
-	if MenuAhri.exConfig.UG and EReady then
+	if MenuAhri.exConfig.UG and E.Ready() then
 		for _, x in pairs(GapCloserList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
 				if spell.name == x.spellName and MenuAhri.exConfig.ES2[x.spellName] and ValidTarget(unit, E.range - 30) then
