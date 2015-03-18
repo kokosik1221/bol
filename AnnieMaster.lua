@@ -2,19 +2,18 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.63
-	22.02.2015
-	
+	Last Version: 0.64
+	18.03.2015
+
 ]]--
 
 
 if myHero.charName ~= "Annie" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "0.63"
+local version = "0.64"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -73,46 +72,48 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
+local Q = {name = "Disintegrate", range = 625, speed = 1300, delay = 0.25, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Incinerate", range = 625, speed = math.huge, delay = 0.60, width = 50*math.pi/180, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Molten Shield", Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Summon: Tibbers", range = 600, speed = math.huge, delay = 0.20, width = 200, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, zhonyaready, stun, tibbers, recall = false, false, false, false, false, false, false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local RFTS = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range + 400, DAMAGE_MAGIC)
+local FlashKey, IgniteKey, zhonyaslot = nil, nil, nil
+local killstring = {}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
+
 function OnLoad()
-	Vars()
 	Menu()
 	print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-end
-
-function Vars()
-	Q = {name = "Disintegrate", range = 625, speed = 1300, delay = 0.25}
-	W = {name = "Incinerate", range = 625, speed = math.huge, delay = 0.60, width = 50*math.pi/180}
-	E = {name = "Molten Shield"}
-	R = {name = "Summon: Tibbers", range = 600, speed = math.huge, delay = 0.20, width = 200}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready, stun, tibbers, recall = false, false, false, false, false, false, false, false, false
-	lastskin = 0
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	RFTS = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range + 400, DAMAGE_MAGIC)
-	FlashKey, IgniteKey, zhonyaslot = nil, nil, nil
-	killstring = {}
-	TargetTable = {
-		AP = {
-			"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
-			"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-			"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-		},	
-		Support = {
-			"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-		},	
-		Tank = {
-			"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-			"Warwick", "Yorick", "Zac"
-		},
-		AD_Carry = {
-			"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-			"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-		},
-		Bruiser = {
-			"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-		}
-	}
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+	end
 end
 
 function OnTick()
@@ -157,13 +158,12 @@ function Menu()
 	MenuAnnie:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuAnnie:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuAnnie.orb == 1 then
-		MenuAnnie:addSubMenu("Orbwalking", "Orbwalking")
+		MenuAnnie:addSubMenu("[Annie Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuAnnie.Orbwalking)
 	end
-	MenuAnnie:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Annie"
-	MenuAnnie.STS:addTS(TargetSelector)
+	MenuAnnie:addTS(TargetSelector)
 	MenuAnnie:addSubMenu("[Annie Master]: Combo Settings", "comboConfig")
 	MenuAnnie.comboConfig:addSubMenu("[Annie Master]: Q Settings", "qConfig")
 	MenuAnnie.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
@@ -244,9 +244,6 @@ function Menu()
 	MenuAnnie:addSubMenu("[Annie Master]: Misc Settings", "prConfig")
 	MenuAnnie.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MenuAnnie.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuAnnie.prConfig:addParam("skin", "Use change skin", SCRIPT_PARAM_ONOFF, false)
-	MenuAnnie.prConfig:addParam("skin1", "Skin change(VIP)", SCRIPT_PARAM_SLICE, 9, 1, 9)
-	MenuAnnie.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuAnnie.prConfig:addParam("AZ", "Use Auto Zhonya", SCRIPT_PARAM_ONOFF, true)
 	MenuAnnie.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 20, 0, 100, 0)
 	MenuAnnie.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
@@ -271,12 +268,6 @@ function Menu()
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
-	if _G.MMA_Loaded then
-		print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-	end	
-	if _G.AutoCarry then
-		print("<b><font color=\"#FF0000\">Annie Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-	end
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
@@ -288,18 +279,18 @@ end
 
 function caa()
 	if MenuAnnie.orb == 1 then
-	if MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
-		SxOrb:EnableAttacks()
-	elseif not MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
-		SxOrb:DisableAttacks()
-	end
-	if MenuAnnie.comboConfig.uaa and MenuAnnie.comboConfig.uaa2 then
-		if GetDistance(Cel) < (Q.range - 50) then
+		if MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
 			SxOrb:EnableAttacks()
-		else
+		elseif not MenuAnnie.comboConfig.uaa and not MenuAnnie.comboConfig.uaa2 then
 			SxOrb:DisableAttacks()
 		end
-	end
+		if MenuAnnie.comboConfig.uaa and MenuAnnie.comboConfig.uaa2 then
+			if GetDistance(Cel) < (Q.range - 50) then
+				SxOrb:EnableAttacks()
+			else
+				SxOrb:DisableAttacks()
+			end
+		end
 	end
 end
 
@@ -324,20 +315,6 @@ function Check()
 	end
 	if MenuAnnie.orb == 1 then
 		SxOrb:ForceTarget(Cel)
-	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	FlashReady = (FlashKey ~= nil and myHero:CanUseSpell(FlashKey) == READY)
-	if MenuAnnie.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuAnnie.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Annie", MenuAnnie.prConfig.skin1)
-			lastSkin = MenuAnnie.prConfig.skin1
-		end
 	end
 	if MenuAnnie.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
@@ -369,7 +346,7 @@ end
 
 function Combo()
 	UseItems(Cel)
-	if RReady and ValidTarget(Cel, R.range) and MenuAnnie.comboConfig.rConfig[Cel.charName] then
+	if R.Ready() and ValidTarget(Cel, R.range) and MenuAnnie.comboConfig.rConfig[Cel.charName] then
 		if MenuAnnie.comboConfig.rConfig.RM == 2 then
 			CastR(Cel)
 		end
@@ -382,7 +359,7 @@ function Combo()
 		if MenuAnnie.comboConfig.rConfig.RM == 4 then
 			for _, enemy in pairs(GetEnemyHeroes()) do
 				local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
-				if RReady and ValidTarget(enemy) and rPos ~= nil and maxHit >= MenuAnnie.comboConfig.rConfig.HXC then		
+				if R.Ready() and ValidTarget(enemy) and rPos ~= nil and maxHit >= MenuAnnie.comboConfig.rConfig.HXC then		
 					if VIP_USER and MenuAnnie.prConfig.pc then
 						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
 					else
@@ -392,10 +369,10 @@ function Combo()
 			end
 		end
 	end
-	if QReady and MenuAnnie.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
+	if Q.Ready() and MenuAnnie.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
-	if WReady and MenuAnnie.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
+	if W.Ready() and MenuAnnie.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
 		CastW(Cel)
 	end
 	if MenuAnnie.comboConfig.eConfig.USEE then
@@ -405,12 +382,12 @@ end
 
 function Harrass()
 	if MenuAnnie.harrasConfig.HM == 1 then
-		if QReady and ValidTarget(Cel, Q.range) then
+		if Q.Ready() and ValidTarget(Cel, Q.range) then
 			CastQ(Cel)
 		end
 	end
 	if MenuAnnie.harrasConfig.HM == 2 then
-		if WReady and ValidTarget(Cel, W.range) then
+		if W.Ready() and ValidTarget(Cel, W.range) then
 			CastW(Cel)
 		end
 	end
@@ -422,13 +399,13 @@ function Farm()
 	WMode =  MenuAnnie.farm.WF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if (MenuAnnie.farm.SFS or not MenuAnnie.farm.SFS) and not stun then 
 					CastSpell(_Q, minion)
 				end
 			end
 		elseif QMode == 2 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero) then
 					if (MenuAnnie.farm.SFS or not MenuAnnie.farm.SFS) and not stun then 
 						CastSpell(_Q, minion)
@@ -437,13 +414,13 @@ function Farm()
 			end
 		end
 		if WMode == 3 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				if (MenuAnnie.farm.SFS or not MenuAnnie.farm.SFS) and not stun then 
 					CastW(minion)
 				end
 			end
 		elseif WMode == 2 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				if minion.health <= getDmg("W", minion, myHero) then
 					if (MenuAnnie.farm.SFS or not MenuAnnie.farm.SFS) and not stun then 
 						CastW(minion)
@@ -458,12 +435,12 @@ function JungleFarm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuAnnie.jf.WJF then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				CastW(minion)
 			end
 		end
 		if MenuAnnie.jf.QJF then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastSpell(_Q, minion)
 			end
 		end
@@ -475,7 +452,7 @@ function AutoWR()
 		if MenuAnnie.exConfig.AW then
 			local wPos, HitChance, maxHit, Positions = VP:GetConeAOECastPosition(enemy, W.delay, W.width, W.range, W.speed, myHero)
 			if ValidTarget(enemy, W.range) and wPos ~= nil and maxHit >= MenuAnnie.exConfig.AWX then	
-				if stun and WReady then
+				if stun and W.Ready() then
 					if VIP_USER and MenuAnnie.prConfig.pc then
 						Packet("S_CAST", {spellId = _W, fromX = wPos.x, fromY = wPos.z, toX = wPos.x, toY = wPos.z}):send()
 					else
@@ -487,7 +464,7 @@ function AutoWR()
 		if MenuAnnie.exConfig.AR then
 			local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
 			if ValidTarget(enemy, R.range) and rPos ~= nil and maxHit >= MenuAnnie.exConfig.ARX then	
-				if stun and RReady then
+				if stun and R.Ready() then
 					if VIP_USER and MenuAnnie.prConfig.pc then
 						Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
 					else
@@ -500,28 +477,29 @@ function AutoWR()
 end
 
 function stackp()
-	if not stun and EReady then
+	if not stun and E.Ready() then
 		CastE()
 	end
 end
 
 function stackp2()
 	if not stun and InFountain() then
-		if EReady then
+		if E.Ready() then
 			CastE()
 		end
-		if WReady then
+		if W.Ready() then
 			CastSpell(_W, myHero.x, myHero.z)
 		end
 	end
 end
 
 function FlashR()
+	FlashReady = (FlashKey ~= nil and myHero:CanUseSpell(FlashKey) == READY)
 	local targetpos = VP:GetPredictedPos(FRCel, R.delay)
 	local flashposition = Vector(myHero.visionPos) + 400 * (Vector(targetpos) - Vector(myHero.visionPos)):normalized()
 	local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(FRCel, R.delay, R.width, R.range, R.speed, myHero)
 	if rPos ~= nil and maxHit >= MenuAnnie.exConfig.FRWX and not IsWall(D3DXVECTOR3(flashposition.x, flashposition.y, flashposition.z)) and GetDistance(myHero, targetpos) > R.range and GetDistance(myHero, targetpos) <= (R.range + 400) then
-		if RReady and FlashReady and stun then
+		if R.Ready() and FlashReady and stun then
 			CastSpell(FlashKey, flashposition.x, flashposition.z)
 			DelayAction(function() CastSpell(_R, rPos.x, rPos.z) end, 0.25)
 		end
@@ -530,6 +508,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuAnnie.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuAnnie.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -563,10 +543,10 @@ function OnDraw()
             end
         end
 	end
-	if MenuAnnie.drawConfig.DQR and (QReady or WReady) then			
+	if MenuAnnie.drawConfig.DQR and (Q.Ready() or W.Ready()) then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuAnnie.drawConfig.DQRC[2], MenuAnnie.drawConfig.DQRC[3], MenuAnnie.drawConfig.DQRC[4]))
 	end
-	if MenuAnnie.drawConfig.DRR and RReady then			
+	if MenuAnnie.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuAnnie.drawConfig.DRRC[2], MenuAnnie.drawConfig.DRRC[3], MenuAnnie.drawConfig.DRRC[4]))
 	end
 end
@@ -588,49 +568,50 @@ function KillSteall()
 			RDMG = getDmg("R", enemy, myHero, 3)
 		end
 		if ValidTarget(enemy, 700) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
-			if health < QDMG and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, Q.range) and QReady then
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+			if health < QDMG and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, Q.range) and Q.Ready() then
 				CastQ(enemy)
-			elseif health < WDMG and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, W.range) and WReady then
+			elseif health < WDMG and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, W.range) and W.Ready() then
 				CastW(enemy)
-			elseif health < RDMG and MenuAnnie.ksConfig.RKS and ValidTarget(enemy, R.range) and RReady then
+			elseif health < RDMG and MenuAnnie.ksConfig.RKS and ValidTarget(enemy, R.range) and R.Ready() then
 				CastR(enemy)
 			elseif health < IDMG and MenuAnnie.ksConfig.IKS and ValidTarget(enemy, 600) and IReady then
 				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+WDMG) and MenuAnnie.ksConfig.WKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, W.range) and WReady and QReady then
+			elseif health < (QDMG+WDMG) and MenuAnnie.ksConfig.WKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, W.range) and W.Ready() and Q.Ready() then
 				CastW(enemy)
 				CastQ(enemy)
-			elseif health < (QDMG+RDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, R.range) and RReady and QReady then
+			elseif health < (QDMG+RDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, R.range) and R.Ready() and Q.Ready() then
 				CastR(enemy)
 				CastQ(enemy)
-			elseif health < (WDMG+RDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and RReady and WReady then
+			elseif health < (WDMG+RDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and R.Ready() and W.Ready() then
 				CastR(enemy)
 				CastW(enemy)
-			elseif health < (QDMG+WDMG+RDMG) and MenuAnnie.ksConfig.QKS and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and RReady and WReady and QReady then
-				CastR(enemy)
-				CastQ(enemy)
-				CastW(enemy)
-			elseif health < (QDMG+IDMG) and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, Q.range) and QReady and MenuAnnie.ksConfig.IKS and IReady then
-				CastQ(enemy)
-				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+IDMG) and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, W.range) and WReady and MenuAnnie.ksConfig.IKS and IReady then
-				CastW(enemy)
-				CastSpell(IgniteKey, enemy)
-			elseif health < (RDMG+IDMG) and MenuAnnie.ksConfig.RKS and ValidTarget(enemy, R.range) and RReady and MenuAnnie.ksConfig.IKS and IReady then
-				CastR(enemy)
-				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+WDMG+IDMG) and MenuAnnie.ksConfig.WKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, W.range) and WReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
-				CastW(enemy)
-				CastQ(enemy)
-				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+RDMG+IDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, R.range) and RReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
+			elseif health < (QDMG+WDMG+RDMG) and MenuAnnie.ksConfig.QKS and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and R.Ready() and W.Ready() and Q.Ready() then
 				CastR(enemy)
 				CastQ(enemy)
+				CastW(enemy)
+			elseif health < (QDMG+IDMG) and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, Q.range) and Q.Ready() and MenuAnnie.ksConfig.IKS and IReady then
+				CastQ(enemy)
 				CastSpell(IgniteKey, enemy)
-			elseif health < (WDMG+RDMG+IDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and RReady and WReady and MenuAnnie.ksConfig.IKS and IReady then
+			elseif health < (QDMG+IDMG) and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, W.range) and W.Ready() and MenuAnnie.ksConfig.IKS and IReady then
+				CastW(enemy)
+				CastSpell(IgniteKey, enemy)
+			elseif health < (RDMG+IDMG) and MenuAnnie.ksConfig.RKS and ValidTarget(enemy, R.range) and R.Ready() and MenuAnnie.ksConfig.IKS and IReady then
+				CastR(enemy)
+				CastSpell(IgniteKey, enemy)
+			elseif health < (QDMG+WDMG+IDMG) and MenuAnnie.ksConfig.WKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, W.range) and W.Ready() and Q.Ready() and MenuAnnie.ksConfig.IKS and IReady then
+				CastW(enemy)
+				CastQ(enemy)
+				CastSpell(IgniteKey, enemy)
+			elseif health < (QDMG+RDMG+IDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, R.range) and R.Ready() and Q.Ready() and MenuAnnie.ksConfig.IKS and IReady then
+				CastR(enemy)
+				CastQ(enemy)
+				CastSpell(IgniteKey, enemy)
+			elseif health < (WDMG+RDMG+IDMG) and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and R.Ready() and W.Ready() and MenuAnnie.ksConfig.IKS and IReady then
 				CastR(enemy)
 				CastW(enemy)
 				CastSpell(IgniteKey, enemy)
-			elseif health < (QDMG+WDMG+RDMG+IDMG) and MenuAnnie.ksConfig.QKS and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and RReady and WReady and QReady and MenuAnnie.ksConfig.IKS and IReady then
+			elseif health < (QDMG+WDMG+RDMG+IDMG) and MenuAnnie.ksConfig.QKS and MenuAnnie.ksConfig.RKS and MenuAnnie.ksConfig.WKS and ValidTarget(enemy, R.range) and R.Ready() and W.Ready() and Q.Ready() and MenuAnnie.ksConfig.IKS and IReady then
 				CastR(enemy)
 				CastQ(enemy)
 				CastW(enemy)
@@ -740,7 +721,7 @@ function CastW(unit)
 end
 
 function CastE()
-	if EReady then
+	if E.Ready() then
 		if VIP_USER and MenuAnnie.prConfig.pc then
 			Packet("S_CAST", {spellId = _E}):send()
 		else
@@ -812,30 +793,6 @@ function EnemyCount(point, range)
 		end
 	end            
 	return count
-end
-
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
-	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
-	end
-	p:Hide()
-	RecvPacket(p)
 end
 
 function OnWndMsg(Msg, Key)
