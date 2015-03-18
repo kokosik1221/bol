@@ -2,18 +2,17 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.8
-	16.02.2015
+	Last Version: 1.9
+	18.03.2015
 	
 ]]--
 
 if myHero.charName ~= "Gangplank" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "1.8"
+local version = "1.9"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GangplankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -68,23 +67,41 @@ local Items = {
 	RND = { id = 3143, range = 275, reqTarget = false, slot = nil },
 }
 		
-function Vars()
-	Qrange = 625
-	Wrange = 0
-	Erange = 1300
-	Rrange = 99000
-	QReady, WReady, EReady, RReady, IReady, Recall = false, false, false, false, false, false
-	lastskin = 0
-	EnemyMinions = minionManager(MINION_ENEMY, Qrange, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Qrange, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey = nil
-	killstring = {}
-	print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-end
+local Q = {range = 625, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {range = 0, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {range = 1300, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {range = 99000, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, recall = false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey = nil
+local killstring = {}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
 
 function OnLoad()
-	Vars()
 	Menu()
+	print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#6699FF\">Gangplank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 	end	
@@ -93,46 +110,36 @@ function OnLoad()
 	end
 end
 
-function OnCreateObj(object)
-	if object.name:find("TeleportHome") then
-		Recall = true
-	end
-end
- 
-function OnDeleteObj(object)
-	if object.name:find("TeleportHome") or (Recall == nil and object.name == Recall.name) then
-		Recall = false
-	end
-end
-
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuGP.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.comboConfig.manac then
+	if Cel ~= nil and MenuGP.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.comboConfig.manac and not recall then
 		caa()
 		Combo()
 	end
-	if Cel ~= nil and (MenuGP.harrasConfig.HEnabled or MenuGP.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.harrasConfig.manah then
+	if Cel ~= nil and (MenuGP.harrasConfig.HEnabled or MenuGP.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.harrasConfig.manah and not recall then
 		Harrass()
 	end
-	if MenuGP.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.farm.manaf then
+	if MenuGP.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.farm.manaf and not recall then
 		Farm()
 	end
-	if MenuGP.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.jf.manajf then
+	if MenuGP.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGP.jf.manajf and not recall then
 		JungleFarmm()
 	end
-	if MenuGP.prConfig.ALS then
+	if MenuGP.prConfig.ALS and not recall then
 		autolvl()
 	end
-	if MenuGP.exConfig.cc then
+	if MenuGP.exConfig.cc and not recall then
 		cc()
 	end
-	if MenuGP.exConfig.aw then
+	if MenuGP.exConfig.aw and not recall then
 		autow()
 	end
-	if QReady and MenuGP.farm.LQ then
+	if Q.Ready() and MenuGP.farm.LQ and not recall then
 		lq()
 	end
-	KillSteall()
+	if not recall then
+		KillSteall()
+	end
 end
 
 function Menu()
@@ -141,13 +148,12 @@ function Menu()
 	MenuGP:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuGP:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuGP.orb == 1 then
-		MenuGP:addSubMenu("Orbwalking", "Orbwalking")
+		MenuGP:addSubMenu("[Gangplank Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuGP.Orbwalking)
 	end
-	MenuGP:addSubMenu("Target selector", "STS")
-    TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Qrange, DAMAGE_PHYSICAL)
+    TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Gangplank"
-	MenuGP.STS:addTS(TargetSelector)
+	MenuGP:addTS(TargetSelector)
 	MenuGP:addSubMenu("[Gangplank Master]: Combo Settings", "comboConfig")
 	MenuGP.comboConfig:addParam("USEQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGP.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -217,6 +223,13 @@ function Menu()
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
+	if heroManager.iCount < 10 then
+		print("<font color=\"#FFFFFF\">Too few champions to aR.range priority.</font>")
+	elseif heroManager.iCount == 6 then
+		aR.rangePrioritysTT()
+    else
+		aR.rangePrioritys()
+	end
 end
 
 function caa()
@@ -248,17 +261,6 @@ function Check()
 	end
 	if MenuGP.orb == 1 then
 		SxOrb:ForceTarget(Cel)
-	end
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	if MenuGP.prConfig.skin and VIP_USER and _G.USESKINHACK then
-		if MenuGP.prConfig.skin1 ~= lastSkin then
-			GenModelPacket("Gangplank", MenuGP.prConfig.skin1)
-			lastSkin = MenuGP.prConfig.skin1
-		end
 	end
 	if MenuGP.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
@@ -308,7 +310,7 @@ end
 function Combo()
 	UseItems(Cel)
 	if MenuGP.comboConfig.USEQ then
-		if QReady and ValidTarget(Cel) then
+		if Q.Ready() and ValidTarget(Cel) then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, targetNetworkId = Cel.networkID}):send()
 			else
@@ -317,7 +319,7 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USEW then
-		if WReady and MenuGP.comboConfig.USEW then
+		if W.Ready() and MenuGP.comboConfig.USEW then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _W}):send()
 			else
@@ -326,8 +328,8 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USEE then
-		local Count = CountTeam(myHero, Erange)
-		if EReady and MenuGP.comboConfig.USEE and Count >= MenuGP.comboConfig.EC then
+		local Count = CountTeam(myHero, E.range)
+		if E.Ready() and MenuGP.comboConfig.USEE and Count >= MenuGP.comboConfig.EC then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _E}):send()
 			else
@@ -336,7 +338,7 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USER and not MenuGP.comboConfig.USER2 then
-		if RReady and GetDistance(Cel) < Rrange then
+		if R.Ready() and GetDistance(Cel) < R.range then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _R, fromX = Cel.x, fromY = Cel.z, toX = Cel.x, toY = Cel.z}):send()
 			else
@@ -345,7 +347,7 @@ function Combo()
 		end
 	end
 	if MenuGP.comboConfig.USER and MenuGP.comboConfig.USER2 then
-		local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(Cel, 0.25, Qrange - 55, Rrange, 500, myHero)
+		local rPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(Cel, 0.25, Q.range - 55, R.range, 500, myHero)
 		if ValidTarget(Cel) and rPos ~= nil and maxHit >= MenuGP.comboConfig.USER2C then		
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
@@ -358,7 +360,7 @@ end
 
 function Harrass()
 	if MenuGP.harrasConfig.QH then
-		if QReady and GetDistance(Cel) <= Qrange and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
+		if Q.Ready() and GetDistance(Cel) <= Q.range and Cel ~= nil and Cel.team ~= player.team and not Cel.dead then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, targetNetworkId = Cel.networkID}):send()
 			else
@@ -374,7 +376,7 @@ function Farm()
 	EMode = MenuGP.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Qrange) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
 				else
@@ -382,7 +384,7 @@ function Farm()
 				end
 			end
 		elseif QMode == 2 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Qrange) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero) then
 					if VIP_USER and MenuGP.prConfig.pc then
 						Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
@@ -393,7 +395,7 @@ function Farm()
 			end
 		end
 		if EMode == 2 then
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Erange then
+			if E.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _E}):send()
 				else
@@ -408,7 +410,7 @@ function JungleFarmm()
 	JungleMinions:update()
 	if MenuGP.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if QReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Qrange then
+			if Q.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = minion.networkID}):send()
 				else
@@ -419,7 +421,7 @@ function JungleFarmm()
 	end
 	if MenuGP.jf.EJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if EReady and minion ~= nil and not minion.dead and GetDistance(minion) <= Erange then
+			if E.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _E}):send()
 				else
@@ -431,7 +433,7 @@ function JungleFarmm()
 end
 
 function autow()
-	if MenuGP.exConfig.aw and not Recall and WReady then
+	if MenuGP.exConfig.aw and W.Ready() then
 		if ((myHero.mana/myHero.maxMana)*100) > MenuGP.exConfig.MINMPTOW and  ((myHero.health/myHero.maxHealth)*100) < MenuGP.exConfig.MINHPTOW then
 			if VIP_USER and MenuGP.prConfig.pc then
 				Packet("S_CAST", {spellId = _W}):send()
@@ -453,8 +455,20 @@ function lq()
     end
 end
 
+function OnApplyBuff(unit, source, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = false
+	end
+end
+
 function cc()
-	if MenuGP.exConfig.CC and WReady then
+	if MenuGP.exConfig.CC and W.Ready() then
 		myPlayer = GetMyHero()
 		if myPlayer.canMove == false then
 			if VIP_USER and MenuGP.prConfig.pc then
@@ -498,11 +512,11 @@ function OnDraw()
             end
         end
 	end
-	if MenuGP.drawConfig.DQR and QReady then
-		DrawCircle(myHero.x, myHero.y, myHero.z, Qrange, RGB(MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
+	if MenuGP.drawConfig.DQR and Q.Ready() then
+		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuGP.drawConfig.DQRC[2], MenuGP.drawConfig.DQRC[3], MenuGP.drawConfig.DQRC[4]))
 	end
-	if MenuGP.drawConfig.DER and EReady then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, Erange, RGB(MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
+	if MenuGP.drawConfig.DER and E.Ready() then			
+		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuGP.drawConfig.DERC[2], MenuGP.drawConfig.DERC[3], MenuGP.drawConfig.DERC[4]))
 	end
 end
 
@@ -527,19 +541,19 @@ function KillSteall()
 			iDmg = 0
 		end
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			if health <= qDmg and QReady and (distance < Qrange) and MenuGP.ksConfig.QKS then
+			if health <= qDmg and Q.Ready() and (distance < Q.range) and MenuGP.ksConfig.QKS then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = Enemy.networkID}):send()
 				else
 					CastSpell(_Q, Enemy)
 				end
-			elseif health < rDmg and RReady and (distance < Rrange) and MenuGP.ksConfig.RKS then
+			elseif health < rDmg and R.Ready() and (distance < R.range) and MenuGP.ksConfig.RKS then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, targetNetworkId = Enemy.networkID}):send()
 				else
 					CastSpell(_R, Enemy)
 				end
-			elseif health < (qDmg + rDmg) and QReady and RReady and (distance < Qrange) and MenuGP.ksConfig.QKS and MenuGP.ksConfig.RKS then
+			elseif health < (qDmg + rDmg) and Q.Ready() and R.Ready() and (distance < Q.range) and MenuGP.ksConfig.QKS and MenuGP.ksConfig.RKS then
 				if VIP_USER and MenuGP.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, targetNetworkId = Enemy.networkID}):send()
 				else
@@ -551,6 +565,7 @@ function KillSteall()
 					CastSpell(_R, Enemy)
 				end
 			end
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if IReady and health <= iDmg and MenuGP.ksConfig.IKS and distance < 600 then
 				CastSpell(IgniteKey, Enemy)
 			end
@@ -577,29 +592,32 @@ function DmgCalc()
     end
 end
 
--- Change skin function, made by Shalzuth
-function GenModelPacket(champ, skinId)
-	p = CLoLPacket(0x97)
-	p:EncodeF(myHero.networkID)
-	p.pos = 1
-	t1 = p:Decode1()
-	t2 = p:Decode1()
-	t3 = p:Decode1()
-	t4 = p:Decode1()
-	p:Encode1(t1)
-	p:Encode1(t2)
-	p:Encode1(t3)
-	p:Encode1(bit32.band(t4,0xB))
-	p:Encode1(1)--hardcode 1 bitfield
-	p:Encode4(skinId)
-	for i = 1, #champ do
-		p:Encode1(string.byte(champ:sub(i,i)))
+function SetPriority(table, hero, priority)
+	for i=1, #table, 1 do
+		if hero.charName:find(table[i]) ~= nil then
+			TS_SetHeroPriority(priority, hero.charName)
+		end
 	end
-	for i = #champ + 1, 64 do
-		p:Encode1(0)
+end
+
+function aR.rangePrioritysTT()
+    for i, enemy in ipairs(GetEnemyHeroes()) do
+		SetPriority(TargetTable.AD_Carry, enemy, 1)
+		SetPriority(TargetTable.AP,       enemy, 1)
+		SetPriority(TargetTable.Support,  enemy, 2)
+		SetPriority(TargetTable.Bruiser,  enemy, 2)
+		SetPriority(TargetTable.Tank,     enemy, 3)
+    end
+end
+
+function aR.rangePrioritys()
+	for i, enemy in ipairs(GetEnemyHeroes()) do
+		SetPriority(TargetTable.AD_Carry, enemy, 1)
+		SetPriority(TargetTable.AP, enemy, 2)
+		SetPriority(TargetTable.Support, enemy, 3)
+		SetPriority(TargetTable.Bruiser, enemy, 4)
+		SetPriority(TargetTable.Tank, enemy, 5)
 	end
-	p:Hide()
-	RecvPacket(p)
 end
 
 function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
