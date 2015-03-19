@@ -2,8 +2,8 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.4
-	05.03.2015
+	Last Version: 0.5
+	19.03.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Lux" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.4"
+local version = "0.5"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -72,11 +72,11 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, width = 70}
-local W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25, width = 110}
-local E = {name = "Lucent Singularity", range = 1100, speed = math.huge, delay = 0.25, width = 275}
-local R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190}
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, recall = false, false, false, false, false, false, false
+local Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, width = 80, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25, width = 140, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.25, width = 275, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, zhonyaready, recall = false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local KSMinions = minionManager(MINION_JUNGLE, R.range, myHero, MINION_SORT_HEALTH_ASC)
@@ -111,6 +111,12 @@ local TargetTable = {
 function OnLoad()
 	Menu()
 	print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+	end
 end
 
 function OnTick()
@@ -131,14 +137,16 @@ function OnTick()
 	if MenuLux.prConfig.AZ and not recall then
 		autozh()
 	end
-	if MenuLux.prConfig.ALS then
+	if MenuLux.prConfig.ALS and not recall then
 		autolvl()
 	end
 	if MenuLux.comboConfig.rConfig.CRKD and RCel and not recall then
 		CastR(RCel)
 	end
-	KSandAUTO()
-	StealJungle()	
+	if not recall then
+		KSandAUTO()
+		StealJungle()	
+	end
 end
 
 function Menu()
@@ -156,7 +164,7 @@ function Menu()
 	MenuLux:addSubMenu("[Lux Master]: Combo Settings", "comboConfig")
 	MenuLux.comboConfig:addSubMenu("[Lux Master]: Q Settings", "qConfig")
 	MenuLux.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
-	MenuLux.comboConfig.qConfig:addParam("USEQ2", "Cast If See 1 Collision", SCRIPT_PARAM_ONOFF, true)
+	MenuLux.comboConfig.qConfig:addParam("USEQ2", "Cast If See 1 Collision", SCRIPT_PARAM_ONOFF, false)
 	MenuLux.comboConfig:addSubMenu("[Lux Master]: W Settings", "wConfig")
 	MenuLux.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, false)
 	MenuLux.comboConfig:addSubMenu("[Lux Master]: E Settings", "eConfig")
@@ -258,12 +266,6 @@ function Menu()
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
-	if _G.MMA_Loaded then
-		print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-	end	
-	if _G.AutoCarry then
-		print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-	end
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
@@ -296,26 +298,22 @@ end
 
 function Check()
 	QTargetSelector:update()
-	QCel = QTargetSelector.target
 	ETargetSelector:update()
-	ECel = ETargetSelector.target
 	RTargetSelector:update()
-	RCel = RTargetSelector.target
 	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
 		Cel = SelectedTarget
+		QCel = SelectedTarget
+		ECel = SelectedTarget
+		RCel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
+		QCel = QTargetSelector.target
+		ECel = ETargetSelector.target
+		RCel = RTargetSelector.target
 	end
 	if MenuLux.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	if MenuLux.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -364,7 +362,7 @@ function Combo()
 		end
 	end
 	if RCel ~= nil then
-		if MenuLux.comboConfig.rConfig.USER and RReady and GetDistance(RCel) <= R.range and ValidTarget(RCel) then
+		if MenuLux.comboConfig.rConfig.USER and R.Ready() and GetDistance(RCel) <= R.range and ValidTarget(RCel) then
 			if MenuLux.comboConfig.rConfig.RM == 1 then
 				CastR(RCel)
 			end
@@ -497,6 +495,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuLux.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuLux.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -530,13 +530,13 @@ function OnDraw()
             end
         end
 	end
-	if MenuLux.drawConfig.DQR and QReady then			
+	if MenuLux.drawConfig.DQR and Q.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuLux.drawConfig.DQRC[2], MenuLux.drawConfig.DQRC[3], MenuLux.drawConfig.DQRC[4]))
 	end
-	if MenuLux.drawConfig.DWR and WReady then			
+	if MenuLux.drawConfig.DWR and W.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuLux.drawConfig.DWRC[2], MenuLux.drawConfig.DWRC[3], MenuLux.drawConfig.DWRC[4]))
 	end
-	if MenuLux.drawConfig.DER and EReady then			
+	if MenuLux.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuLux.drawConfig.DERC[2], MenuLux.drawConfig.DERC[3], MenuLux.drawConfig.DERC[4]))
 	end
 	if MenuLux.drawConfig.DRR then			
@@ -546,7 +546,6 @@ end
 
 function StealJungle()
 	KSMinions:update()
-	if not recall then
 		if MenuLux.jsConfig.JSR then
 			for i, minion in pairs(KSMinions.objects) do
 				if MenuLux.jsConfig.JST == 3 then
@@ -623,7 +622,6 @@ function StealJungle()
 				end
 			end
 		end
-	end
 end
 
 function KSandAUTO()
@@ -634,16 +632,17 @@ function KSandAUTO()
 			end
 		end
 		if MenuLux.ksConfig.QKS or MenuLux.ksConfig.EKS or MenuLux.ksConfig.RKS or MenuLux.ksConfig.IKS then
-			if ValidTarget(enemy, R.range) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible and not recall then
+			if ValidTarget(enemy, R.range) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
+				IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 				local QDMG = getDmg("Q", enemy, myHero, 1)
 				local EDMG = getDmg("E", enemy, myHero, 1)
 				local RDMG = getDmg("R", enemy, myHero, 1)
 				local IDMG = (50 + (20 * myHero.level))
-				if enemy.health < QDMG and QReady and GetDistance(enemy) < Q.range and MenuLux.ksConfig.QKS then
+				if enemy.health < QDMG and Q.Ready() and GetDistance(enemy) < Q.range and MenuLux.ksConfig.QKS then
 					CastQ(enemy)
-				elseif enemy.health < EDMG and EReady and GetDistance(enemy) < E.range and MenuLux.ksConfig.EKS then
+				elseif enemy.health < EDMG and E.Ready() and GetDistance(enemy) < E.range and MenuLux.ksConfig.EKS then
 					CastE(enemy)
-				elseif enemy.health < RDMG and RReady and GetDistance(enemy) < R.range and MenuLux.ksConfig.RKS then
+				elseif enemy.health < RDMG and R.Ready() and GetDistance(enemy) < R.range and MenuLux.ksConfig.RKS then
 					CastR(enemy)
 				elseif enemy.health < IDMG and IReady and GetDistance(enemy) <= 600 and MenuLux.ksConfig.IKS then
 					CastSpell(IgniteKey, enemy)
@@ -651,7 +650,7 @@ function KSandAUTO()
 			end
 		end
 		if MenuLux.exConfig.AEF then
-			if EReady and ValidTarget(enemy) and GetDistance(enemy) < E.range and not recall then
+			if E.Ready() and ValidTarget(enemy) and GetDistance(enemy) < E.range then
 				local ePos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, E.delay, E.width, E.range, E.speed, myHero)
 				if ePos ~= nil and maxHit >= MenuLux.exConfig.AEX and HitChance >=2 then		
 					if VIP_USER and MenuLux.prConfig.pc then
@@ -663,7 +662,7 @@ function KSandAUTO()
 			end
 		end
 		if MenuLux.exConfig.ARF then
-			if RReady and ValidTarget(enemy) and GetDistance(enemy) < R.range and not recall then
+			if R.Ready() and ValidTarget(enemy) and GetDistance(enemy) < R.range then
 				local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
 				if rPos ~= nil and maxHit >= MenuLux.exConfig.ARX and HitChance >=2 then		
 					if VIP_USER and MenuLux.prConfig.pc then
@@ -722,7 +721,7 @@ function DmgCalc()
 end
 
 function CastQ(unit)
-	if unit and QReady and ValidTarget(unit) then
+	if unit and Q.Ready() and ValidTarget(unit) then
 		if MenuLux.prConfig.pro == 1 then
 			local CastPosition, HitChance, Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
 			if HitChance >= 2 then
@@ -747,7 +746,7 @@ function CastQ(unit)
 end
 
 function CastQ2(unit)
-	if unit and QReady and ValidTarget(unit) then
+	if unit and Q.Ready() and ValidTarget(unit) then
 		local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
 		local willCollide2, ColTable3 = GetHeroCollisionM(unit, myHero)
 		if (#ColTable2 <= 1 and GetDistance(myHero, ColTable2[1]) < Q.range) or (#ColTable3 <= 1 and GetDistance(myHero, ColTable3[1]) < Q.range) then
@@ -766,7 +765,7 @@ function CastQ2(unit)
 end
 
 function CastW(unit)
-	if unit and WReady then
+	if unit and W.Ready() then
 		local CastPosition, HitChance, Position = VP:GetLineCastPosition(unit, W.delay, W.width, W.range, W.speed, myHero, false)
 		if VIP_USER and MenuLux.prConfig.pc then
 			Packet("S_CAST", {spellId = _W, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -777,7 +776,7 @@ function CastW(unit)
 end
 
 function CastE(unit)
-	if unit and EReady and ValidTarget(unit) and myHero:GetSpellData(_E).name == "LuxLightStrikeKugel" then
+	if unit and E.Ready() and ValidTarget(unit) and myHero:GetSpellData(_E).name == "LuxLightStrikeKugel" then
 		if MenuLux.prConfig.pro == 1 then
 			local CastPosition, HitChance, Position = VP:GetCircularAOECastPosition(unit, E.delay, E.width, E.range, E.speed, myHero)
 			if HitChance >= 2 then
@@ -802,7 +801,7 @@ function CastE(unit)
 end
 
 function CastR(unit)
-	if unit and RReady and ValidTarget(unit) then
+	if unit and R.Ready() and ValidTarget(unit) then
 		if MenuLux.prConfig.pro == 1 then
 			local CastPosition, HitChance, Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range, R.speed, myHero, false)
 			if HitChance >= 2 then
@@ -855,15 +854,15 @@ function OnProcessSpell(unit,spell)
 	end
 end
 
-function CechkRecal()
-	for i = 1, myHero.buffCount do
-		tBuff = myHero:getBuff(i)
-		if BuffIsValid(tBuff) then
-			recall = false 
-			if tBuff.name == "recall" then
-				recall = true
-			end	
-		end
+function OnApplyBuff(source, unit, buff)	
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = false
 	end
 end
 
