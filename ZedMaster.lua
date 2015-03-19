@@ -2,9 +2,9 @@
 
 	Script Name: ZED MASTER 
     	Author: kokosik1221
-	Last Version: 1.5
-	17.02.2015
-	
+	Last Version: 1.6
+	19.03.2015
+
 ]]--
 
 if myHero.charName ~= "Zed" then return end
@@ -12,7 +12,7 @@ if myHero.charName ~= "Zed" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "1.5"
+local version = "1.6"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/ZedMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -157,20 +157,45 @@ local Items = {
 	RND = { id = 3143, range = 275, reqTarget = false, slot = nil },
 }
 
-function Vars()
-	Q = {name = "Razor Shuriken", range = 900, speed = 1700, delay = 0.25, width = 50}
-	W = {name = "Living Shadow", range = 580, speed = math.huge, delay = 0.25}
-	E = {name = "Shadow Slash", range = 290}
-	R = {name = "Death Mark",range = 625}
-	QReady, WReady, EReady, RReady, IReady, DeadMark = false, false, false, false, false, false
-	idmg, qdmg, edmg, rdmg, qdmg2 = 0, 0, 0, 0, 0
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, WShadow, RShadow = nil, nil, nil
-	killstring = {}
-	Spells = {_Q,_W,_E,_R}
-	Spells2 = {"Q","W","E","R"}
-	TargetSelectorH = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range + W.range, DAMAGE_PHYSICAL)
+local Q = {name = "Razor Shuriken", range = 900, speed = 1700, delay = 0.25, width = 50, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Living Shadow", range = 580, speed = math.huge, delay = 0.25, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Shadow Slash", range = 290, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Death Mark", range = 625, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, DeadMark, recall, WCasted, RCasted = false, false, false, false, false
+local idmg, qdmg, edmg, rdmg, qdmg2 = 0, 0, 0, 0, 0
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey, WShadow, RShadow = nil, nil, nil
+local killstring = {}
+local Shadows = {}
+local Spells = {_Q,_W,_E,_R}
+local Spells2 = {"Q","W","E","R"}
+local TargetSelectorH = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range + W.range, DAMAGE_PHYSICAL)
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
+
+function OnLoad()
+	Menu()
 	print("<b><font color=\"#FF0000\">Zed Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Zed Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -180,39 +205,36 @@ function Vars()
 	end
 end
 
-function OnLoad()
-	Vars()
-	Menu()
-end
-
 function OnTick()
 	Check()
-	if Cel ~= nil and MenuZed.comboConfig.CEnabled then
+	if Cel ~= nil and MenuZed.comboConfig.CEnabled and not recall then
 		caa()
 		Combo()
 	end
-	if MenuZed.comboConfig2.CEnabled2 then
+	if MenuZed.comboConfig2.CEnabled2 and not recall then
 		caa()
 		Combo2()
 	end
-	if CelH ~= nil and not MenuZed.comboConfig.CEnabled and (MenuZed.harrasConfig.HEnabled or MenuZed.harrasConfig.HTEnabled) then
+	if CelH ~= nil and not MenuZed.comboConfig.CEnabled and (MenuZed.harrasConfig.HEnabled or MenuZed.harrasConfig.HTEnabled) and not recall then
 		Harrass()
 	end
-	if MenuZed.farm.LaneClear then
+	if MenuZed.farm.LaneClear and not recall then
 		Farm()
 	end
-	if MenuZed.jf.JFEnabled then
+	if MenuZed.jf.JFEnabled and not recall then
 		JungleFarmm()
 	end
-	if MenuZed.prConfig.ALS then
+	if MenuZed.prConfig.ALS and not recall then
 		autolvl()
 	end
-	if MenuZed.comboConfig.rConfig.RS then
-		if DeadMark and myHero:GetSpellData(_R).name:lower() == "zedr2" then
+	if MenuZed.comboConfig.rConfig.RS and not recall then
+		if DeadMark and RState() == 2 then
 			CastSpell(_R)
 		end
 	end
-	KillSteall()
+	if not recall then
+		KillSteall()
+	end
 end
 
 function Menu()
@@ -221,13 +243,12 @@ function Menu()
 	MenuZed:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuZed:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuZed.orb == 1 then
-		MenuZed:addSubMenu("Orbwalking", "Orbwalking")
+		MenuZed:addSubMenu("[Zed Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuZed.Orbwalking) 
 	end
-	MenuZed:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
 	TargetSelector.name = "Zed"
-	MenuZed.STS:addTS(TargetSelector)
+	MenuZed:addTS(TargetSelector)
 	MenuZed:addSubMenu("[Zed Master]: Combo Settings", "comboConfig")
 	MenuZed.comboConfig:addSubMenu("[Zed Master]: W Settings", "wConfig")
 	MenuZed.comboConfig.wConfig:addParam("USW", "Use W Swap To Get Closer", SCRIPT_PARAM_ONOFF, true)
@@ -257,7 +278,7 @@ function Menu()
 	MenuZed.comboConfig2:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuZed.comboConfig2:addParam("CEnabled2", "Full Combo 2", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 	MenuZed:addSubMenu("[Zed Master]: Harras Settings", "harrasConfig")
-	MenuZed.harrasConfig:addParam("HM", "Harrass Mode:", SCRIPT_PARAM_LIST, 1, {"|W|Q|E|", "|Q|E|", "|Q|"}) 
+	MenuZed.harrasConfig:addParam("HM", "Harrass Mode:", SCRIPT_PARAM_LIST, 1, {"|W|E|Q|", "|Q|E|", "|Q|"}) 
 	MenuZed.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
 	MenuZed.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuZed:addSubMenu("[Zed Master]: KS Settings", "ksConfig")
@@ -283,16 +304,16 @@ function Menu()
 	MenuZed.jf:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuZed.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
 	MenuZed:addSubMenu("[Zed Master]: Extra Settings", "exConfig")
-	MenuZed.exConfig:addSubMenu("Counter Spells List", "IS")
+	MenuZed.exConfig:addSubMenu("Dodge Spells List", "IS")
 	Enemies = GetEnemyHeroes() 
     for i,enemy in pairs (Enemies) do
 		for j,spell in pairs (Spells) do 
 			if interputtspells[enemy:GetSpellData(spell).name] then 
-				MenuZed.exConfig.IS:addParam(tostring(enemy:GetSpellData(spell).name),"Block "..tostring(enemy.charName).." Spell "..tostring(Spells2[j]),SCRIPT_PARAM_ONOFF,true)
+				MenuZed.exConfig.IS:addParam(tostring(enemy:GetSpellData(spell).name),"Dodge "..tostring(enemy.charName).." Spell "..tostring(Spells2[j]),SCRIPT_PARAM_ONOFF,true)
 			end 
 		end 
 	end 
-	MenuZed.exConfig:addParam("UIS", "Use Counter Enemy Skills", SCRIPT_PARAM_ONOFF, true)
+	MenuZed.exConfig:addParam("UIS", "Use Dodge Enemy Skills", SCRIPT_PARAM_ONOFF, true)
 	MenuZed:addSubMenu("[Zed Master]: Draw Settings", "drawConfig")
 	MenuZed.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuZed.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
@@ -330,6 +351,13 @@ function Menu()
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
+	if heroManager.iCount < 10 then
+		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
+	elseif heroManager.iCount == 6 then
+		arrangePrioritysTT()
+    else
+		arrangePrioritys()
+	end
 end
 
 function caa()
@@ -361,7 +389,7 @@ function Check()
 	else
 		Cel = GetCustomTarget()
 	end
-	if WReady and RReady then
+	if W.Ready() and R.Ready() then
         TargetSelector.range = 1200
     else
         TargetSelector.range = 900
@@ -369,11 +397,6 @@ function Check()
 	if MenuZed.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	QMana = myHero:GetSpellData(_Q).mana
     WMana = myHero:GetSpellData(_W).mana
     EMana = myHero:GetSpellData(_E).mana
@@ -417,12 +440,12 @@ end
 
 function Combo()
 	if not (TargetHaveBuff("JudicatorIntervention", Cel) or TargetHaveBuff("Undying Rage", Cel)) then
-		if ValidTarget(Cel) and RReady and myHero.mana > (QMana + EMana) then 
-			if GetDistance(Cel) <= R.range and myHero:GetSpellData(_R).name:lower() ~= "zedr2" then
+		if ValidTarget(Cel) and R.Ready() and myHero.mana > (QMana + EMana) then 
+			if GetDistance(Cel) <= R.range and RState() == 1 then
 				if MenuZed.comboConfig.rConfig[Cel.charName] then
 					CastR(Cel)
 				end
-			elseif GetDistance(Cel) > R.range + 60 and GetDistance(Cel) < 1300 and MenuZed.comboConfig.rConfig.DW and myHero:GetSpellData(_R).name:lower() ~= "zedr2" then
+			elseif GetDistance(Cel) > R.range + 60 and GetDistance(Cel) < 1300 and MenuZed.comboConfig.rConfig.DW and RState() == 1 then
 				local DashPos = myHero + Vector(Cel.x - myHero.x, 0, Cel.z - myHero.z):normalized()*550
 				CastW(DashPos)
 				if MenuZed.comboConfig.rConfig[Cel.charName] then
@@ -435,7 +458,7 @@ function Combo()
 				local behindVector = myHero - (Vector(Cel) - myHero):normalized() * 400
 				CastW(behindVector)
 			end
-		elseif MenuZed.comboConfig.wConfig.UWC and myHero:GetSpellData(_R).level >= 1 and not RReady then
+		elseif MenuZed.comboConfig.wConfig.UWC and myHero:GetSpellData(_R).level >= 1 or myHero:CanUseSpell(_R) == NOTLEARNED or myHero:CanUseSpell(_R) == COOLDOWN then
 			if myHero.mana > (WMana+EMana) and GetDistance(Cel) < Q.range then 
 				CastW(Cel)
 			end
@@ -445,7 +468,7 @@ function Combo()
 			end
 		end
         CastE(Cel)
-		if not RReady or (RShadow and RShadow.valid) then
+		if (WShadow) or (RShadow) or (myHero:CanUseSpell(_R) == NOTLEARNED) or (myHero:CanUseSpell(_R) == COOLDOWN) then
 			CastQ(Cel)
 		end
 		if not MenuZed.comboConfig.IAU then
@@ -464,7 +487,7 @@ end
 
 function Combo2()
 	if Cel ~= nil and not (TargetHaveBuff("JudicatorIntervention", Cel) or TargetHaveBuff("Undying Rage", Cel)) then
-		if (not WReady or WShadow ~= nil or WStatus) then
+		if (not W.Ready() or WShadow ~= nil or WCasted) then
             CastE(Cel)
 			CastQ(Cel)
 		end
@@ -489,8 +512,8 @@ function Swap()
 	if (WShadow ~= nil and WShadow.valid) then
 		wDist = GetDistance(Cel, WShadow)
 		if GetDistance(Cel) > 450 then
-			 if wDist and wDist ~= 0 and (GetDistance(Cel, myHero) > wDist) and WReady then
-				if myHero:GetSpellData(_W).name:lower() == "zedw2" then
+			 if wDist and wDist ~= 0 and (GetDistance(Cel, myHero) > wDist) and W.Ready() then
+				if WState() == 2 then
 					CastSpell(_W)
 				end
 			 end
@@ -499,7 +522,7 @@ function Swap()
 end
 
 function SwapR()
-	if myHero:GetSpellData(_R).name:lower() == "zedr2" and ((myHero.health / myHero.maxHealth * 100) <= MenuZed.comboConfig.rConfig.RHP) then
+	if RState() == 2 and ((myHero.health / myHero.maxHealth * 100) <= MenuZed.comboConfig.rConfig.RHP) then
         CastSpell(_R)
     end
 end
@@ -508,19 +531,19 @@ function Harrass()
 	if MenuZed.harrasConfig.HM == 1 then
 		if ValidTarget(CelH) and GetDistance(CelH, myHero) < 1450 and GetDistance(CelH, myHero) > 900 then
             local Shadow = myHero + Vector(CelH.x - myHero.x, 0, CelH.z - myHero.z):normalized()*550
-            if QReady and WReady and (myHero.mana > QMana+WMana) then
+            if Q.Ready() and W.Ready() and (myHero.mana > QMana+WMana) then
 				CastW(Shadow)
             end
 			CastE(CelH)
 			CastQ(CelH)
 		elseif ValidTarget(CelH) and GetDistance(CelH, myHero) < 900 then
-			if QReady and WReady and (myHero.mana > QMana+WMana) then
+			if Q.Ready() and W.Ready() and (myHero.mana > QMana+WMana) then
 				CastW(CelH)
 			end
 			CastE(CelH)
 			CastQ(CelH)
         end
-		if not WReady then
+		if not W.Ready() then
 			CastQ(CelH)
 			CastE(CelH)
 		end
@@ -541,7 +564,7 @@ function Farm()
 	EMode =  MenuZed.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				local BestPos, BestHit = GetBestLineFarmPosition(Q.range, Q.width, EnemyMinions.objects)
 				if BestPos ~= nil then
 					CastSpell(_Q, BestPos.x, BestPos.z)
@@ -580,7 +603,7 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuZed.jf.QJF then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				local BestPos, BestHit = GetBestLineFarmPosition(Q.range, Q.width, JungleMinions.objects)
 				if BestPos ~= nil then
 					CastSpell(_Q, BestPos.x, BestPos.z)
@@ -668,6 +691,7 @@ function KillSteall()
 		local health = Enemy.health
 		ComboDamage(Enemy)
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if health <= edmg and MenuZed.ksConfig.EKS then
 				CastE(Enemy)
 			elseif health < qdmg2 and MenuZed.ksConfig.QKS then
@@ -691,22 +715,23 @@ function KillSteall()
 end
 		
 function ComboDamage(enemy)
+	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
     if IReady then
         idmg = 50 + (20 * myHero.level)
 	end
-    if QReady and WReady then
+    if Q.Ready() and W.Ready() then
         qdmg = getDmg("Q", enemy, myHero, 3) * 1.8
-	elseif QReady and not WReady then
+	elseif Q.Ready() and not W.Ready() then
         qdmg = getDmg("Q", enemy, myHero, 3)
 	end
-    if EReady then
+    if E.Ready() then
         edmg = getDmg("E", enemy, myHero, 3)
 	end
-    if RReady then
+    if R.Ready() then
         rdmg = getDmg("R", enemy, myHero, 1)
 		rdmg = (myHero:GetSpellData(_R).level*0.15 + 0.05)*(rdmg + edmg + qdmg - idmg)
 	end
-	if QReady then
+	if Q.Ready() then
         qdmg2 = getDmg("Q", enemy, myHero, 3)
 	end
     return idmg + qdmg + edmg + rdmg + qdmg2
@@ -752,28 +777,32 @@ function OnDraw()
             end
 		end
 	end
-	if MenuZed.drawConfig.DQR and QReady then
+	if MenuZed.drawConfig.DQR and Q.Ready() then
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuZed.drawConfig.DQRC[2], MenuZed.drawConfig.DQRC[3], MenuZed.drawConfig.DQRC[4]))
 	end
-	if MenuZed.drawConfig.DWR and WReady then			
+	if MenuZed.drawConfig.DWR and W.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuZed.drawConfig.DWRC[2], MenuZed.drawConfig.DWRC[3], MenuZed.drawConfig.DWRC[4]))
 	end
-	if MenuZed.drawConfig.DER and EReady then			
+	if MenuZed.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuZed.drawConfig.DERC[2], MenuZed.drawConfig.DERC[3], MenuZed.drawConfig.DERC[4]))
 	end
-	if MenuZed.drawConfig.DRR and RReady then			
+	if MenuZed.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuZed.drawConfig.DRRC[2], MenuZed.drawConfig.DRRC[3], MenuZed.drawConfig.DRRC[4]))
 	end
 end
 
+function GetShadow()
+	return WShadow or RShadow or myHero
+end
+
 function OnCreateObj(obj)
-    if obj.valid and obj.name:find("Zed_Base_W_tar.troy") then
-        if WStatus and WShadow == nil then
-            WShadow = obj
-        elseif RShadow == nil then
-            RShadow = obj
-        end
-    end
+	if obj.valid and obj.name:lower() == "shadow" and obj.team == myHero.team then
+		if WCasted then
+			WShadow = obj
+		elseif RCasted and not WCasted then
+			RShadow = obj
+		end
+	end
 	if obj.valid and obj.name:lower():find("zed_base_r_buf_tell.troy") then
         DeadMark = true
         PrintAlert("Target Now Dead By Mark!!!", 4, 255, 55, 0)
@@ -781,27 +810,23 @@ function OnCreateObj(obj)
 end
  
 function OnDeleteObj(obj)
-    if obj.valid and WShadow and obj == WShadow then
-        WStatus = false
-        WShadow = nil
-    elseif obj.valid and RShadow and obj == RShadow then
-        RShadow = nil
-    end
+	if obj.valid and obj.name:lower():find("zed_clone_idle") then
+		if obj.valid and WShadow then
+			WShadow = nil
+			WCasted = false
+		elseif obj.valid and RShadow then
+			RShadow = nil
+			RCasted = false
+		end
+	end
 	if obj.valid and obj.name:lower():find("zed_base_r_buf_tell.troy") then
         DeadMark = false
     end
 end
 
 function CastQ(unit)
-	if QReady and ValidTarget(unit) then
-		local from = nil
-		if WShadow then
-			from = WShadow
-		elseif RShadow then
-			from = RShadow
-		elseif not WShadow and not RShadow then
-			from = myHero
-		end
+	if Q.Ready() and ValidTarget(unit) then
+		local from = GetShadow()
 		if MenuZed.prConfig.pro == 1 then
 			local castPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, from, false)
 			if HitChance >= MenuZed.prConfig.vphit - 1 then
@@ -826,7 +851,7 @@ function CastQ(unit)
 end
 
 function CastW(pos)
-	if WReady and myHero:GetSpellData(_W).name:lower() ~= "zedw2" then
+	if W.Ready() and WState() == 1 then
 		if VIP_USER and MenuZed.prConfig.pc then
 			Packet("S_CAST", {spellId = _W, fromX = pos.x, fromY = pos.z, toX = pos.x, toY = pos.z}):send()
 		else
@@ -836,20 +861,9 @@ function CastW(pos)
 end
 
 function CastE(unit)
-	if EReady then
-		if GetDistance(unit, myHero) <= E.range then
-			if VIP_USER and MenuZed.prConfig.pc then
-				Packet("S_CAST", {spellId = _E}):send()
-			else
-				CastSpell(_E)
-			end
-		elseif WShadow and GetDistance(unit, WShadow) <= E.range then
-			if VIP_USER and MenuZed.prConfig.pc then
-				Packet("S_CAST", {spellId = _E}):send()
-			else
-				CastSpell(_E)
-			end
-		elseif RShadow and GetDistance(unit, RShadow) <= E.range then
+	if E.Ready() then
+		local from = GetShadow()
+		if GetDistance(from, unit) <= E.range then
 			if VIP_USER and MenuZed.prConfig.pc then
 				Packet("S_CAST", {spellId = _E}):send()
 			else
@@ -864,6 +878,22 @@ function CastR(unit)
 		Packet("S_CAST", {spellId = _R, targetNetworkId = unit.networkID}):send()
 	else
 		CastSpell(_R, unit)
+	end
+end
+
+function WState()
+	if myHero:GetSpellData(_W).name ~= "zedw2" then
+		return 1
+	elseif myHero:GetSpellData(_W).name == "zedw2" then
+		return 2
+	end
+end
+
+function RState()
+	if myHero:GetSpellData(_R).name ~= "zedr2" then
+		return 1
+	elseif myHero:GetSpellData(_R).name == "zedr2" then
+		return 2
 	end
 end
 
@@ -894,7 +924,7 @@ function OnProcessSpell(unit, spell)
 					elseif shottype == 7 then hitchampion = checkhitcone(spell.endPos, unit, radius, maxdistance, allytarget, allyHitBox)
 				end
 				if hitchampion then
-					if RReady and interputtspells[spell.name] and MenuZed.exConfig.IS[spell.name] then
+					if R.Ready() and interputtspells[spell.name] and MenuZed.exConfig.IS[spell.name] then
 						if ValidTarget(unit, R.range) then
 							CastR(unit)
 						end
@@ -904,7 +934,10 @@ function OnProcessSpell(unit, spell)
 		end
 	end
 	if unit.isMe and spell.name == "ZedShadowDash" then
-        WStatus = true
+        WCasted = true
+    end
+	if unit.isMe and spell.name == "zedr2" then
+        RCasted = true
     end
 end
 
@@ -937,6 +970,34 @@ function OnWndMsg(Msg, Key)
 	end
 end
 --------------------------------------------------------
+
+function SetPriority(table, hero, priority)
+	for i=1, #table, 1 do
+		if hero.charName:find(table[i]) ~= nil then
+			TS_SetHeroPriority(priority, hero.charName)
+		end
+	end
+end
+
+function arrangePrioritysTT()
+    for i, enemy in ipairs(GetEnemyHeroes()) do
+		SetPriority(TargetTable.AD_Carry, enemy, 1)
+		SetPriority(TargetTable.AP,       enemy, 1)
+		SetPriority(TargetTable.Support,  enemy, 2)
+		SetPriority(TargetTable.Bruiser,  enemy, 2)
+		SetPriority(TargetTable.Tank,     enemy, 3)
+    end
+end
+
+function arrangePrioritys()
+	for i, enemy in ipairs(GetEnemyHeroes()) do
+		SetPriority(TargetTable.AD_Carry, enemy, 1)
+		SetPriority(TargetTable.AP, enemy, 2)
+		SetPriority(TargetTable.Support, enemy, 3)
+		SetPriority(TargetTable.Bruiser, enemy, 4)
+		SetPriority(TargetTable.Tank, enemy, 5)
+	end
+end
 
 function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
   radius = radius or 300
