@@ -2,8 +2,8 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 1.1
-	22.02.2015
+	Last Version: 1.2
+	19.03.2015
 	
 ]]--
 
@@ -11,10 +11,9 @@
 if myHero.charName ~= "Blitzcrank" then return end
 
 _G.AUTOUPDATE = true
-_G.USESKINHACK = false
 
 
-local version = "1.1"
+local version = "1.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -91,19 +90,43 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-function Vars()
-	Q = {name = "Rocket Grab", range = 925, speed = 1800, delay = 0.25, width = 80}
-	W = {name = "Overdrive"}
-	E = {name = "Power Fist", range = myHero.range+65}
-	R = {name = "Static Field", range = 600}
-	QReady, WReady, EReady, RReady, IReady, zhonyaready = false, false, false, false, false, false
-	EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	IgniteKey, SmiteKey, zhonyaslot = nil, nil, nil
-	AllCastGrabCount, FailGrabCount, PrecentGrabCount, SuccesGrabCount = 0, 0, 0, 0
-	killstring = {}
-	Spells = {_Q,_W,_E,_R}
-	Spells2 = {"Q","W","E","R"}
+local Q = {name = "Rocket Grab", range = 925, speed = math.huge, delay = 0.25, width = 80, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Overdrive", Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Power Fist", range = myHero.range+130, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Static Field", range = 600, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, zhonyaready, recall, ExhaustReady, HealReady = false, false, false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local IgniteKey, SmiteKey, zhonyaslot, ExhaustKey, HealKey = nil, nil, nil, nil, nil
+local AllCastGrabCount, FailGrabCount, PrecentGrabCount, SuccesGrabCount = 0, 0, 0, 0
+local killstring = {}
+local Spells = {_Q,_W,_E,_R}
+local Spells2 = {"Q","W","E","R"}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
+
+function OnLoad()
+	Menu()
 	print("<b><font color=\"#FF0000\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -113,43 +136,30 @@ function Vars()
 	end
 end
 
-function OnLoad()
-	Vars()
-	Menu()
-	PriorityOnLoad()
-end
-
-function PriorityOnLoad()
-	if heroManager.iCount < 10 then
-		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
-	elseif heroManager.iCount == 6 then
-		arrangePrioritysTT()
-    else
-		arrangePrioritys()
-	end
-end
-
 function OnTick()
 	Check()
-	if MenuBlitz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manac then
+	if MenuBlitz.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.comboConfig.manac and not recall then
 		Combo()
 	end
-	if (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.harrasConfig.manah then
+	if (MenuBlitz.harrasConfig.HEnabled or MenuBlitz.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.harrasConfig.manah and not recall then
 		Harrass()
 	end
-	if MenuBlitz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.farm.manaf then
+	if MenuBlitz.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.farm.manaf and not recall then
 		Farm()
 	end
-	if MenuBlitz.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.jf.manajf then
+	if MenuBlitz.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuBlitz.jf.manajf and not recall then
 		JungleFarmm()
 	end
-	if MenuBlitz.prConfig.AZ then
+	if MenuBlitz.prConfig.AZ and not recall then
 		autozh()
 	end
-	if MenuBlitz.prConfig.ALS then
+	if MenuBlitz.prConfig.ALS and not recall then
 		autolvl()
 	end
-	KillSteall()
+	if not recall then
+		KillSteall()
+		Support()
+	end
 end
 
 
@@ -159,13 +169,12 @@ function Menu()
 	MenuBlitz:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuBlitz:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuBlitz.orb == 1 then
-		MenuBlitz:addSubMenu("Orbwalking", "Orbwalking")
+		MenuBlitz:addSubMenu("[Blitzcrank Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuBlitz.Orbwalking)
 	end
-	MenuBlitz:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Blitzcrank"
-	MenuBlitz.STS:addTS(TargetSelector)
+	MenuBlitz:addTS(TargetSelector)
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Combo Settings", "comboConfig")
 	MenuBlitz.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("USEQS", "Use Smite If See Collision", SCRIPT_PARAM_ONOFF, true)
@@ -174,7 +183,7 @@ function Menu()
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("USEW", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.comboConfig:addParam("USEE", "Use " .. E.name .. "(E)", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.comboConfig:addParam("USEE", "Use " .. E.name .. "(E)", SCRIPT_PARAM_LIST, 2, {"No", "Normal", "After Success Grab"}) 
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("USER", "Use " .. R.name .. "(R)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("Kilable", "Only Use If Target Is Killable", SCRIPT_PARAM_ONOFF, true)
@@ -188,6 +197,25 @@ function Menu()
 	MenuBlitz.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
 	MenuBlitz.harrasConfig:addParam("manah", "Min. Mana To Harrass", SCRIPT_PARAM_SLICE, 50, 0, 100, 0) 
 	MenuBlitz.harrasConfig:addParam("MM", "Move To Mouse", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz:addSubMenu("[Blitzcrank Master]: Support Settings", "ss")
+	MenuBlitz.ss:addParam("qqq", "---- Mikael's Crucible ----", SCRIPT_PARAM_INFO,"")
+	MenuBlitz.ss:addParam("mchp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuBlitz.ss:addParam("umc", "Use Mikael's Crucible", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("qqq", "---- Frost Queen's Claim ----", SCRIPT_PARAM_INFO,"")
+	MenuBlitz.ss:addParam("fqhp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuBlitz.ss:addParam("ufq", "Use Frost Queen's Claim", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("qqq", "---- Locket of the Iron Solari ----", SCRIPT_PARAM_INFO,"")
+	MenuBlitz.ss:addParam("ishp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuBlitz.ss:addParam("uis", "Use Locket of the Iron Solari", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("qqq", "---- Twin Shadows ----", SCRIPT_PARAM_INFO,"")
+	MenuBlitz.ss:addParam("tshp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuBlitz.ss:addParam("uts", "Use Twin Shadows", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("qqq", "---- Exhaust ----", SCRIPT_PARAM_INFO,"")
+	MenuBlitz.ss:addParam("exhp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
+	MenuBlitz.ss:addParam("uex", "Use Exhaust", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("qqq", "---- Heal ----", SCRIPT_PARAM_INFO,"")
+	MenuBlitz.ss:addParam("hhp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
+	MenuBlitz.ss:addParam("uh", "Use Heal", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: KS Settings", "ksConfig")
 	MenuBlitz.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -267,35 +295,26 @@ function Menu()
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonersmite") then SmiteKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonersmite") then SmiteKey = SUMMONER_2
 	end
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerexhaust") then ExhaustKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerexhaust") then ExhaustKey = SUMMONER_2
+	end
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerheal") then HealKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerheal") then HealKey = SUMMONER_2
+	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
-	TargetTable = {
-	AP = {
-		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Gragas", "Heimerdinger", "Karthus",
-		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-	},	
-	Support = {
-		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-	},	
-	Tank = {
-		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-		"Warwick", "Yorick", "Zac"
-	},
-	AD_Carry = {
-		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-	},
-	Bruiser = {
-		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-	}
-	}
+	if heroManager.iCount < 10 then
+		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
+	elseif heroManager.iCount == 6 then
+		arrangePrioritysTT()
+    else
+		arrangePrioritys()
+	end
 	SxOrb:RegisterBeforeAttackCallback(function(t) aa() end)
 end
 
 function aa()
-	if MenuBlitz.comboConfig.CEnabled and MenuBlitz.comboConfig.USEE then
+	if MenuBlitz.comboConfig.CEnabled and MenuBlitz.comboConfig.USEE == 2 then
 		CastE()
 	end
 end
@@ -330,14 +349,6 @@ function Check()
 	if MenuBlitz.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
-	SReady = (SmiteKey ~= nil and myHero:CanUseSpell(SmiteKey) == READY)
 	if MenuBlitz.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -388,7 +399,7 @@ function Combo()
 		if MenuBlitz.comboConfig.USEW then
 			CastW()
 		end
-		if MenuBlitz.orb == 2 and MenuBlitz.comboConfig.USEE and ValidTarget(Cel, E.range) then
+		if MenuBlitz.orb == 2 and MenuBlitz.comboConfig.USEE == 2 and ValidTarget(Cel, E.range) then
 			CastE()
 		end
 		if MenuBlitz.comboConfig.USER then
@@ -419,9 +430,6 @@ function Harrass()
 			CastQ(Cel)
 			CastE()
 		end
-	end
-	if MenuBlitz.harrasConfig.MM then
-		myHero:MoveTo(mousePos.x, mousePos.z)
 	end
 end
 
@@ -459,6 +467,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuBlitz.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuBlitz.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -495,10 +505,10 @@ function OnDraw()
             end
         end
 	end
-	if MenuBlitz.drawConfig.DQR and QReady then			
+	if MenuBlitz.drawConfig.DQR and Q.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
 	end
-	if MenuBlitz.drawConfig.DRR and RReady then			
+	if MenuBlitz.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuBlitz.drawConfig.DRRC[2], MenuBlitz.drawConfig.DRRC[3], MenuBlitz.drawConfig.DRRC[4]))
 	end
 	if MenuBlitz.drawConfig.DGS then
@@ -517,6 +527,7 @@ function KillSteall()
 		local rDmg = getDmg("R", Enemy, myHero, 3)
 		local iDmg = (50 + (20 * myHero.level))
 		if ValidTarget(Enemy, Q.range) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if health < qDmg and MenuBlitz.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
 			elseif health < eDmg and MenuBlitz.ksConfig.EKS and ValidTarget(Enemy, E.range) then
@@ -580,11 +591,109 @@ function OnApplyBuff(source, unit, buff)
 		SuccesGrabCount = SuccesGrabCount + 1
 		FailGrabCount = (AllCastGrabCount-SuccesGrabCount)
 		PrecentGrabCount =((SuccesGrabCount*100)/AllCastGrabCount)
+		if MenuBlitz.comboConfig.CEnabled and MenuBlitz.comboConfig.USEE == 3 then
+			CastE()
+		end
 	end	
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "recall" then
+		recall = false
+	end
+end
+
+function Support()
+	if MenuBlitz.ss.umc then
+		mikael = GetInventorySlotItem(3222)
+		mikaelready = (mikael ~= nil and (myHero:CanUseSpell(mikael) == READY))
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 750) and ((((hero.health/hero.maxHealth)*100) < MenuBlitz.ss.mchp) or HaveBuff(hero)) then
+					if mikaelready then
+						CastSpell(mikael)
+					end
+				end
+			end
+		end
+	end
+	if MenuBlitz.ss.ufq then
+		frost = GetInventorySlotItem(3092)
+		frostready = (frost ~= nil and (myHero:CanUseSpell(frost) == READY))
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 880) and ((enemy.health/enemy.maxHealth)*100) < MenuBlitz.ss.fqhp then
+				if frostready then
+					CastSpell(frost, enemy.x, enemy.z)
+				end
+			end
+		end
+	end
+	if MenuBlitz.ss.uis then
+		solari = GetInventorySlotItem(3190)
+		solariready = (solari ~= nil and (myHero:CanUseSpell(solari) == READY))
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 700) and ((hero.health/hero.maxHealth)*100) < MenuBlitz.ss.ishp then
+					if solariready then
+						CastSpell(solari)
+					end
+				end
+			end
+		end
+	end
+	if MenuBlitz.ss.uts then
+		twin = GetInventorySlotItem(3023)
+		twinready = (twin ~= nil and (myHero:CanUseSpell(twin) == READY))
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 1000) and ((enemy.health/enemy.maxHealth)*100) < MenuBlitz.ss.tshp then
+				if twinready then
+					CastSpell(twin)
+				end
+			end
+		end
+	end
+	if MenuBlitz.ss.uex then
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, 550) and ((enemy.health/enemy.maxHealth)*100) < MenuBlitz.ss.exhp then
+				ExhaustReady = (ExhaustKey ~= nil and myHero:CanUseSpell(ExhaustKey) == READY)
+				if ExhaustReady then
+					CastSpell(ExhaustKey, enemy)
+				end
+			end
+		end
+	end
+	if MenuBlitz.ss.uh then
+		for i = 1, heroManager.iCount do
+			local hero = heroManager:GetHero(i)
+			if hero.team == myHero.team then
+				if ValidTarget(hero, 700) and ((hero.health/hero.maxHealth)*100) < MenuBlitz.ss.hhp then
+					HealReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
+					if HealReady then
+						CastSpell(HealKey, enemy)
+					end
+				end
+			end
+		end
+	end
+end
+
+function HaveBuff(unit)
+	for i = 1, unit.buffCount, 1 do      
+        local buff = unit:getBuff(i) 
+        if (buff.valid == true) and (buff.type == BUFF_STUN or buff.type == BUFF_ROOT or buff.type == BUFF_FEAR or buff.type == BUFF_TAUNT or buff.type == BUFF_SILENCE) then
+            return true                     
+        end                    
+    end
 end
 
 function CastQ(unit)
-	if QReady then
+	if Q.Ready() then
+		SReady = (SmiteKey ~= nil and myHero:CanUseSpell(SmiteKey) == READY)
 		if MenuBlitz.prConfig.pro == 1 then
 			if MenuBlitz.comboConfig.USEQS then
 				local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
@@ -621,7 +730,7 @@ function CastQ(unit)
 end
 
 function CastW()
-	if WReady then
+	if W.Ready() then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _W}):send()
 		else
@@ -631,7 +740,7 @@ function CastW()
 end
 
 function CastE()
-	if EReady then
+	if E.Ready() then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _E}):send()
 		else
@@ -641,7 +750,7 @@ function CastE()
 end
 
 function CastR(unit)
-	if RReady and ValidTarget(unit, R.range-20) then
+	if R.Ready() and ValidTarget(unit, R.range-20) then
 		if VIP_USER and MenuBlitz.prConfig.pc then
 			Packet("S_CAST", {spellId = _R}):send()
 		else
