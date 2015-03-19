@@ -2,8 +2,8 @@
 
 	Script Name: ZILEAN MASTER 
     	Author: kokosik1221
-	Last Version: 0.2
-	18.03.2015
+	Last Version: 0.21
+	19.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Zilean" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.2"
+local version = "0.21"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/ZileanMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -243,6 +243,12 @@ function Menu()
 	MenuZilean.prConfig:permaShow("ALS")
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
+	end
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerexhaust") then ExhaustKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerexhaust") then ExhaustKey = SUMMONER_2
+	end
+	if myHero:GetSpellData(SUMMONER_1).name:find("summonerheal") then HealKey = SUMMONER_1
+		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerheal") then HealKey = SUMMONER_2
 	end
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
