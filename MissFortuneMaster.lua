@@ -2,8 +2,8 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.36
-	13.02.2015
+	Last Version: 0.37
+	19.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.36"
+local version = "0.37"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -72,102 +72,96 @@ local Items = {
 	RND = { id = 3143, range = 275, reqTarget = false, slot = nil },
 }
 
-function OnLoad()
-	Vars()
-	Menu()
-	print("<b><font color=\"#6699FF\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-end
+local Q = {name = "Double Up", range = 650, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Impure Shots", range = 550, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Make It Rain", range = 800, width = 400, delay = 0.65, speed = 500, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Bullet Time", range = 1400, width = 400, angle = 30, delay = 1, speed = 780, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local recall, rcasting, r2 = false, false, false
+local EnemyMinions = minionManager(MINION_ENEMY, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local JungleMinions = minionManager(MINION_JUNGLE, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
+local QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
+local RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_PHYSICAL)
+local ETargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_PHYSICAL)
+local TextList = {"Harass him", "1 AA = Kill!", "2 AA = Kill!", "3 AA = Kill!", "4 AA = Kill!", "Q = Kill!", "E = Kill!", "R = Kill!", "Ignite = Kill!", "Harass him"}
+local HealKey = nil
+local KillText = {}
+local TargetTable = {
+	AP = {
+		"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
+		"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
+		"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
+	},	
+	Support = {
+		"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
+	},	
+	Tank = {
+		"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
+		"Warwick", "Yorick", "Zac"
+	},
+	AD_Carry = {
+		"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
+		"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
+	},
+	Bruiser = {
+		"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
+		"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
+	}
+}
 
-function Vars()
-    Q = {name = "Double Up", range = 650}
-	W = {name = "Impure Shots", range = 550}
-	E = {name = "Make It Rain", range = 800, width = 400, delay = 0.65, speed = 500}	
-	R = {name = "Bullet Time", range = 1400, width = 400, angle = 30, delay = 1, speed = 780}
-	QReady, WReady, EReady, RReady, recall, sac, rcasting, r2 = false, false, false, false, false, false, false, false, false
-	abilitylvl = myHero.level - 1
-	EnemyMinions = minionManager(MINION_ENEMY, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	JungleMinions = minionManager(MINION_JUNGLE, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-	QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
-	RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_PHYSICAL)
-	ETargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_PHYSICAL)
-	TextList = {"Harass him", "1 AA = Kill!", "2 AA = Kill!", "3 AA = Kill!", "4 AA = Kill!", "Q = Kill!", "E = Kill!", "R = Kill!", "Ignite = Kill!", "Harass him"}
-	HealKey = nil
-	KillText = {}
-	VP = VPrediction()
-	TargetTable = {
-		AP = {
-			"Annie", "Ahri", "Akali", "Anivia", "Annie", "Brand", "Cassiopeia", "Diana", "Evelynn", "FiddleSticks", "Fizz", "Annie", "Heimerdinger", "Karthus",
-			"Kassadin", "Katarina", "Kayle", "Kennen", "Leblanc", "Lissandra", "Lux", "Malzahar", "Mordekaiser", "Morgana", "Nidalee", "Orianna",
-			"Ryze", "Sion", "Swain", "Syndra", "Teemo", "TwistedFate", "Veigar", "Viktor", "Vladimir", "Xerath", "Ziggs", "Zyra", "Velkoz"
-		},	
-		Support = {
-			"Alistar", "Blitzcrank", "Janna", "Karma", "Leona", "Lulu", "Nami", "Nunu", "Sona", "Soraka", "Taric", "Thresh", "Zilean", "Braum"
-		},	
-		Tank = {
-			"Amumu", "Chogath", "DrMundo", "Galio", "Hecarim", "Malphite", "Maokai", "Nasus", "Rammus", "Sejuani", "Nautilus", "Shen", "Singed", "Skarner", "Volibear",
-			"Warwick", "Yorick", "Zac"
-		},
-		AD_Carry = {
-			"Ashe", "Caitlyn", "Corki", "Draven", "Ezreal", "Graves", "Jayce", "Jinx", "KogMaw", "Lucian", "MasterYi", "MissFortune", "Pantheon", "Quinn", "Shaco", "Sivir",
-			"Talon","Tryndamere", "Tristana", "Twitch", "Urgot", "Varus", "Vayne", "Yasuo", "Zed"
-		},
-		Bruiser = {
-			"Aatrox", "Darius", "Elise", "Fiora", "Gangplank", "Garen", "Irelia", "JarvanIV", "Jax", "Khazix", "LeeSin", "Nocturne", "Olaf", "Poppy",
-			"Renekton", "Rengar", "Riven", "Rumble", "Shyvana", "Trundle", "Udyr", "Vi", "MonkeyKing", "XinZhao"
-		}
-	}
-	levelSequences = {
-		QEW = { 1,3,2,1,1,4,1,3,1,3,4,3,3,2,2,4,2,2},
-		QWE = { 1,2,3,1,1,4,1,2,1,2,4,2,2,3,3,4,3,3},	
-		EQW = { 3,1,2,1,1,4,1,3,1,3,4,3,3,2,2,4,2,2}, 
-		WQE = { 2,1,3,2,2,4,1,3,1,3,4,3,3,2,2,4,1,1},
-	}
+function OnLoad()
+	Menu()
+	print("<b><font color=\"#FF0000\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#FF0000\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+	end	
 	if _G.AutoCarry then
-		print("<b><font color=\"#6699FF\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">MissFortune Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 	end
 end
 
 function OnTick()
 	Check()
-	if MFMenu.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.comboConfig.manac then
+	if MFMenu.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.comboConfig.manac and not recall then
 		Combo()
 	end
-	if (MFMenu.harrasConfig.HEnabled or MFMenu.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.harrasConfig.manah then
+	if (MFMenu.harrasConfig.HEnabled or MFMenu.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.harrasConfig.manah and not recall then
 		Harrass()
 	end
-	if MFMenu.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.farm.manaf then
+	if MFMenu.farm.LaneClear and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.farm.manaf and not recall then
 		Farm()
 	end
-	if MFMenu.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.jf.manajf then
+	if MFMenu.jf.JFEnabled and ((myHero.mana/myHero.maxMana)*100) >= MFMenu.jf.manajf and not recall then
 		JungleFarm()
 	end
-	if MFMenu.prConfig.ALS then
+	if MFMenu.prConfig.ALS and not recall then
 		autolvl()
 	end
-	if MFMenu.comboConfig.rConfig.CRKD and ValidTarget(RCel, R.range) then
+	if MFMenu.comboConfig.rConfig.CRKD and ValidTarget(RCel, R.range) and not recall then
 		CastR(RCel)
 	end
-	if MFMenu.exConfig.UAH then
+	if MFMenu.exConfig.UAH and not recall then
 		AutoHeal()
 	end
-	AutoF()
-	KillSteal()
+	if not recall then
+		AutoF()
+		KillSteal()
+	end
 end
 
 function Menu()
+	VP = VPrediction()
 	MFMenu = scriptConfig("MissFortune Master "..version, "MissFortune Master "..version)
 	MFMenu:addParam("lan", "Language:", SCRIPT_PARAM_LIST, 1, {"English","Chinese"}) 
-	MFMenu:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R"}) 
+	MFMenu:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MFMenu:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MFMenu.orb == 1 then
-		MFMenu:addSubMenu("Orbwalking", "Orbwalking")
+		MFMenu:addSubMenu("[MissFortune Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MFMenu.Orbwalking)
 		SxOrb:RegisterAfterAttackCallback(function(t) aa() end)
 	end
-	MFMenu:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, 550, DAMAGE_PHYSICAL)
 	TargetSelector.name = "MissFortune"
-	MFMenu.STS:addTS(TargetSelector)
+	MFMenu:addTS(TargetSelector)
 	if MFMenu.lan == 1 then
 	MFMenu:addSubMenu("[MissFortune Master]: Combo Settings", "comboConfig")
 	MFMenu.comboConfig:addSubMenu("[MissFortune Master]: Q Settings", "qConfig")
@@ -374,24 +368,22 @@ end
 function Check()
 	CheckUlt()
 	QTargetSelector:update()
-	QCel = QTargetSelector.target
 	ETargetSelector:update()
-	ECel = ETargetSelector.target
 	RTargetSelector:update()
-	RCel = RTargetSelector.target
 	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, Q.range) then
 		Cel = SelectedTarget
+		QCel = SelectedTarget
+		ECel = SelectedTarget
+		RCel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
+		QCel = QTargetSelector.target
+		ECel = ETargetSelector.target
+		RCel = RTargetSelector.target
 	end
 	if MFMenu.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	HReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
 	if MFMenu.drawConfig.DLC then 
 		_G.DrawCircle = DrawCircle2 
 	else 
@@ -487,7 +479,7 @@ function Combo()
 end
 
 function Harrass()
-	if MFMenu.harrasConfig.USEQ and recall == false and not rcasting and not MFMenu.harrasConfig.USEQ2 then
+	if MFMenu.harrasConfig.USEQ and not rcasting and not MFMenu.harrasConfig.USEQ2 then
 		if ValidTarget(QCel, Q.range) then
 			CastQ(QCel)
 		end
@@ -505,12 +497,12 @@ function Harrass()
 			end
 		end
 	end
-	if MFMenu.harrasConfig.USEW and recall == false and not rcasting then
+	if MFMenu.harrasConfig.USEW and not rcasting then
 		if ValidTarget(Cel, W.range) then
 			CastW()
 		end
 	end
-	if MFMenu.harrasConfig.USEE and recall == false and not rcasting then
+	if MFMenu.harrasConfig.USEE and not rcasting then
 		if ValidTarget(ECel, E.range) then
 			CastE(ECel)
 		end
@@ -617,11 +609,11 @@ function DmgCalc()
 			local qDmg = getDmg("Q", enemy, myHero, 3)
 			local eDmg = getDmg("E", enemy, myHero, 3)
 			local rDmg = getDmg("R", enemy, myHero, 3) * 7
-			if enemy.health < qDmg and QReady then
+			if enemy.health < qDmg and Q.Ready() then
 				KillText[i] = 6
-			elseif enemy.health < eDmg and EReady then
+			elseif enemy.health < eDmg and E.Ready() then
 				KillText[i] = 7
-			elseif enemy.health < rDmg and RReady then
+			elseif enemy.health < rDmg and R.Ready() then
 				KillText[i] = 8
 			elseif enemy.health < iDmg and IReady then
 				KillText[i] = 9
@@ -670,7 +662,8 @@ function OnDraw()
 end
 
 function AutoHeal()
-	if HReady and recall == false then
+	HReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
+	if HReady then
 		if ((myHero.health/myHero.maxHealth)*100) < MFMenu.exConfig.UAHHP then
 			CastSpell(HealKey)
 		end
@@ -680,7 +673,7 @@ end
 function AutoF()
 	for _, enemy in pairs(GetEnemyHeroes()) do
 		if MFMenu.exConfig.ARF and not rcasting then
-			if RReady and ValidTarget(enemy, R.range) and recall == false then
+			if R.Ready() and ValidTarget(enemy, R.range) then
 				local rPos, HitChance, maxHit, Positions = VP:GetConeAOECastPosition(enemy, R.delay, R.angle, R.range, R.speed, myHero)
 				if rPos ~= nil and maxHit >= MFMenu.exConfig.ARX and HitChance >=2 then		
 					if VIP_USER and MFMenu.prConfig.pc then
@@ -692,7 +685,7 @@ function AutoF()
 			end
 		end
 		if MFMenu.exConfig.AEF and not rcasting then
-			if EReady and ValidTarget(enemy, E.range) and recall == false then
+			if E.Ready() and ValidTarget(enemy, E.range) then
 				local ePos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, E.delay, E.width, E.range, E.speed, myHero)
 				if ePos ~= nil and maxHit >= MFMenu.exConfig.AEX and HitChance >=2 then		
 					if VIP_USER and MFMenu.prConfig.pc then
@@ -707,33 +700,30 @@ function AutoF()
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "missfortunebulletsound" then
-		if MFMenu.orb == 1 then
-			SxOrb:DisableMove()
-			SxOrb:DisableAttacks()
-		elseif MFMenu.orb == 2 then
-			AutoCarry.MyHero:MovementEnabled(false)
-			AutoCarry.MyHero:AttacksEnabled(false)
+	if unit and buff then
+		if unit.isMe and buff.name == "MissFortuneBulletSound" then
+			if MFMenu.orb == 1 then
+				SxOrb:DisableMove()
+				SxOrb:DisableAttacks()
+			elseif MFMenu.orb == 2 then
+				AutoCarry.MyHero:MovementEnabled(false)
+				AutoCarry.MyHero:AttacksEnabled(false)
+			end
 		end
 	end
-	if unit.isMe and buff and buff.name == "recallimproved" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "missfortunebulletsound" then
-		if MFMenu.orb == 1 then
-			SxOrb:EnableMove()
-			SxOrb:EnableAttacks()
-		elseif MFMenu.orb == 2 then
-			AutoCarry.MyHero:MovementEnabled(true)
-			AutoCarry.MyHero:AttacksEnabled(true)
+	if unit and buff then
+		if unit.isMe and buff.name == "MissFortuneBulletSound" then
+			rcasting = false
+			r2 = false
 		end
-		rcasting = false
-		r2 = false
 	end
-	if unit.isMe and buff and buff.name == "recallimproved" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -746,6 +736,14 @@ function CheckUlt()
 		elseif MFMenu.orb == 2 then
 			AutoCarry.MyHero:MovementEnabled(false)
 			AutoCarry.MyHero:AttacksEnabled(false)
+		end
+	elseif not rcasting or not r2 then
+		if MFMenu.orb == 1 then
+			SxOrb:EnableMove()
+			SxOrb:EnableAttacks()
+		elseif MFMenu.orb == 2 then
+			AutoCarry.MyHero:MovementEnabled(true)
+			AutoCarry.MyHero:AttacksEnabled(true)
 		end
     end
 end
@@ -772,7 +770,7 @@ function KillSteal()
 end
 
 function CastQ(unit)
-	if QReady then
+	if Q.Ready() then
 		if VIP_USER and MFMenu.prConfig.pc then
 			Packet("S_CAST", {spellId = _Q, targetNetworkId = unit.networkID}):send()
 		else
@@ -782,7 +780,7 @@ function CastQ(unit)
 end
 
 function CastW()
-	if WReady then
+	if W.Ready() then
 		if VIP_USER and MFMenu.prConfig.pc then
 			Packet("S_CAST", {spellId = _W}):send()
 		else
@@ -792,7 +790,7 @@ function CastW()
 end
 
 function CastE(unit)
-	if EReady then
+	if E.Ready() then
 		if MFMenu.prConfig.pro == 1 then
 			local CastPosition,  HitChance,  Position = VP:GetPredictedPos(unit, E.delay, E.speed, myHero, false)
 			if Position and HitChance >= MFMenu.prConfig.vphit - 1 then
@@ -817,7 +815,7 @@ function CastE(unit)
 end
 
 function CastR(unit)
-	if RReady then
+	if R.Ready() then
 		rcasting = true 
 		r2 = true
 		if MFMenu.prConfig.pro == 1 then
@@ -843,18 +841,7 @@ function CastR(unit)
 	end
 end
 
-function OnSendPacket(packet)
-    local UltPacket = Packet(packet)
-    if VIP_USER and MFMenu.prConfig.pc and (UltPacket:get("name") == "S_MOVE") and r2 == true then
-		UltPacket:block()
-    end
-end
-
 function OnWndMsg(Msg, Key)
-	if RReady and Msg == KEY_DOWN and Key == 82 then
-		rcasting = true
-		r2 = true
-	end
 	if Msg == WM_LBUTTONDOWN and MFMenu.comboConfig.ST then
 		local dist = 0
 		local Selecttarget = nil
