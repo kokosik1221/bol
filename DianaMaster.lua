@@ -2,8 +2,8 @@
 
 	Script Name: DIANA MASTER 
     	Author: kokosik1221
-	Last Version: 0.42
-	27.02.2015
+	Last Version: 0.43
+	19.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Diana" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.42"
+local version = "0.43"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/DianaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -94,15 +94,15 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
  
-local Q = {name = "Crescent Strike", range = 900, speed = math.huge, delay = 0.5, width = 195}
-local W = {name = "Pale Cascade", range = 200}
-local E = {name = "Moonfall", range = 450}
-local R = {name = "Lunar Rush", range = 825}
-local QReady, WReady, EReady, RReady, IReady, zhonyaready, moonlight, recall = false, false, false, false, false, false, false, false, false, false
+local Q = {name = "Crescent Strike", range = 900, speed = math.huge, delay = 0.75, width = 195, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Pale Cascade", range = 200, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Moonfall", range = 450, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Lunar Rush", range = 825, Ready = function() return myHero:CanUseSpell(_R) == READY end}
+local IReady, zhonyaready, moonlight, recall = false, false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local lasttickchecked, lasthealthchecked = 0, 0
-local IgniteKey, zhonyaslot = nil, nil
+local IgniteKey, zhonyaslot, KSEnemy = nil, nil, nil
 local killstring = {}
 local TargetTable = {
 	AP = {
@@ -170,7 +170,7 @@ function OnTick()
 	if not recall then
 		KillSteall()
 	end
-	if MenuDiana.comboConfig.rConfig.CRKD and Cel and RReady then
+	if MenuDiana.comboConfig.rConfig.CRKD and Cel and R.Ready() then
 		CastR(Cel)
 	end
 end
@@ -181,13 +181,12 @@ function Menu()
 	MenuDiana:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuDiana:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
 	if MenuDiana.orb == 1 then
-		MenuDiana:addSubMenu("Orbwalking", "Orbwalking")
+		MenuDiana:addSubMenu("[Diana Master]: Orbwalking", "Orbwalking")
 		SxOrb:LoadToMenu(MenuDiana.Orbwalking)
 	end
-	MenuDiana:addSubMenu("Target selector", "STS")
 	TargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 	TargetSelector.name = "Diana"
-	MenuDiana.STS:addTS(TargetSelector)
+	MenuDiana:addTS(TargetSelector)
 	MenuDiana:addSubMenu("[Diana Master]: Combo Settings", "comboConfig")
 	MenuDiana.comboConfig:addSubMenu("[Diana Master]: Q Settings", "qConfig")
 	MenuDiana.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
@@ -304,51 +303,43 @@ function Check()
 	if MenuDiana.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 	if MenuDiana.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
 
 function Combo()
 	UseItems(Cel)
-	if QReady and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
+	if Q.Ready() and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
-	if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) and not MenuDiana.comboConfig.rConfig.USER2 then
+	if R.Ready() and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) and not MenuDiana.comboConfig.rConfig.USER2 then
 		CastR(Cel)
 	end
-	if moonlight and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) and MenuDiana.comboConfig.rConfig.USER2 and RReady then
+	if moonlight and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) and MenuDiana.comboConfig.rConfig.USER2 and R.Ready() then
 		CastR(Cel)
-		DelayAction(function() moonlight = false end, 0.5)
 	end
-	if EReady and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
+	if E.Ready() and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
 		if GetDistance(Cel) >= MenuDiana.comboConfig.eConfig.USEE2 then
 			CastE()
 		end
 	end
-	if WReady and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
+	if W.Ready() and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
 		CastW()
 	end
 end
 
 function Combo2()
-	if QReady and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, R.range) then
+	if Q.Ready() and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, R.range) then
 		CastQ(Cel)
 	end
 		DelayAction(function()  
-			if RReady and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
+			if R.Ready() and MenuDiana.comboConfig.rConfig.USER and ValidTarget(Cel, R.range) then
 				CastR(Cel)
 			end
 		end, 0.75)
-	if WReady and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
+	if W.Ready() and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
 		CastW()
 	end
-	if EReady and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
+	if E.Ready() and MenuDiana.comboConfig.eConfig.USEE and ValidTarget(Cel, E.range) then
 		if GetDistance(Cel) >= MenuDiana.comboConfig.eConfig.USEE2 then
 			CastE()
 		end
@@ -356,13 +347,13 @@ function Combo2()
 end
 
 function Harrass()
-	if QReady and MenuDiana.harrasConfig.QH and ValidTarget(Cel, Q.range) then
+	if Q.Ready() and MenuDiana.harrasConfig.QH and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
-	if WReady and MenuDiana.harrasConfig.WH and ValidTarget(Cel, W.range) then
+	if W.Ready() and MenuDiana.harrasConfig.WH and ValidTarget(Cel, W.range) then
 		CastW()
 	end
-	if EReady and MenuDiana.harrasConfig.EH and ValidTarget(Cel, E.range) then
+	if E.Ready() and MenuDiana.harrasConfig.EH and ValidTarget(Cel, E.range) then
 		CastE()
 	end
 end
@@ -374,32 +365,32 @@ function Farm()
 	EMode =  MenuDiana.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
 			end
 		elseif QMode == 2 then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero, 3) then
 					CastQ(minion)
 				end
 			end
 		end
 		if WMode == 3 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				CastW()
 			end
 		elseif WMode == 2 then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				if minion.health <= getDmg("W", minion, myHero, 3) then
 					CastW()
 				end
 			end
 		end
 		if EMode == 2 and (QMode == 3 or WMode == 3) then
-			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if E.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
 				CastE()
 			end
 		end
@@ -410,17 +401,17 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuDiana.jf.QJF then
-			if QReady and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
 		end
 		if MenuDiana.jf.WJF then
-			if WReady and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
+			if W.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, W.range) then
 				CastW()
 			end
 		end
 		if MenuDiana.jf.EJF then
-			if EReady and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if E.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
 				CastE()
 			end
 		end
@@ -435,18 +426,19 @@ function KillSteall()
 		local RDMG = getDmg("R", Enemy, myHero, 3)
 		local IDMG = 50 + (20 * myHero.level)
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
 			if IReady and hp < IDMG and MenuDiana.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(IgniteKey, Enemy)
-			elseif QReady and hp < QDMG and MenuDiana.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
+			elseif Q.Ready() and hp < QDMG and MenuDiana.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
-			elseif WReady and hp < WDMG and MenuDiana.ksConfig.WKS and ValidTarget(Enemy, W.range) then
+			elseif W.Ready() and hp < WDMG and MenuDiana.ksConfig.WKS and ValidTarget(Enemy, W.range) then
 				CastW()
-			elseif RReady and hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and not MenuDiana.ksConfig.RKS2 then
+			elseif R.Ready() and hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and not MenuDiana.ksConfig.RKS2 then
 				CastR(Enemy)
-			elseif RReady and hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and MenuDiana.ksConfig.RKS2 then
+			elseif R.Ready() and hp < RDMG and MenuDiana.ksConfig.RKS and ValidTarget(Enemy, R.range) and MenuDiana.ksConfig.RKS2 then
+				KSEnemy = Enemy
 				if moonlight then
 					CastR(Enemy)
-					DelayAction(function() moonlight = false end, 0.5)
 				end
 			end
 		end
@@ -455,6 +447,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuDiana.prConfig.AZMR)
+	zhonyaslot = GetInventorySlotItem(3157)
+	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuDiana.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -518,16 +512,16 @@ function OnDraw()
             end
         end
 	end
-	if MenuDiana.drawConfig.DQR and QReady then			
+	if MenuDiana.drawConfig.DQR and Q.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuDiana.drawConfig.DQRC[2], MenuDiana.drawConfig.DQRC[3], MenuDiana.drawConfig.DQRC[4]))
 	end
-	if MenuDiana.drawConfig.DWR and WReady then			
+	if MenuDiana.drawConfig.DWR and W.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuDiana.drawConfig.DWRC[2], MenuDiana.drawConfig.DWRC[3], MenuDiana.drawConfig.DWRC[4]))
 	end
-	if MenuDiana.drawConfig.DER and EReady then			
+	if MenuDiana.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuDiana.drawConfig.DERC[2], MenuDiana.drawConfig.DERC[3], MenuDiana.drawConfig.DERC[4]))
 	end
-	if MenuDiana.drawConfig.DRR and RReady then			
+	if MenuDiana.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuDiana.drawConfig.DRRC[2], MenuDiana.drawConfig.DRRC[3], MenuDiana.drawConfig.DRRC[4]))
 	end
 end
@@ -550,26 +544,20 @@ function UseItems(unit)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
-	if unit and source and source == Cel and buff.name == "dianamoonlight" then
-		
+	if unit.isMe and (source == Cel or source == KSEnemy) and buff.name == "dianamoonlight" then
+		moonlight = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
-	if unit and source and source == Cel and buff.name == "dianamoonlight" then
-		
-	end
-end
-
-function OnCreateObj(obj)
-	if obj.name == "Diana_Base_Q_Moonlight_Champ.troy" or obj.name == "Diana_Skin01_Q_Moonlight_Champ.troy" or obj.name == "Diana_Skin02_Q_Moonlight_Champ.troy" or obj.name == "Diana_Skin03_Q_Moonlight_Champ.troy" then
-		moonlight = true
+	if (unit == Cel or unit == KSEnemy) and buff.name == "dianamoonlight" then
+		moonlight = false
 	end
 end
 
@@ -578,7 +566,7 @@ function WCheck()
 		lasthealthchecked = myHero.health
 		lasttickchecked = GetTickCount()
 	end
-	if WReady and (MenuDiana.exConfig.USEW2 == 2 or MenuDiana.exConfig.USEW2 == 4) and not recall then
+	if W.Ready() and (MenuDiana.exConfig.USEW2 == 2 or MenuDiana.exConfig.USEW2 == 4) and not recall then
 		if lasthealthchecked > myHero.health then
 			CastW()
 		end
@@ -694,7 +682,7 @@ function CastR(unit)
 end
 
 function OnProcessSpell(unit, spell)
-	if MenuDiana.exConfig.UI and EReady then
+	if MenuDiana.exConfig.UI and E.Ready() then
 		for _, x in pairs(InterruptList) do
 			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
 				if spell.name == x.spellName and MenuDiana.exConfig.ES[x.spellName] and ValidTarget(unit, E.range) then
@@ -703,7 +691,7 @@ function OnProcessSpell(unit, spell)
 			end
 		end
 	end
-	if (MenuDiana.exConfig.USEW2 == 3 or MenuDiana.exConfig.USEW2 == 4) and WReady then
+	if (MenuDiana.exConfig.USEW2 == 3 or MenuDiana.exConfig.USEW2 == 4) and W.Ready() then
 		if unit.type == myHero.type and spell.name:lower():find("attack") and spell.target == myHero then
 			CastW()
 		end
