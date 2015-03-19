@@ -2,7 +2,7 @@
 
 	Script Name: MISS FORUNTE MASTER 
     	Author: kokosik1221
-	Last Version: 0.37
+	Last Version: 0.38
 	19.03.2015
 	
 ]]--
@@ -12,7 +12,7 @@ if myHero.charName ~= "MissFortune" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.37"
+local version = "0.38"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MissFortuneMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -239,7 +239,6 @@ function Menu()
 	MFMenu.prConfig:addParam("pc", "Use Packets To Cast Spells(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MFMenu.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MFMenu.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
-	MFMenu.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "Q>E>W>R", "Q>W>E>R", "E>Q>W>R", "W>Q>E>R"})
 	MFMenu.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MFMenu.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MFMenu.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
@@ -319,7 +318,6 @@ function Menu()
 	MFMenu.prConfig:addParam("pc", "?????????(VIP)", SCRIPT_PARAM_ONOFF, false)
 	MFMenu.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MFMenu.prConfig:addParam("ALS", "??????", SCRIPT_PARAM_ONOFF, false)
-	MFMenu.prConfig:addParam("AL", "??lvl??", SCRIPT_PARAM_LIST, 1, { "Q>E>W>R", "Q>W>E>R", "E>Q>W>R", "W>Q>E>R"})
 	MFMenu.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MFMenu.prConfig:addParam("pro", "Prodiction ??:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
 	MFMenu.prConfig:addParam("vphit", "VPrediction ???", SCRIPT_PARAM_LIST, 3, {"[0]????","[1]????", "[2]????", "[3]????/??", "[4]????", "[5]????" })
@@ -585,14 +583,9 @@ end
 
 function autolvl()
 	if MFMenu.prConfig.ALS then
-		if MFMenu.prConfig.AL == 1 then
-			autoLevelSetSequence(levelSequences.QEW)
-		elseif MFMenu.prConfig.AL == 2 then
-			autoLevelSetSequence(levelSequences.QWE)
-		elseif MFMenu.prConfig.AL == 3 then
-			autoLevelSetSequence(levelSequences.EQW)
-		elseif MFMenu.prConfig.AL == 4 then
-			autoLevelSetSequence(levelSequences.WQE)
+		if myHero.level > GetHeroLeveled() then
+			local a = {_Q,_W,_Q,_E,_Q,_R,_Q,_W,_Q,_W,_R,_W,_W,_E,_E,_R,_E,_E}
+			LevelSpell(a[GetHeroLeveled() + 1])
 		end
 	end
 end
