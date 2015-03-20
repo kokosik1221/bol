@@ -2,8 +2,9 @@
 
 	Script Name: DIANA MASTER 
     	Author: kokosik1221
-	Last Version: 0.43
-	19.03.2015
+	Last Version: 0.44
+	20.03.2015
+
 	
 ]]--
 
@@ -12,7 +13,7 @@ if myHero.charName ~= "Diana" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.43"
+local version = "0.44"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/DianaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -94,7 +95,7 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
  
-local Q = {name = "Crescent Strike", range = 900, speed = math.huge, delay = 0.75, width = 195, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local Q = {name = "Crescent Strike", range = 900, speed = 2000, delay = 0.5, width = 195, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
 local W = {name = "Pale Cascade", range = 200, Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Moonfall", range = 450, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Lunar Rush", range = 825, Ready = function() return myHero:CanUseSpell(_R) == READY end}
