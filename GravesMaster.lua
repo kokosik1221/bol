@@ -2,8 +2,8 @@
 
 	Script Name: GRAVES MASTER 
     	Author: kokosik1221
-	Last Version: 0.31
-	16.03.2015
+	Last Version: 0.32
+	20.03.2015
 	
 ]]--
 
@@ -11,7 +11,7 @@ if myHero.charName ~= "Graves" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.31"
+local version = "0.32"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GravesMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -63,14 +63,14 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 	end
 end
 
-local Q = {name = "Buckshot", range = 950, speed = 2000, delay = 0.25, angle = 25 * math.pi/180}
-local W = {name = "Smoke Screen", range = 950, speed = 1650, delay = 0.25, width = 250}
-local E = {name = "Quickdraw", range = 425}
-local R = {name = "Collateral Damage", range = 1000, speed = 2100, delay = 0.25, width = 100}
+local Q = {name = "Buckshot", range = 950, speed = 2000, delay = 0.25, angle = 25 * math.pi/180, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Smoke Screen", range = 950, speed = 1650, delay = 0.25, width = 250, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local E = {name = "Quickdraw", range = 425, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local R = {name = "Collateral Damage", range = 1000, speed = 2100, delay = 0.25, width = 100, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
 local WTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, W.range, DAMAGE_PHYSICAL)
 local RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_PHYSICAL)
-local QReady, WReady, EReady, RReady, HReady, recall = false, false, false, false, false, false, false, false, false
+local HReady, recall = false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local HealKey = nil
@@ -155,6 +155,17 @@ local DodgeTable =
 	['FizzMarinerDoom'] = {charName = "Fizz", spellSlot = "R", SpellType = "skillshot"},
 	['HecarimUlt'] = {charName = "Hecarim", spellSlot = "R", SpellType = "skillshot"},
 }
+
+function OnLoad()
+	Menu()
+	print("<b><font color=\"#FF0000\">Graves Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#FF0000\">Graves Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+	end
+	if _G.AutoCarry then
+		print("<b><font color=\"#FF0000\">Graves Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+	end
+end
 
 function Menu()
 	VP = VPrediction()
@@ -260,16 +271,6 @@ function Menu()
     else
 		arrangePrioritys()
 	end
-	if _G.MMA_Loaded then
-		print("<b><font color=\"#FF0000\">Graves Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-	end
-	if _G.AutoCarry then
-		print("<b><font color=\"#FF0000\">Graves Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-	end
-end
-
-function OnLoad()
-	Menu()
 end
 
 function OnTick()
@@ -319,16 +320,11 @@ function Check()
 		RTargetSelector:update()	
 		RCel = RTargetSelector.target
 	end
-	QReady = (myHero:CanUseSpell(_Q) == READY)
-	WReady = (myHero:CanUseSpell(_W) == READY)
-	EReady = (myHero:CanUseSpell(_E) == READY)
-	RReady = (myHero:CanUseSpell(_R) == READY)
-	HReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
 	if MenuGraves.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 	if MenuGraves.orb == 1 then
 		SxOrb:ForceTarget(Cel)
 	end
-	if MenuGraves.comboConfig.qConfig.USEQ2 and QReady and EReady then
+	if MenuGraves.comboConfig.qConfig.USEQ2 and Q.Ready() and E.Ready() then
 		Q.range = 425 + 950
 	elseif not MenuGraves.comboConfig.qConfig.USEQ2 then
 		Q.range = 950
@@ -356,7 +352,7 @@ function Combo()
 		if ((myHero.mana/myHero.maxMana)*100) >= MenuGraves.comboConfig.wConfig.USEW2 then
 			for _, enemy in pairs(GetEnemyHeroes()) do
 				local WPos, HitChance, maxHit, Positions = VP:GetCircularAOECastPosition(enemy, W.delay, W.width, W.range, W.speed, myHero)
-				if WReady and ValidTarget(enemy, W.range) and WPos ~= nil and maxHit >= MenuGraves.comboConfig.wConfig.USEWX then		
+				if W.Ready() and ValidTarget(enemy, W.range) and WPos ~= nil and maxHit >= MenuGraves.comboConfig.wConfig.USEWX then		
 					if VIP_USER and MenuGraves.prConfig.pc then
 						Packet("S_CAST", {spellId = _W, fromX = WPos.x, fromY = WPos.z, toX = WPos.x, toY = WPos.z}):send()
 					else
@@ -456,16 +452,16 @@ function OnDraw()
 	if MenuGraves.drawConfig.DAR then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, myHero.range+65, RGB(MenuGraves.drawConfig.DARC[2], MenuGraves.drawConfig.DARC[3], MenuGraves.drawConfig.DARC[4]))
 	end
-	if MenuGraves.drawConfig.DQR and QReady then			
+	if MenuGraves.drawConfig.DQR and Q.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuGraves.drawConfig.DQRC[2], MenuGraves.drawConfig.DQRC[3], MenuGraves.drawConfig.DQRC[4]))
 	end
-	if MenuGraves.drawConfig.DWR and WReady then			
+	if MenuGraves.drawConfig.DWR and W.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuGraves.drawConfig.DWRC[2], MenuGraves.drawConfig.DWRC[3], MenuGraves.drawConfig.DWRC[4]))
 	end
-	if MenuGraves.drawConfig.DER and EReady then			
+	if MenuGraves.drawConfig.DER and E.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuGraves.drawConfig.DERC[2], MenuGraves.drawConfig.DERC[3], MenuGraves.drawConfig.DERC[4]))
 	end
-	if MenuGraves.drawConfig.DRR and RReady then			
+	if MenuGraves.drawConfig.DRR and R.Ready() then			
 		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuGraves.drawConfig.DRRC[2], MenuGraves.drawConfig.DRRC[3], MenuGraves.drawConfig.DRRC[4]))
 	end
 end
@@ -542,6 +538,7 @@ end
 
 function AutoHeal()
 	if ((myHero.health/myHero.maxHealth)*100) < MenuGraves.exConfig.UAHHP then
+		HReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
 		if HReady then
 			CastSpell(HealKey)
 		end
@@ -550,22 +547,24 @@ end
 
 function CalcDMG(unit)
 	local dmg = 0
-	if MenuGraves.comboConfig.rConfig.USER2 == 1 then
-		dmg = dmg + getDmg("AD", unit, myHero) * 2
-	elseif MenuGraves.comboConfig.rConfig.USER2 == 2 then
-		dmg = dmg + getDmg("AD", unit, myHero) * 5
-	elseif MenuGraves.comboConfig.rConfig.USER2 == 3 then
-		dmg = dmg + getDmg("AD", unit, myHero) * 9
+	if GetDistance(unit) <= myHero.range+120 then
+		if MenuGraves.comboConfig.rConfig.USER2 == 1 then
+			dmg = dmg + getDmg("AD", unit, myHero) * 2
+		elseif MenuGraves.comboConfig.rConfig.USER2 == 2 then
+			dmg = dmg + getDmg("AD", unit, myHero) * 5
+		elseif MenuGraves.comboConfig.rConfig.USER2 == 3 then
+			dmg = dmg + getDmg("AD", unit, myHero) * 9
+		end
 	end
-	dmg = dmg + ((RReady and getDmg("R", unit, myHero, 3)) or 0)
-	dmg = dmg + ((QReady and getDmg("Q", unit, myHero, 3)) or 0)
-	dmg = dmg + ((WReady and getDmg("W", unit, myHero)) or 0)
+	dmg = dmg + ((R.Ready() and getDmg("R", unit, myHero, 3)) or 0)
+	dmg = dmg + ((Q.Ready() and getDmg("Q", unit, myHero, 3)) or 0)
+	dmg = dmg + ((W.Ready() and getDmg("W", unit, myHero)) or 0)
 	return dmg
 end
 
 function CastR(unit)
 	local DMG = CalcDMG(unit)
-	if RReady and ValidTarget(unit) and DMG > unit.health then
+	if R.Ready() and ValidTarget(unit) and DMG > unit.health then
 		if MenuGraves.prConfig.pro == 1 then
 			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range, R.speed, myHero)
 			if CastPosition and HitChance >= 2 then
@@ -591,7 +590,7 @@ end
 
 function CastR2()
 	for _, enemy in pairs(GetEnemyHeroes()) do
-		if RReady and ValidTarget(enemy, R.range) then
+		if R.Ready() and ValidTarget(enemy, R.range) then
 			local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
 			if rPos ~= nil and maxHit >= MenuGraves.comboConfig.rConfig.USERX and HitChance >= 2 then		
 				if VIP_USER and MenuLux.prConfig.pc then
@@ -605,7 +604,7 @@ function CastR2()
 end
 
 function CastE(unit)
-	if EReady then
+	if E.Ready() then
 		if VIP_USER and MenuGraves.prConfig.pc then
 			Packet("S_CAST", {spellId = _E, fromX = unit.x, fromY = unit.z, toX = unit.x, toY = unit.z}):send()
 		else
@@ -615,7 +614,7 @@ function CastE(unit)
 end
 
 function CastW(unit)
-	if WReady and ValidTarget(unit) then
+	if W.Ready() and ValidTarget(unit) then
 		if MenuGraves.prConfig.pro == 1 then
 			local CastPosition, HitChance, Position = VP:GetCircularAOECastPosition(unit, W.delay, W.width, W.range, W.speed, myHero)
 			if CastPosition and HitChance >= 2  then
@@ -640,7 +639,7 @@ function CastW(unit)
 end
 
 function CastQ(unit)
-	if QReady and ValidTarget(unit) then
+	if Q.Ready() and ValidTarget(unit) then
 		if MenuGraves.prConfig.pro == 1 then
 			local CastPosition, HitChance, Position = VP:GetConeAOECastPosition(unit, Q.delay, Q.angle, Q.range-20, Q.speed, myHero)
 			if CastPosition and HitChance >= 2 then
@@ -665,13 +664,13 @@ function CastQ(unit)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit and unit.isMe and buff and buff.name == "recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit and unit.isMe and buff and buff.name == "recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -738,7 +737,7 @@ function OnProcessSpell(unit, spell)
 				elseif shottype == 7 then 
 					hitchampion = checkhitcone(spell.endPos, unit, radius, maxdistance, myHero, hb)
 				end
-				if hitchampion and EReady and MenuGraves.exConfig.dspells[spell.name] then
+				if hitchampion and E.Ready() and MenuGraves.exConfig.dspells[spell.name] then
 					CastE(mousePos)
 				end
 			end
