@@ -2,9 +2,9 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.61
+	Last Version: 0.62
 	22.03.2015
-
+	
 ]]--
 
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Lux" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.61"
+local version = "0.62"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -678,7 +678,7 @@ end
 
 function KSandAUTO()
 	for _, enemy in pairs(GetEnemyHeroes()) do
-		if ValidTarget(enemy) and eobject and GetDistance(eobject,enemy) <= E.width then
+		if enemy and eobject and GetDistance(eobject,enemy) <= E.width then
 			if myHero:GetSpellData(_E).name == "luxlightstriketoggle" then
 				CastSpell(_E)
 			end
@@ -818,18 +818,23 @@ function CastQ2(unit)
 				CastPosition,  HitChance, Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, false)
 			elseif MenuLux.prConfig.pro == 2 then
 				CastPosition, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
-			elseif MenuLux.prConfig.pro == 3 then
-				local unit = DPTarget(unit)
-				local LuxQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 1)
-				local State, Position, perc = DP:predict(unit, LuxQ)
-				if State == SkillShot.STATUS.SUCCESS_HIT then 
-					CastPosition = Position
-				end
 			end
 			if VIP_USER and MenuLux.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
 			else
 				CastSpell(_Q, CastPosition.x, CastPosition.z)
+			end
+		end
+		if MenuLux.prConfig.pro == 3 then
+			local unit = DPTarget(unit)
+			local LuxQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 1)
+			local State, Position, perc = DP:predict(unit, LuxQ)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuLux.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
 			end
 		end
 	end
