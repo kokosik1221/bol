@@ -2,8 +2,8 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 2.1 
-	18.03.2015
+	Last Version: 2.2 
+	22.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Galio" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "2.1"
+local version = "2.2"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GalioMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,6 +39,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -56,6 +57,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -149,6 +153,9 @@ function OnTick()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuGalio = scriptConfig("Galio Master "..version, "Galio Master "..version)
 	MenuGalio:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -229,7 +236,7 @@ function Menu()
 	MenuGalio.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuGalio.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, {"MID"})
 	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGalio.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuGalio.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuGalio.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuGalio.comboConfig:permaShow("CEnabled")
 	MenuGalio.harrasConfig:permaShow("HEnabled")
@@ -419,31 +426,37 @@ function Farm()
 	end
 end
 
-function BestQFarmPos(range, radius, objects)
-    local Pos 
-    local BHit = 0
-    for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
-        if hit > BHit then
-            BHit = hit
-            Pos = Vector(object)
-            if BHit == #objects then
-               break
-            end
-         end
-    end
-
-    return Pos, BHit
+function _GetDistanceSqr(p1, p2)
+    p2 = p2 or player
+    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
+    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
+    return GetDistanceSqr(p1, p2)
 end
 
 function CountObjectsNearPos(pos, range, radius, objects)
     local n = 0
     for i, object in ipairs(objects) do
-        if GetDistanceSqr(pos, object) <= radius * radius then
+        if _GetDistanceSqr(pos, object) <= radius * radius then
             n = n + 1
         end
     end
     return n
+end
+
+function BestQFarmPos(range, radius, objects)
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function JungleFarmm()
@@ -541,7 +554,7 @@ function OnApplyBuff(unit, source, buff)
 			AutoCarry.MyHero:AttacksEnabled(false)
 		end
 	end
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
@@ -557,7 +570,7 @@ function OnRemoveBuff(unit, buff)
 		end
 		ultbuff = false
 	end
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -647,6 +660,14 @@ function CastQ(unit)
 			SpellCast(_Q, Position)	
 		end
 	end
+	if MenuGalio.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local GalioQ = CircleSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+		local State, Position, perc = DP:predict(unit, GalioQ)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
+			SpellCast(_Q, Position)
+		end
+	end
 end
 
 function CastE(unit)
@@ -660,6 +681,14 @@ function CastE(unit)
 		local Position, info = Prodiction.GetPrediction(unit, E.range, E.speed, E.delay, E.width, myHero)
 		if Position ~= nil and info.hitchance >= 2 then
 			SpellCast(_E, Position)	
+		end
+	end
+	if MenuGalio.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local GalioE = LineSS(E.speed, E.range, E.width, E.delay, math.huge)
+		local State, Position, perc = DP:predict(unit, GalioE)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
+			SpellCast(_E, Position)
 		end
 	end
 end
