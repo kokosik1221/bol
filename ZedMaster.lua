@@ -2,9 +2,9 @@
 
 	Script Name: ZED MASTER 
     	Author: kokosik1221
-	Last Version: 1.6
-	19.03.2015
-
+	Last Version: 1.7
+	22.03.2015
+	
 ]]--
 
 if myHero.charName ~= "Zed" then return end
@@ -12,7 +12,7 @@ if myHero.charName ~= "Zed" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "1.6"
+local version = "1.7"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/ZedMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,6 +39,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -56,6 +57,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -238,6 +242,9 @@ function OnTick()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuZed = scriptConfig("Zed Master "..version, "Zed Master "..version)
 	MenuZed:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -336,7 +343,7 @@ function Menu()
 	MenuZed.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuZed.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 2, { "MID" })
 	MenuZed.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuZed.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuZed.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuZed.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuZed.comboConfig:permaShow("CEnabled")
 	MenuZed.harrasConfig:permaShow("HEnabled")
@@ -624,57 +631,64 @@ function JungleFarmm()
 end
 
 function GetBestLineFarmPosition(range, width, objects)
-	local BestPos 
-	local BestHit = 0
-	for i, object in ipairs(objects) do
-		local EndPos = Vector(myHero.visionPos) + range * (Vector(object) - Vector(myHero.visionPos)):normalized()
-		local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
-		if hit > BestHit then
-			BestHit = hit
-			BestPos = Vector(object)
-			if BestHit == #objects then
-			   break
-			end
-		 end
-	end
-	return BestPos, BestHit
-end
-
-function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
-	local n = 0
-	for i, object in ipairs(objects) do
-		local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
-		if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width then
-			n = n + 1
-		end
-	end
-	return n
-end
-
-function BestEFarmPos(range, radius, objects)
-    local Pos 
-    local BHit = 0
+    local BestPos 
+    local BestHit = 0
     for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
-        if hit > BHit then
-            BHit = hit
-            Pos = Vector(object)
-            if BHit == #objects then
+        local EndPos = Vector(myHero) + range * (Vector(object) - Vector(myHero)):normalized()
+        local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
                break
             end
          end
     end
-    return Pos, BHit
+    return BestPos, BestHit
+end
+
+function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
+    local n = 0
+    for i, object in ipairs(objects) do
+        local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
+        if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width and GetDistanceSqr(StartPos, EndPos) > GetDistanceSqr(StartPos, object) then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+function _GetDistanceSqr(p1, p2)
+    p2 = p2 or player
+    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
+    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
+    return GetDistanceSqr(p1, p2)
 end
 
 function CountObjectsNearPos(pos, range, radius, objects)
     local n = 0
     for i, object in ipairs(objects) do
-        if GetDistanceSqr(pos, object) <= radius * radius then
+        if _GetDistanceSqr(pos, object) <= radius * radius then
             n = n + 1
         end
     end
     return n
+end
+
+function BestEFarmPos(range, radius, objects)
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function autolvl()
@@ -847,6 +861,18 @@ function CastQ(unit)
 				end
 			end
 		end
+		if MenuZed.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local ZedQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+			local State, Position, perc = DP:predict(unit, ZedQ, 1, Vector(from))
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuZed.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
+			end
+		end
 	end
 end
 
@@ -894,6 +920,18 @@ function RState()
 		return 1
 	elseif myHero:GetSpellData(_R).name == "zedr2" then
 		return 2
+	end
+end
+
+function OnApplyBuff(source, unit, buff)	
+	if unit.isMe and buff and buff.name == "Recall" then
+		recall = true
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit.isMe and buff and buff.name == "Recall" then
+		recall = false
 	end
 end
 
