@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: BRAND MASTER 
-    Author: kokosik1221
-	Last Version: 1.32
-	18.03.2015
+    	Author: kokosik1221
+	Last Version: 1.33
+	22.03.2015
 	
 ]]--
 	
@@ -12,7 +12,7 @@ if myHero.charName ~= "Brand" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "1.32"
+local version = "1.33"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BrandMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,6 +39,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -57,6 +58,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
 		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
 	else
 		DOWNLOADING_LIBS = true
 		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
@@ -71,8 +75,8 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local Q = {name = "Sear", range = 1100, speed = 1600, delay = 0.25, width = 60, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
-local W = {name = "Pillar of Flame", range = 900, speed = math.huge, delay = 1, width = 240, Ready = function() return myHero:CanUseSpell(_W) == READY end}
+local Q = {name = "Sear", range = 1100, speed = 1200, delay = 0.625, width = 70, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local W = {name = "Pillar of Flame", range = 900, speed = math.huge, delay = 0.75, width = 240, Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Conflagration", range = 625, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Pyroclasm", range = 750, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local IReady, recall = false, false
@@ -166,6 +170,9 @@ function OnTick()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuBrand = scriptConfig("Brand Master "..version, "Brand Master "..version)
 	MenuBrand:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -258,7 +265,7 @@ function Menu()
 	MenuBrand.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuBrand.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID" })
 	MenuBrand.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBrand.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuBrand.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuBrand.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuBrand.comboConfig:permaShow("CEnabled")
 	MenuBrand.harrasConfig:permaShow("HEnabled")
@@ -308,17 +315,17 @@ function Check()
 		Cel = SelectedTarget
 		QCel = SelectedTarget
 		WCel = SelectedTarget
-		ECel = ESelectedTarget
+		ECel = SelectedTarget
 		RCel = SelectedTarget
 	else
 		Cel = GetCustomTarget()
-	end
-	if MenuBrand.orb == 1 then
-		SxOrb:ForceTarget(Cel)
 		QCel = QTargetSelector.target
 		WCel = WTargetSelector.target
 		ECel = ETargetSelector.target
 		RCel = RTargetSelector.target
+	end
+	if MenuBrand.orb == 1 then
+		SxOrb:ForceTarget(Cel)
 	end
 	if MenuBrand.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
@@ -463,30 +470,37 @@ function Farm()
 	end
 end
 
-function BestWFarmPos(range, radius, objects)
-    local Pos 
-    local BHit = 0
-    for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
-        if hit > BHit then
-            BHit = hit
-            Pos = Vector(object)
-            if BHit == #objects then
-               break
-            end
-         end
-    end
-    return Pos, BHit
+function _GetDistanceSqr(p1, p2)
+    p2 = p2 or player
+    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
+    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
+    return GetDistanceSqr(p1, p2)
 end
 
 function CountObjectsNearPos(pos, range, radius, objects)
     local n = 0
     for i, object in ipairs(objects) do
-        if GetDistanceSqr(pos, object) <= radius * radius then
+        if _GetDistanceSqr(pos, object) <= radius * radius then
             n = n + 1
         end
     end
     return n
+end
+
+function BestWFarmPos(range, radius, objects)
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function JungleFarmm()
@@ -586,13 +600,13 @@ function OnDraw()
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -699,6 +713,14 @@ function CastQ(unit)
 			SpellCast(_Q, Position)	
 		end
 	end
+	if MenuBrand.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local BrandQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 0)
+		local State, Position, perc = DP:predict(unit, BrandQ)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
+			SpellCast(_Q, Position)
+		end
+	end
 end
 
 function CastW(unit)
@@ -711,6 +733,14 @@ function CastW(unit)
 	if MenuBrand.prConfig.pro == 2 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
 		if Position ~= nil then
+			SpellCast(_W, Position)
+		end
+	end
+	if MenuBrand.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local BrandW = CircleSS(W.speed, W.range, W.width, W.delay, math.huge)
+		local State, Position, perc = DP:predict(unit, BrandW)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_W, Position)
 		end
 	end
