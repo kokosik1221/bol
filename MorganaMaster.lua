@@ -2,8 +2,8 @@
 
 	Script Name: MORGANA MASTER 
     	Author: kokosik1221
-	Last Version: 2.51
-	18.03.2015
+	Last Version: 2.52
+	22.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Morgana" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "2.51"
+local version = "2.52"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MorganaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,6 +39,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -56,6 +57,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -486,7 +490,7 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local Q = {name = "Dark Binding", range = 1200, speed = 1200, delay = 0, width = 60, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local Q = {name = "Dark Binding", range = 1200, speed = 1300, delay = 0.25, width = 80, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
 local W = {name = "Tormented Soil", range = 900, speed = 1200, delay = 0.150, width = 105, Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Black Shield", range = 750, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Soul Shackles", range = 600, Ready = function() return myHero:CanUseSpell(_R) == READY end}
@@ -544,7 +548,10 @@ function OnTick()
 end
 		
 function Menu()
-	VP = VPrediction(true)
+	if VIP_USER then
+		DP = DivinePred()
+	end
+	VP = VPrediction()
 	MenuMorg = scriptConfig("Morgana Master "..version, "Morgana Master "..version)
 	MenuMorg:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuMorg:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
@@ -673,7 +680,7 @@ function Menu()
 	MenuMorg.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuMorg.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "SUPP"})
 	MenuMorg.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuMorg.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuMorg.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuMorg.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuMorg.comboConfig:permaShow("CEnabled")
 	MenuMorg.harrasConfig:permaShow("HEnabled")
@@ -954,30 +961,37 @@ function Farm()
 	end
 end
 
-function BestWFarmPos(range, radius, objects)
-    local Pos 
-    local BHit = 0
-    for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
-        if hit > BHit then
-            BHit = hit
-            Pos = Vector(object)
-            if BHit == #objects then
-               break
-            end
-         end
-    end
-    return Pos, BHit
+function _GetDistanceSqr(p1, p2)
+    p2 = p2 or player
+    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
+    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
+    return GetDistanceSqr(p1, p2)
 end
 
 function CountObjectsNearPos(pos, range, radius, objects)
     local n = 0
     for i, object in ipairs(objects) do
-        if GetDistanceSqr(pos, object) <= radius * radius then
+        if _GetDistanceSqr(pos, object) <= radius * radius then
             n = n + 1
         end
     end
     return n
+end
+
+function BestWFarmPos(range, radius, objects)
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function JungleFarmm()
@@ -1186,13 +1200,13 @@ function DmgCalc()
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -1218,6 +1232,14 @@ function CastQ(unit)
 			SpellCast(_Q, Position)
 		end
 	end
+	if MenuMorg.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local MorgQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 0)
+		local State, Position, perc = DP:predict(unit, MorgQ)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
+			SpellCast(_Q, Position)
+		end
+	end
 end
 
 function CastW(unit)
@@ -1230,6 +1252,14 @@ function CastW(unit)
 	if MenuMorg.prConfig.pro == 2 and VIP_USER and prodstatus then
 		local Position, info = Prodiction.GetPrediction(unit, W.range, W.speed, W.delay, W.width, myHero)
 		if Position ~= nil then
+			SpellCast(_W, Position)
+		end
+	end
+	if MenuMorg.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local MorgW = CircleSS(W.speed, W.range, W.width, W.delay, math.huge)
+		local State, Position, perc = DP:predict(unit, MorgW)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_W, Position)
 		end
 	end
