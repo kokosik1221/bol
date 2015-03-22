@@ -2,9 +2,9 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.7
-	18.03.2015
-
+	Last Version: 0.8
+	22.03.2015
+	
 ]]--
 
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Gragas" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.7"
+local version = "0.8"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GragasMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -40,6 +40,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -57,6 +58,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -176,6 +180,9 @@ end
 
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuGragy = scriptConfig("Gragas Master "..version, "Gragas Master "..version)
 	MenuGragy:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -279,7 +286,7 @@ function Menu()
 	MenuGragy.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuGragy.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID","JUNGLE"})
 	MenuGragy.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGragy.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuGragy.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuGragy.comboConfig:permaShow("CEnabled")
 	MenuGragy.harrasConfig:permaShow("HEnabled")
 	MenuGragy.harrasConfig:permaShow("HTEnabled")
@@ -357,9 +364,8 @@ function getHitBoxRadius(target)
 end
 
 function AutoQ()
-	for i=1, heroManager.iCount do
-		local enemy = heroManager:GetHero(i)
-		if ValidTarget(enemy) and barrel and GetDistance(barrel,enemy) <= Q.width then
+	for _, enemy in pairs(GetEnemyHeroes()) do
+		if enemy and barrel and GetDistance(barrel,enemy) <= Q.width then
 			if myHero:GetSpellData(_Q).name == "GragasQToggle" then
 				CastSpell(_Q)
 			end
@@ -491,30 +497,37 @@ function Q2JF()
 	end
 end
 
-function BestQFarmPos(range, radius, objects)
-    local Pos 
-    local BHit = 0
-    for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
-        if hit > BHit then
-            BHit = hit
-            Pos = Vector(object)
-            if BHit == #objects then
-               break
-            end
-         end
-    end
-    return Pos, BHit
+function _GetDistanceSqr(p1, p2)
+    p2 = p2 or player
+    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
+    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
+    return GetDistanceSqr(p1, p2)
 end
 
 function CountObjectsNearPos(pos, range, radius, objects)
     local n = 0
     for i, object in ipairs(objects) do
-        if GetDistanceSqr(pos, object) <= radius * radius then
+        if _GetDistanceSqr(pos, object) <= radius * radius then
             n = n + 1
         end
     end
     return n
+end
+
+function BestQFarmPos(range, radius, objects)
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function autozh()
@@ -655,6 +668,7 @@ function DmgCalc()
 end
 
 function CastQ(unit)
+	if myHero:GetSpellData(_Q).name ~= "GragasQToggle" then
 	if MenuGragy.prConfig.pro == 1 then
 		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, false)
 		if HitChance >= 2 then
@@ -674,6 +688,19 @@ function CastQ(unit)
 				CastSpell(_Q, CastPosition.x, CastPosition.z)
 			end	
 		end
+	end
+	if MenuGragy.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local GragQ = CircleSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+		local State, Position, perc = DP:predict(unit, GragQ)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
+			if VIP_USER and MenuGragy.prConfig.pc then
+				Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+			else
+				CastSpell(_Q, Position.x, Position.z)
+			end
+		end
+	end
 	end
 end
 
@@ -706,6 +733,18 @@ function CastE(unit)
 			end	
 		end
 	end
+	if MenuGragy.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local GragE = LineSS(E.speed, E.range, E.width, E.delay, 0)
+		local State, Position, perc = DP:predict(unit, GragE)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
+			if VIP_USER and MenuGragy.prConfig.pc then
+				Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+			else
+				CastSpell(_E, Position.x, Position.z)
+			end
+		end
+	end
 end
 
 function CastR(unit)
@@ -727,6 +766,18 @@ function CastR(unit)
 			else
 				CastSpell(_R, CastPosition.x, CastPosition.z)
 			end	
+		end
+	end
+	if MenuGragy.prConfig.pro == 3 and VIP_USER then
+		local unit = DPTarget(unit)
+		local GragR = CircleSS(R.speed, R.range, R.width, R.delay, math.huge)
+		local State, Position, perc = DP:predict(unit, GragR)
+		if State == SkillShot.STATUS.SUCCESS_HIT then 
+			if VIP_USER and MenuGragy.prConfig.pc then
+				Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+			else
+				CastSpell(_R, Position.x, Position.z)
+			end
 		end
 	end
 end
@@ -784,13 +835,13 @@ function EnemyCount(point, range)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
