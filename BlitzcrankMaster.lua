@@ -2,9 +2,9 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 1.2
-	19.03.2015
-	
+	Last Version: 1.3
+	22.03.2015
+
 ]]--
 
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "1.2"
+local version = "1.3"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -40,6 +40,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -57,6 +58,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -90,7 +94,7 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local Q = {name = "Rocket Grab", range = 925, speed = math.huge, delay = 0.25, width = 80, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local Q = {name = "Rocket Grab", range = 925, speed = 1800, delay = 0.25, width = 75, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
 local W = {name = "Overdrive", Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Power Fist", range = myHero.range+130, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Static Field", range = 600, Ready = function() return myHero:CanUseSpell(_R) == READY end}
@@ -164,6 +168,9 @@ end
 
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuBlitz = scriptConfig("Blitzcrank Master "..version, "Blitzcrank Master "..version)
 	MenuBlitz:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -179,7 +186,7 @@ function Menu()
 	MenuBlitz.comboConfig:addParam("USEQ", "Use " .. Q.name .. "(Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("USEQS", "Use Smite If See Collision", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("QMINR", "Min. Q Range", SCRIPT_PARAM_SLICE, 250, 0, 500, 0) 
-	MenuBlitz.comboConfig:addParam("QMAXR", "Max. Q Range", SCRIPT_PARAM_SLICE, 850, 500, 925, 0) 
+	MenuBlitz.comboConfig:addParam("QMAXR", "Max. Q Range", SCRIPT_PARAM_SLICE, 925, 500, 925, 0) 
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.comboConfig:addParam("USEW", "Use " .. W.name .. "(W)", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -282,7 +289,7 @@ function Menu()
 	MenuBlitz.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuBlitz.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "SUPP" })
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuBlitz.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuBlitz.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuBlitz.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuBlitz.comboConfig:permaShow("CEnabled")
 	MenuBlitz.harrasConfig:permaShow("HEnabled")
@@ -595,13 +602,13 @@ function OnApplyBuff(source, unit, buff)
 			CastE()
 		end
 	end	
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -694,13 +701,13 @@ end
 function CastQ(unit)
 	if Q.Ready() then
 		SReady = (SmiteKey ~= nil and myHero:CanUseSpell(SmiteKey) == READY)
-		if MenuBlitz.prConfig.pro == 1 then
-			if MenuBlitz.comboConfig.USEQS then
-				local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
-				if #ColTable2 == 1 and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
-					CastSpell(SmiteKey, ColTable2[1])
-				end
+		if MenuBlitz.comboConfig.USEQS then
+			local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
+			if #ColTable2 == 1 and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
+				CastSpell(SmiteKey, ColTable2[1])
 			end
+		end
+		if MenuBlitz.prConfig.pro == 1 then
 			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
 			if HitChance >= MenuBlitz.prConfig.vphit - 1 then
 				if VIP_USER and MenuBlitz.prConfig.pc then
@@ -711,12 +718,6 @@ function CastQ(unit)
 			end
 		end
 		if MenuBlitz.prConfig.pro == 2 and VIP_USER and prodstatus then
-			if MenuBlitz.comboConfig.USEQS then
-				local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
-				if #ColTable2 == 1 and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
-					CastSpell(SmiteKey, ColTable2[1])
-				end
-			end
 			local Position, info = Prodiction.GetPrediction(unit, Q.range, Q.speed, Q.delay, Q.width, myHero)
 			if Position ~= nil and not info.mCollision() then
 				if VIP_USER and MenuBlitz.prConfig.pc then
@@ -724,6 +725,18 @@ function CastQ(unit)
 				else
 					CastSpell(_Q, Position.x, Position.z)
 				end	
+			end
+		end
+		if MenuBlitz.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local BlitzQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 0)
+			local State, Position, perc = DP:predict(unit, BlitzQ)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuBlitz.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
 			end
 		end
 	end
