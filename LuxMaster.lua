@@ -2,8 +2,8 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.5
-	19.03.2015
+	Last Version: 0.6
+	22.03.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Lux" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.5"
+local version = "0.6"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -40,6 +40,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -58,6 +59,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
 		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
 	else
 		DOWNLOADING_LIBS = true
 		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
@@ -70,6 +74,38 @@ local Items = {
 	DFG = { id = 3128, range = 750, reqTarget = true, slot = nil },
 	HGB = { id = 3146, range = 400, reqTarget = true, slot = nil },
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
+}
+
+local GapCloserList = {
+	{charName = "Aatrox", spellName = "AatroxQ"},
+	{charName = "Akali", spellName = "AkaliShadowDance"},
+	{charName = "Alistar", spellName = "Headbutt"},
+	{charName = "Fiora", spellName = "FioraQ"},
+	{charName = "Diana", spellName = "DianaTeleport"},
+	{charName = "Elise", spellName = "EliseSpiderQCast"},
+	{charName = "Fizz", spellName = "FizzPiercingStrike"},
+	{charName = "Gragas", spellName = "GragasE"},
+	{charName = "Hecarim", spellName = "HecarimUlt"},
+	{charName = "JarvanIV", spellName = "JarvanIVDragonStrike"},
+	{charName = "Irelia", spellName = "IreliaGatotsu"},
+	{charName = "Jax", spellName = "JaxLeapStrike"},
+	{charName = "Khazix", spellName = "KhazixE"},
+	{charName = "Khazix", spellName = "khazixelong"},
+	{charName = "LeBlanc", spellName = "LeblancSlide"},
+	{charName = "LeBlanc", spellName = "LeblancSlideM"},
+	{charName = "LeeSin", spellName = "BlindMonkQTwo"},
+	{charName = "Leona", spellName = "LeonaZenithBlade"},
+	{charName = "Malphite", spellName = "UFSlash"},
+	{charName = "Pantheon", spellName = "Pantheon_LeapBash"},
+	{charName = "Poppy", spellName = "PoppyHeroicCharge"},
+	{charName = "Renekton", spellName = "RenektonSliceAndDice"},
+	{charName = "Riven", spellName = "RivenTriCleave"},
+	{charName = "Sejuani", spellName = "SejuaniArcticAssault"},
+	{charName = "Tryndamere", spellName = "slashCast"},
+	{charName = "Vi", spellName = "ViQ"},
+	{charName = "MonkeyKing", spellName = "MonkeyKingNimbus"},
+	{charName = "XinZhao", spellName = "XenZhaoSweep"},
+	{charName = "Yasuo", spellName = "YasuoDashWrapper"},
 }
 
 local Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, width = 80, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
@@ -150,6 +186,9 @@ function OnTick()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuLux = scriptConfig("Lux Master "..version, "Lux Master "..version)
 	MenuLux:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -209,6 +248,16 @@ function Menu()
 	MenuLux.jsConfig:addParam("JSBL", "Steal Blue With (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.jsConfig:addParam("JSR", "Steal Red With (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.jsConfig:addParam("JST", "Steal Team:", SCRIPT_PARAM_LIST, 1, { "Enemy", "My Team", "Both"})
+	MenuLux:addSubMenu("[Lux Master]: GapCloser Settings", "gpConfig")
+	MenuLux.gpConfig:addSubMenu("GapCloser Spells", "ES2")
+	for i, enemy in ipairs(GetEnemyHeroes()) do
+		for _, champ in pairs(GapCloserList) do
+			if enemy.charName == champ.charName then
+				MenuLux.gpConfig.ES2:addParam(champ.spellName, "GapCloser "..champ.charName.." "..champ.spellName, SCRIPT_PARAM_ONOFF, true)
+			end
+		end
+	end
+	MenuLux.gpConfig:addParam("UG", "Use GapCloser (Q)", SCRIPT_PARAM_ONOFF, true)
 	MenuLux:addSubMenu("[Lux Master]: KS Settings", "ksConfig")
 	MenuLux.ksConfig:addParam("IKS", "Use Ignite To KS", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.ksConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -256,7 +305,7 @@ function Menu()
 	MenuLux.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuLux.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID","SUPP" })
 	MenuLux.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuLux.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuLux.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuLux.comboConfig:permaShow("CEnabled")
 	MenuLux.harrasConfig:permaShow("HEnabled")
 	MenuLux.harrasConfig:permaShow("HTEnabled")
@@ -429,13 +478,11 @@ function Farm()
 			end
 		end
 		if EMode == 3 then
-			if minion ~= nil and not minion.dead then
-				local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
-				if Pos ~= nil then
-					CastSpell(_E, Pos.x, Pos.z)
-				end
-				CastSpell(_E)
+			local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
+			if Pos ~= nil then
+				CastSpell(_E, Pos.x, Pos.z)
 			end
+			CastSpell(_E)
 		elseif EMode == 2 then
 			if minion ~= nil and not minion.dead then
 				if minion.health <= getDmg("E", minion, myHero, 1) then
@@ -451,13 +498,11 @@ function JungleFarm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuLux.jf.EJF then
-			if minion ~= nil and not minion.dead then
-				local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
-				if Pos ~= nil then
-					CastSpell(_E, Pos.x, Pos.z)
-				end
-				CastSpell(_E)
+			local Pos, Hit = BestEFarmPos(E.range, E.width, EnemyMinions.objects)
+			if Pos ~= nil then
+				CastSpell(_E, Pos.x, Pos.z)
 			end
+			CastSpell(_E)
 		end
 		if MenuLux.jf.QJF then
 			if minion ~= nil and not minion.dead then
@@ -467,30 +512,37 @@ function JungleFarm()
 	end
 end
 
-function BestEFarmPos(range, radius, objects)
-    local Pos 
-    local BHit = 0
-    for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
-        if hit > BHit then
-            BHit = hit
-            Pos = Vector(object)
-            if BHit == #objects then
-               break
-            end
-         end
-    end
-    return Pos, BHit
+function _GetDistanceSqr(p1, p2)
+    p2 = p2 or player
+    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
+    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
+    return GetDistanceSqr(p1, p2)
 end
 
 function CountObjectsNearPos(pos, range, radius, objects)
     local n = 0
     for i, object in ipairs(objects) do
-        if GetDistanceSqr(pos, object) <= radius * radius then
+        if _GetDistanceSqr(pos, object) <= radius * radius then
             n = n + 1
         end
     end
     return n
+end
+
+function BestEFarmPos(range, radius, objects)
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function autozh()
@@ -742,6 +794,18 @@ function CastQ(unit)
 				end	
 			end
 		end
+		if MenuLux.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local LuxQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 0)
+			local State, Position, perc = DP:predict(unit, LuxQ)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuLux.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
+			end
+		end
 	end
 end
 
@@ -797,6 +861,18 @@ function CastE(unit)
 				end	
 			end
 		end
+		if MenuLux.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local LuxE = CircleSS(E.speed, E.range, E.width, E.delay, math.huge)
+			local State, Position, perc = DP:predict(unit, LuxE)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuLux.prConfig.pc then
+					Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_E, Position.x, Position.z)
+				end
+			end
+		end
 	end
 end
 
@@ -820,6 +896,18 @@ function CastR(unit)
 				else
 					CastSpell(_R, Position.x, Position.z)
 				end	
+			end
+		end
+		if MenuLux.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local LuxR = LineSS(R.speed, R.range, Q.width, Q.delay, math.huge)
+			local State, Position, perc = DP:predict(unit, LuxR)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuLux.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_R, Position.x, Position.z)
+				end
 			end
 		end
 	end
@@ -852,16 +940,33 @@ function OnProcessSpell(unit,spell)
 			end
 		end
 	end
+	if MenuLux.gpConfig.UG and Q.Ready() then
+		for _, x in pairs(GapCloserList) do
+			if unit and unit.team ~= myHero.team and unit.type == myHero.type and spell then
+				if spell.name == x.spellName and MenuLux.gpConfig.ES2[x.spellName] and ValidTarget(unit, Q.range - 30) then
+					if spell.target and spell.target.isMe then
+						CastQ(unit)
+					elseif not spell.target then
+						local endPos1 = Vector(unit.visionPos) + 300 * (Vector(spell.endPos) - Vector(unit.visionPos)):normalized()
+						local endPos2 = Vector(unit.visionPos) + 100 * (Vector(spell.endPos) - Vector(unit.visionPos)):normalized()
+						if (GetDistanceSqr(myHero.visionPos, unit.visionPos) > GetDistanceSqr(myHero.visionPos, endPos1) or GetDistanceSqr(myHero.visionPos, unit.visionPos) > GetDistanceSqr(myHero.visionPos, endPos2))  then
+							CastQ(unit)
+						end
+					end
+				end
+			end
+		end
+	end
 end
 
 function OnApplyBuff(source, unit, buff)	
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
