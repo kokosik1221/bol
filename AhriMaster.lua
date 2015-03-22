@@ -2,9 +2,9 @@
 
 	Script Name: AHRI MASTER 
     	Author: kokosik1221
-	Last Version: 0.53
-	18.03.2015
-
+	Last Version: 0.54
+	22.03.2015
+	
 ]]--
 
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Ahri" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.53"
+local version = "0.54"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AhriMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,6 +39,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -56,6 +57,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -196,6 +200,9 @@ function OnTick()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuAhri = scriptConfig("Ahri Master "..version, "Ahri Master "..version)
 	MenuAhri:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -301,7 +308,7 @@ function Menu()
 	MenuAhri.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuAhri.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "MID"})
 	MenuAhri.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuAhri.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuAhri.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuAhri.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuAhri.comboConfig:permaShow("Combo")
 	MenuAhri.harrasConfig:permaShow("Mixed")
@@ -490,31 +497,31 @@ function Farm()
 end
 
 function BestQFarmPos(range, width, objects)
-	local BestPos 
-	local BestHit = 0
-	for i, object in ipairs(objects) do
-		local EndPos = Vector(myHero.visionPos) + range * (Vector(object) - Vector(myHero.visionPos)):normalized()
-		local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
-		if hit > BestHit then
-			BestHit = hit
-			BestPos = Vector(object)
-			if BestHit == #objects then
-			   break
-			end
-		 end
-	end
-	return BestPos, BestHit
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local EndPos = Vector(myHero) + range * (Vector(object) - Vector(myHero)):normalized()
+        local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
-	local n = 0
-	for i, object in ipairs(objects) do
-		local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
-		if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width then
-			n = n + 1
-		end
-	end
-	return n
+    local n = 0
+    for i, object in ipairs(objects) do
+        local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
+        if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width and GetDistanceSqr(StartPos, EndPos) > GetDistanceSqr(StartPos, object) then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function JungleFarmm()
@@ -688,6 +695,18 @@ function CastQ(unit)
 				end
 			end
 		end
+		if MenuAhri.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local AhriQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+			local State, Position, perc = DP:predict(unit, AhriQ)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuAhri.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
+			end
+		end
 	end
 end
 
@@ -723,6 +742,18 @@ function CastE(unit)
 				end
 			end
 		end
+		if MenuAhri.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local AhriE = LineSS(E.speed, E.range, E.width, E.delay, 0)
+			local State, Position, perc = DP:predict(unit, AhriE)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuAhri.prConfig.pc then
+					Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_E, Position.x, Position.z)
+				end
+			end
+		end
 	end
 end
 
@@ -742,13 +773,13 @@ function CastR(unit)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and (buff.name == "recall") then
+	if unit.isMe and buff and (buff.name == "Recall") then
 		recall = true
 	end 
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and (buff.name == "recall") then
+	if unit.isMe and buff and (buff.name == "Recall") then
 		recall = false
 	end 
 end
