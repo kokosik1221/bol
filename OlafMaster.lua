@@ -2,9 +2,9 @@
 
 	Script Name: OLAF MASTER 
 	Author: kokosik1221
-	Last Version: 0.6
-	18.03.2015
-
+	Last Version: 0.7
+	22.03.2015
+	
 ]]--
 
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Olaf" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.6"
+local version = "0.7"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/OlafMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -40,6 +40,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -57,6 +58,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -224,6 +228,9 @@ function OnTick()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuOlaf = scriptConfig("Olaf Master "..version, "Olaf Master "..version)
 	MenuOlaf:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -308,7 +315,7 @@ function Menu()
 	MenuOlaf.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuOlaf.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "R>Q>W>E", "R>Q>E>W", "R>W>Q>E", "R>W>E>Q", "R>E>Q>W", "R>E>W>Q" })
 	MenuOlaf.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuOlaf.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuOlaf.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuOlaf.comboConfig:permaShow("CEnabled")
 	MenuOlaf.harrasConfig:permaShow("HEnabled")
 	MenuOlaf.harrasConfig:permaShow("HTEnabled")
@@ -451,31 +458,31 @@ function JungleFarmF()
 end
 
 function GetBestLineFarmPosition(range, width, objects)
-	local BestPos 
-	local BestHit = 0
-	for i, object in ipairs(objects) do
-		local EndPos = Vector(myHero.visionPos) + range * (Vector(object) - Vector(myHero.visionPos)):normalized()
-		local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
-		if hit > BestHit then
-			BestHit = hit
-			BestPos = Vector(object)
-			if BestHit == #objects then
-			   break
-			end
-		 end
-	end
-	return BestPos, BestHit
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local EndPos = Vector(myHero) + range * (Vector(object) - Vector(myHero)):normalized()
+        local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
-	local n = 0
-	for i, object in ipairs(objects) do
-		local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
-		if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width then
-			n = n + 1
-		end
-	end
-	return n
+    local n = 0
+    for i, object in ipairs(objects) do
+        local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
+        if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width and GetDistanceSqr(StartPos, EndPos) > GetDistanceSqr(StartPos, object) then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function AutoAxe()
@@ -506,7 +513,8 @@ function CastQ(unit)
 					CastSpell(_Q, posX, posZ)
 				end	
 			end
-		elseif MenuOlaf.prConfig.pro == 2 and VIP_USER and prodstatus then
+		end
+		if MenuOlaf.prConfig.pro == 2 and VIP_USER and prodstatus then
 			CastPosition, info = Prodiction.GetPrediction(unit, Q.range-30, Q.speed, Q.delay, Q.width, myHero)
 			if CastPosition ~= nil then
 				local x,y,z = (Vector(CastPosition) - Vector(myHero)):normalized():unpack()
@@ -518,6 +526,22 @@ function CastQ(unit)
 				else
 					CastSpell(_Q, posX, posZ)
 				end	
+			end
+		end
+		if MenuOlaf.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local OlafQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+			local State, Position, perc = DP:predict(unit, OlafQ)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				local x,y,z = (Vector(Position) - Vector(myHero)):normalized():unpack()
+				posX = Position.x + (x * 150)
+				posY = Position.y + (y * 150)
+				posZ = Position.z + (z * 150)
+				if VIP_USER and MenuOlaf.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = posX, fromY = posZ, toX = posX, toY = posZ}):send()
+				else
+					CastSpell(_Q, posX, posZ)
+				end
 			end
 		end
 	end
@@ -679,13 +703,13 @@ function OnProcessSpell(unit, spell)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
