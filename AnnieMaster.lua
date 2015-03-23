@@ -2,8 +2,8 @@
 
 	Script Name: ANNIE MASTER 
     	Author: kokosik1221
-	Last Version: 0.66
-	22.03.2015
+	Last Version: 0.67
+	23.03.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Annie" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.66"
+local version = "0.67"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AnnieMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -727,7 +727,7 @@ function CastW(unit)
 	end
 	if MenuAnnie.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local AnnieW = ConeSS(W.speed, W.range, W.width, W.delay, math.huge)
+		local AnnieW = ConeSS(W.speed, W.range, W.width, 600, math.huge)
 		local State, Position, perc = DP:predict(unit, AnnieW)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuAnnie.prConfig.pc then
@@ -772,7 +772,7 @@ function CastR(unit)
 	end
 	if MenuAnnie.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local AnnieR = CircleSS(R.speed, R.range, R.width, R.delay, math.huge)
+		local AnnieR = CircleSS(R.speed, R.range, R.width, 200, math.huge)
 		local State, Position, perc = DP:predict(unit, AnnieR)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuAnnie.prConfig.pc then
