@@ -2,9 +2,9 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 1.3
-	22.03.2015
-
+	Last Version: 1.31
+	23.03.2015
+	
 ]]--
 
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Blitzcrank" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "1.3"
+local version = "1.31"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BlitzcrankMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -729,7 +729,7 @@ function CastQ(unit)
 		end
 		if MenuBlitz.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local BlitzQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 0)
+			local BlitzQ = SkillShot.PRESETS['RocketGrab']
 			local State, Position, perc = DP:predict(unit, BlitzQ)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuBlitz.prConfig.pc then
