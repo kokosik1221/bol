@@ -2,9 +2,9 @@
 
 	Script Name: BRAND MASTER 
     	Author: kokosik1221
-	Last Version: 1.33
-	22.03.2015
-	
+	Last Version: 1.34
+	23.03.2015
+
 ]]--
 	
 if myHero.charName ~= "Brand" then return end
@@ -12,7 +12,7 @@ if myHero.charName ~= "Brand" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "1.33"
+local version = "1.34"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/BrandMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -715,7 +715,7 @@ function CastQ(unit)
 	end
 	if MenuBrand.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local BrandQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 0)
+		local BrandQ = LineSS(Q.speed, Q.range, Q.width, 625, 0)
 		local State, Position, perc = DP:predict(unit, BrandQ)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_Q, Position)
@@ -738,7 +738,7 @@ function CastW(unit)
 	end
 	if MenuBrand.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local BrandW = CircleSS(W.speed, W.range, W.width, W.delay, math.huge)
+		local BrandW = CircleSS(W.speed, W.range, W.width, 750, math.huge)
 		local State, Position, perc = DP:predict(unit, BrandW)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_W, Position)
