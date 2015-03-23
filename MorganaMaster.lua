@@ -2,8 +2,8 @@
 
 	Script Name: MORGANA MASTER 
     	Author: kokosik1221
-	Last Version: 2.52
-	22.03.2015
+	Last Version: 2.53
+	23.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Morgana" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "2.52"
+local version = "2.53"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/MorganaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -1234,7 +1234,7 @@ function CastQ(unit)
 	end
 	if MenuMorg.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local MorgQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 0)
+		local MorgQ = LineSS(1200,1300,80,250,0)
 		local State, Position, perc = DP:predict(unit, MorgQ)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_Q, Position)
