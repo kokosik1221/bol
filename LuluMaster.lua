@@ -2,8 +2,8 @@
 
 	Script Name: LULU MASTER 
     	Author: kokosik1221
-	Last Version: 0.21
-	19.03.2015
+	Last Version: 0.22
+	23.03.2015
 	
 ]]-- 
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Lulu" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.21"
+local version = "0.22"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuluMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -39,6 +39,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -56,6 +57,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -571,6 +575,9 @@ function OnTick()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuLulu = scriptConfig("Lulu Master "..version, "Lulu Master "..version)
 	MenuLulu:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -723,7 +730,7 @@ function Menu()
 	MenuLulu.prConfig:addParam("AZHP", "Min HP To Cast Zhonya", SCRIPT_PARAM_SLICE, 25, 0, 100, 0)
 	MenuLulu.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuLulu.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuLulu.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction"}) 
+	MenuLulu.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
 	MenuLulu.comboConfig:permaShow("CEnabled")
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
@@ -972,6 +979,18 @@ function CastQ(unit, from)
 				else
 					CastSpell(_Q, Position.x, Position.z)
 				end	
+			end
+		end
+		if MenuLulu.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local LuluQ = LineSS(Q.speed, Q.range, Q.width, 250, math.huge)
+			local State, Position, perc = DP:predict(unit, LuluQ, 2, Vector(from))
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuLulu.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
 			end
 		end
 	end
@@ -1293,41 +1312,41 @@ function getHitBoxRadius(target)
 end
 
 function GetBestLineFarmPosition(range, width, objects)
-	local BestPos 
-	local BestHit = 0
-	for i, object in ipairs(objects) do
-		local EndPos = Vector(myHero.visionPos) + range * (Vector(object) - Vector(myHero.visionPos)):normalized()
-		local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
-		if hit > BestHit then
-			BestHit = hit
-			BestPos = Vector(object)
-			if BestHit == #objects then
-			   break
-			end
-		 end
-	end
-	return BestPos, BestHit
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local EndPos = Vector(myHero) + range * (Vector(object) - Vector(myHero)):normalized()
+        local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
-	local n = 0
-	for i, object in ipairs(objects) do
-		local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
-		if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width then
-			n = n + 1
-		end
-	end
-	return n
+    local n = 0
+    for i, object in ipairs(objects) do
+        local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
+        if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width and GetDistanceSqr(StartPos, EndPos) > GetDistanceSqr(StartPos, object) then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
