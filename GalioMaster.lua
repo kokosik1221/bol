@@ -2,9 +2,9 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 2.2 
-	22.03.2015
-	
+	Last Version: 2.3
+	23.03.2015
+
 ]]--
 
 if myHero.charName ~= "Galio" then return end
@@ -12,7 +12,7 @@ if myHero.charName ~= "Galio" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "2.2"
+local version = "2.3"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GalioMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -662,7 +662,7 @@ function CastQ(unit)
 	end
 	if MenuGalio.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local GalioQ = CircleSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+		local GalioQ = CircleSS(Q.speed, Q.range, Q.width, 250, math.huge)
 		local State, Position, perc = DP:predict(unit, GalioQ)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_Q, Position)
@@ -685,7 +685,7 @@ function CastE(unit)
 	end
 	if MenuGalio.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local GalioE = LineSS(E.speed, E.range, E.width, E.delay, math.huge)
+		local GalioE = LineSS(E.speed, E.range, E.width, 250, math.huge)
 		local State, Position, perc = DP:predict(unit, GalioE)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_E, Position)
