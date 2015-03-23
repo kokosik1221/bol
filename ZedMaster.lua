@@ -2,8 +2,8 @@
 
 	Script Name: ZED MASTER 
     	Author: kokosik1221
-	Last Version: 1.7
-	22.03.2015
+	Last Version: 1.71
+	23.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Zed" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "1.7"
+local version = "1.71"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/ZedMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -863,8 +863,8 @@ function CastQ(unit)
 		end
 		if MenuZed.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local ZedQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
-			local State, Position, perc = DP:predict(unit, ZedQ, 1, Vector(from))
+			local ZedQ = LineSS(Q.speed, Q.range, Q.width, 250, math.huge)
+			local State, Position, perc = DP:predict(unit, ZedQ, 2, Vector(from))
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuZed.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
