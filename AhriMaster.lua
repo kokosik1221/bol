@@ -2,9 +2,9 @@
 
 	Script Name: AHRI MASTER 
     	Author: kokosik1221
-	Last Version: 0.54
-	22.03.2015
-	
+	Last Version: 0.55
+	23.03.2015
+
 ]]--
 
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Ahri" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.54"
+local version = "0.55"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/AhriMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -697,7 +697,7 @@ function CastQ(unit)
 		end
 		if MenuAhri.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local AhriQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+			local AhriQ = LineSS(Q.speed, Q.range, Q.width, 500, math.huge)
 			local State, Position, perc = DP:predict(unit, AhriQ)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuAhri.prConfig.pc then
@@ -744,7 +744,7 @@ function CastE(unit)
 		end
 		if MenuAhri.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local AhriE = LineSS(E.speed, E.range, E.width, E.delay, 0)
+			local AhriE = LineSS(E.speed, E.range, E.width, 250, 0)
 			local State, Position, perc = DP:predict(unit, AhriE)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuAhri.prConfig.pc then
