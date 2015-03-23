@@ -2,8 +2,8 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.62
-	22.03.2015
+	Last Version: 0.63
+	23.03.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Lux" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.62"
+local version = "0.63"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -796,7 +796,7 @@ function CastQ(unit)
 		end
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local LuxQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 0)
+			local LuxQ = LineSS(Q.speed, Q.range, Q.width, 250, 0)
 			local State, Position, perc = DP:predict(unit, LuxQ)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
@@ -827,7 +827,7 @@ function CastQ2(unit)
 		end
 		if MenuLux.prConfig.pro == 3 then
 			local unit = DPTarget(unit)
-			local LuxQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, 1)
+			local LuxQ = LineSS(Q.speed, Q.range, Q.width, 250, 1)
 			local State, Position, perc = DP:predict(unit, LuxQ)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
@@ -875,7 +875,7 @@ function CastE(unit)
 		end
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local LuxE = CircleSS(E.speed, E.range, E.width, E.delay, math.huge)
+			local LuxE = CircleSS(E.speed, E.range, E.width-70, 250, math.huge)
 			local State, Position, perc = DP:predict(unit, LuxE)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
@@ -912,7 +912,7 @@ function CastR(unit)
 		end
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local LuxR = LineSS(R.speed, R.range, Q.width, Q.delay, math.huge)
+			local LuxR = LineSS(R.speed, R.range, R.width, 1000, math.huge)
 			local State, Position, perc = DP:predict(unit, LuxR)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
