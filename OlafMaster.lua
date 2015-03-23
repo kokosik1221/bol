@@ -2,9 +2,9 @@
 
 	Script Name: OLAF MASTER 
 	Author: kokosik1221
-	Last Version: 0.7
-	22.03.2015
-	
+	Last Version: 0.71
+	23.03.2015
+
 ]]--
 
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Olaf" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.7"
+local version = "0.71"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/OlafMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -530,7 +530,7 @@ function CastQ(unit)
 		end
 		if MenuOlaf.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local OlafQ = LineSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+			local OlafQ = LineSS(Q.speed, Q.range, Q.width, 250, math.huge)
 			local State, Position, perc = DP:predict(unit, OlafQ)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				local x,y,z = (Vector(Position) - Vector(myHero)):normalized():unpack()
