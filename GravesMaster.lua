@@ -2,8 +2,8 @@
 
 	Script Name: GRAVES MASTER 
     	Author: kokosik1221
-	Last Version: 0.32
-	20.03.2015
+	Last Version: 0.33
+	23.03.2015
 	
 ]]--
 
@@ -11,7 +11,7 @@ if myHero.charName ~= "Graves" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.32"
+local version = "0.33"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GravesMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -38,6 +38,7 @@ local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
 	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -56,6 +57,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
 		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
+		end
 	else
 		DOWNLOADING_LIBS = true
 		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
@@ -63,7 +67,7 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 	end
 end
 
-local Q = {name = "Buckshot", range = 950, speed = 2000, delay = 0.25, angle = 25 * math.pi/180, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local Q = {name = "Buckshot", range = 950, speed = 2000, delay = 0.25, width = 25*math.pi/180, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
 local W = {name = "Smoke Screen", range = 950, speed = 1650, delay = 0.25, width = 250, Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Quickdraw", range = 425, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Collateral Damage", range = 1000, speed = 2100, delay = 0.25, width = 100, Ready = function() return myHero:CanUseSpell(_R) == READY end}
@@ -168,6 +172,9 @@ function OnLoad()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuGraves = scriptConfig("Graves Master "..version, "Graves Master "..version)
 	MenuGraves:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -199,7 +206,7 @@ function Menu()
 	MenuGraves.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	MenuGraves.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	MenuGraves:addSubMenu("[Graves Master]: Harras Settings", "harrasConfig")
-    MenuGraves.harrasConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_ONOFF, true)
+    MenuGraves.harrasConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "After AA"})
 	MenuGraves.harrasConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_ONOFF, true)
 	MenuGraves.harrasConfig:addParam("HEnabled", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
 	MenuGraves.harrasConfig:addParam("HTEnabled", "Harass Toggle", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
@@ -255,7 +262,7 @@ function Menu()
 	MenuGraves.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGraves.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
 	MenuGraves.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuGraves.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction", "Prodiction"}) 
+	MenuGraves.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction", "Prodiction","DivinePred"}) 
 	MenuGraves.comboConfig:permaShow("CEnabled")
 	MenuGraves.harrasConfig:permaShow("HEnabled")
 	MenuGraves.harrasConfig:permaShow("HTEnabled")
@@ -377,7 +384,7 @@ function Combo()
 end
 
 function Harass()
-	if QCel and QCel ~= nil and MenuGraves.harrasConfig.USEQ and GetDistance(QCel) < Q.range then
+	if QCel and QCel ~= nil and MenuGraves.harrasConfig.USEQ == 2 and GetDistance(QCel) < Q.range then
 		CastQ(QCel)
 	end
 	if WCel and WCel ~= nil and MenuGraves.harrasConfig.USEW and GetDistance(WCel) < W.range then
@@ -475,62 +482,74 @@ function autolvl()
 end
 
 function GetBestLineFarmPosition(range, width, objects)
-	local BestPos 
-	local BestHit = 0
-	for i, object in ipairs(objects) do
-		local EndPos = Vector(myHero.visionPos) + range * (Vector(object) - Vector(myHero.visionPos)):normalized()
-		local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
-		if hit > BestHit then
-			BestHit = hit
-			BestPos = Vector(object)
-			if BestHit == #objects then
-			   break
-			end
-		 end
-	end
-	return BestPos, BestHit
-end
-
-function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
-	local n = 0
-	for i, object in ipairs(objects) do
-		local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
-		if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width then
-			n = n + 1
-		end
-	end
-	return n
-end
-
-function BestWFarmPos(range, radius, objects)
-    local Pos 
-    local BHit = 0
+    local BestPos 
+    local BestHit = 0
     for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
-        if hit > BHit then
-            BHit = hit
-            Pos = Vector(object)
-            if BHit == #objects then
+        local EndPos = Vector(myHero) + range * (Vector(object) - Vector(myHero)):normalized()
+        local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
                break
             end
          end
     end
-    return Pos, BHit
+    return BestPos, BestHit
 end
 
-function CountObjectsNearPos(pos, range, radius, objects)
+function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
     local n = 0
     for i, object in ipairs(objects) do
-        if GetDistanceSqr(pos, object) <= radius * radius then
+        local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(StartPos, EndPos, object)
+        if isOnSegment and GetDistanceSqr(pointSegment, object) < width * width and GetDistanceSqr(StartPos, EndPos) > GetDistanceSqr(StartPos, object) then
             n = n + 1
         end
     end
     return n
 end
 
+function _GetDistanceSqr(p1, p2)
+    p2 = p2 or player
+    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
+    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
+    return GetDistanceSqr(p1, p2)
+end
+
+function CountObjectsNearPos(pos, range, radius, objects)
+    local n = 0
+    for i, object in ipairs(objects) do
+        if _GetDistanceSqr(pos, object) <= radius * radius then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+function BestWFarmPos(range, radius, objects)
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
+end
+
 function aa()
 	if MenuGraves.comboConfig.CEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGraves.comboConfig.manac then
 		if QCel and QCel ~= nil and MenuGraves.comboConfig.qConfig.USEQ == 3 and GetDistance(QCel) < Q.range then
+			CastQ(QCel)
+		end
+	end
+	if MenuGraves.harrasConfig.HEnabled and ((myHero.mana/myHero.maxMana)*100) >= MenuGraves.harrasConfig.manah then
+		if QCel and QCel ~= nil and MenuGraves.harrasConfig.USEQ == 3 and GetDistance(QCel) < Q.range then
 			CastQ(QCel)
 		end
 	end
@@ -578,6 +597,18 @@ function CastR(unit)
 		if MenuGraves.prConfig.pro == 2 and VIP_USER and prodstatus then
 			local Position, info = Prodiction.GetPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
 			if Position ~= nil then
+				if VIP_USER and MenuGraves.prConfig.pc then
+					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_R, Position.x, Position.z)
+				end
+			end
+		end
+		if MenuGraves.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local GravesR = LineSS(R.speed, R.range, R.width, 250, math.huge)
+			local State, Position, perc = DP:predict(unit, GravesR)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuGraves.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
 				else
@@ -635,6 +666,18 @@ function CastW(unit)
 				end
 			end
 		end
+		if MenuGraves.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local GravesW = CircleSS(W.speed, W.range, W.width-50, 250, math.huge)
+			local State, Position, perc = DP:predict(unit, GravesW)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuGraves.prConfig.pc then
+					Packet("S_CAST", {spellId = _W, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_W, Position.x, Position.z)
+				end
+			end
+		end
 	end
 end
 
@@ -653,6 +696,18 @@ function CastQ(unit)
 		if MenuGraves.prConfig.pro == 2 then
 			local Position, info = Prodiction.GetPrediction(unit, Q.range-20, Q.speed, Q.delay, Q.width, myHero)
 			if Position ~= nil then
+				if VIP_USER and MenuGraves.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
+			end
+		end
+		if MenuGraves.prConfig.pro == 3 and VIP_USER then
+			local unit = DPTarget(unit)
+			local GravesQ = ConeSS(math.huge, Q.range, Q.width, 250, math.huge)
+			local State, Position, perc = DP:predict(unit, GravesQ)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuGraves.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
 				else
