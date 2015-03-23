@@ -2,8 +2,8 @@
 
 	Script Name: Gragas MASTER 
     	Author: kokosik1221
-	Last Version: 0.8
-	22.03.2015
+	Last Version: 0.81
+	23.03.2015
 	
 ]]--
 
@@ -13,7 +13,7 @@ if myHero.charName ~= "Gragas" then return end
 _G.AUTOUPDATE = true
 
 
-local version = "0.8"
+local version = "0.81"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GragasMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -99,9 +99,9 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
 
-local Q = {name = "Barrel Roll", range = 850, speed = 1100, delay = 0.250, width = 330, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local Q = {name = "Barrel Roll", range = 850, speed = 1100, delay = 0.25, width = 330, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
 local W = {name = "Drunken Rage", Ready = function() return myHero:CanUseSpell(_W) == READY end}
-local E = {name = "Body Slam", range = 650, speed = math.huge, delay = 0.250, width = 100, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local E = {name = "Body Slam", range = 650, speed = math.huge, delay = 0.25, width = 100, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Explosive Cask", range = 1150, speed = 1300, delay = 0.5, width = 400, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local IReady, zhonyaready, recall  = false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -691,7 +691,7 @@ function CastQ(unit)
 	end
 	if MenuGragy.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local GragQ = CircleSS(Q.speed, Q.range, Q.width, Q.delay, math.huge)
+		local GragQ = CircleSS(Q.speed, Q.range, Q.width, 250, math.huge)
 		local State, Position, perc = DP:predict(unit, GragQ)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuGragy.prConfig.pc then
@@ -735,7 +735,7 @@ function CastE(unit)
 	end
 	if MenuGragy.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local GragE = LineSS(E.speed, E.range, E.width, E.delay, 0)
+		local GragE = LineSS(E.speed, E.range, E.width, 250, 0)
 		local State, Position, perc = DP:predict(unit, GragE)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuGragy.prConfig.pc then
@@ -770,7 +770,7 @@ function CastR(unit)
 	end
 	if MenuGragy.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local GragR = CircleSS(R.speed, R.range, R.width, R.delay, math.huge)
+		local GragR = CircleSS(R.speed, R.range, R.width, 500, math.huge)
 		local State, Position, perc = DP:predict(unit, GragR)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuGragy.prConfig.pc then
