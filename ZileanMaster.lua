@@ -2,9 +2,9 @@
 
 	Script Name: ZILEAN MASTER 
     	Author: kokosik1221
-	Last Version: 0.21
-	19.03.2015
-	
+	Last Version: 0.22
+	23.03.2015
+
 ]]--
 
 if myHero.charName ~= "Zilean" then return end
@@ -12,7 +12,7 @@ if myHero.charName ~= "Zilean" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.21"
+local version = "0.22"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/ZileanMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -38,6 +38,7 @@ end
 local REQUIRED_LIBS = {
 	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
 	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
+	["DivinePred"] = ""
 }
 local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
 function AfterDownload()
@@ -55,6 +56,9 @@ for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
 		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
 			require(DOWNLOAD_LIB_NAME) 
 			prodstatus = true 
+		end
+		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
+			require(DOWNLOAD_LIB_NAME) 
 		end
 	else
 		DOWNLOADING_LIBS = true
@@ -150,6 +154,9 @@ function OnTick()
 end
 
 function Menu()
+	if VIP_USER then
+		DP = DivinePred()
+	end
 	VP = VPrediction()
 	MenuZilean = scriptConfig("Zilean Master "..version, "Zilean Master "..version)
 	MenuZilean:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -234,6 +241,8 @@ function Menu()
 	MenuZilean.prConfig:addParam("AZMR", "Must Have 0 Enemy In Range:", SCRIPT_PARAM_SLICE, 900, 0, 1500, 0)
 	MenuZilean.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuZilean.prConfig:addParam("ALS", "Auto lvl skills", SCRIPT_PARAM_ONOFF, false)
+	MenuZilean.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
+	MenuZilean.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","DivinePred"}) 
 	MenuZilean.comboConfig:permaShow("CEnabled")
 	MenuZilean.harrasConfig:permaShow("HEnabled")
 	MenuZilean.harrasConfig:permaShow("HTEnabled")
@@ -472,13 +481,13 @@ function UseItems(unit)
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "recall" then
+	if unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -582,30 +591,37 @@ function HaveBuff(unit)
     end
 end
 
-function BestQFarmPos(range, radius, objects)
-    local Pos 
-    local BHit = 0
-    for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
-        if hit > BHit then
-            BHit = hit
-            Pos = Vector(object)
-            if BHit == #objects then
-               break
-            end
-         end
-    end
-    return Pos, BHit
+function _GetDistanceSqr(p1, p2)
+    p2 = p2 or player
+    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
+    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
+    return GetDistanceSqr(p1, p2)
 end
 
 function CountObjectsNearPos(pos, range, radius, objects)
     local n = 0
     for i, object in ipairs(objects) do
-        if GetDistanceSqr(pos, object) <= radius * radius then
+        if _GetDistanceSqr(pos, object) <= radius * radius then
             n = n + 1
         end
     end
     return n
+end
+
+function BestQFarmPos(range, radius, objects)
+    local BestPos 
+    local BestHit = 0
+    for i, object in ipairs(objects) do
+        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        if hit > BestHit then
+            BestHit = hit
+            BestPos = object
+            if BestHit == #objects then
+               break
+            end
+         end
+    end
+    return BestPos, BestHit
 end
 
 function GetCustomTarget()
@@ -621,13 +637,27 @@ end
 
 function CastQ(unit)
 	if Q.Ready() then
-		local CastPosition,  HitChance,  Position = VP:GetCircularAOECastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero)
-		if CastPosition and HitChance >= 2 then
-			if VIP_USER and MenuZilean.prConfig.pc then
-				Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
-			else
-				CastSpell(_Q, CastPosition.x, CastPosition.z)
-			end	
+		if MenuZilean.prConfig.pro == 1 then
+			local CastPosition,  HitChance,  Position = VP:GetCircularAOECastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero)
+			if CastPosition and HitChance >= 2 then
+				if VIP_USER and MenuZilean.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
+				else
+					CastSpell(_Q, CastPosition.x, CastPosition.z)
+				end	
+			end
+		end
+		if MenuZilean.prConfig.pro == 2 and VIP_USER then
+			local unit = DPTarget(unit)
+			local ZilQ = CircleSS(Q.speed, Q.range, Q.width, 250, math.huge)
+			local State, Position, perc = DP:predict(unit, ZilQ)
+			if State == SkillShot.STATUS.SUCCESS_HIT then 
+				if VIP_USER and MenuZilean.prConfig.pc then
+					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
+				else
+					CastSpell(_Q, Position.x, Position.z)
+				end
+			end
 		end
 	end
 end
