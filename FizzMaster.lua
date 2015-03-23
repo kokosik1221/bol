@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: FIZZ MASTER 
-   	Author: kokosik1221
-	Last Version: 1.6
-	22.03.2015
+    	Author: kokosik1221
+	Last Version: 1.61
+	23.03.2015
 	
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Fizz" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "1.6"
+local version = "1.61"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/FizzMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -1130,7 +1130,7 @@ function CastE(unit)
 			end
 			if MenuFizz.prConfig.pro == 3 and VIP_USER then
 				local unit = DPTarget(unit)
-				local FizzE = CircleSS(E.speed, E.range, E.width, E.delay, math.huge)
+				local FizzE = CircleSS(E.speed, E.range, E.width, 250, math.huge)
 				local State, Position, perc = DP:predict(unit, FizzE)
 				if State == SkillShot.STATUS.SUCCESS_HIT then 
 					if VIP_USER and MenuFizz.prConfig.pc then
@@ -1170,7 +1170,7 @@ function CastE2(unit)
 			end
 			if MenuFizz.prConfig.pro == 3 and VIP_USER then
 				local unit = DPTarget(unit)
-				local FizzE2 = CircleSS(E2.speed, E2.range, E2.width, E2.delay, math.huge)
+				local FizzE2 = CircleSS(E2.speed, E2.range, E2.width, 250, math.huge)
 				local State, Position, perc = DP:predict(unit, FizzE2)
 				if State == SkillShot.STATUS.SUCCESS_HIT then 
 					if VIP_USER and MenuFizz.prConfig.pc then
@@ -1208,7 +1208,7 @@ function CastR(unit)
 		end
 		if MenuFizz.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local FizzR = LineSS(R.speed, R.range, R.width, R.delay, math.huge)
+			local FizzR = LineSS(R.speed, R.range, R.width, 500, math.huge)
 			local State, Position, perc = DP:predict(unit, FizzR)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuFizz.prConfig.pc then
