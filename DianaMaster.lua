@@ -1,9 +1,9 @@
 --[[
 
 	Script Name: DIANA MASTER 
- 	Author: kokosik1221
-	Last Version: 0.45
-	23.03.2015
+    	Author: kokosik1221
+	Last Version: 0.46
+	24.03.2015
 
 ]]--
 
@@ -12,7 +12,7 @@ if myHero.charName ~= "Diana" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.45"
+local version = "0.46"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/DianaMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -671,7 +671,7 @@ function CastQ(unit)
 	end
 	if MenuDiana.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
-		local DianaQ = CircleSS(Q.speed, Q.range, Q.width, 500, math.huge)
+		local DianaQ = CircleSS(math.huge, Q.range, Q.width, 500, math.huge)
 		local State, Position, perc = DP:predict(unit, DianaQ)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuDiana.prConfig.pc then
