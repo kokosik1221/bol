@@ -2,8 +2,8 @@
 
 	Script Name: GRAVES MASTER 
     	Author: kokosik1221
-	Last Version: 0.33
-	23.03.2015
+	Last Version: 0.34
+	24.03.2015
 	
 ]]--
 
@@ -11,7 +11,7 @@ if myHero.charName ~= "Graves" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.33"
+local version = "0.34"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GravesMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -405,7 +405,7 @@ function Farm()
 			end
 		elseif QMode == 3 then
 			if minion ~= nil and not minion.dead and GetDistance(minion) < Q.range then
-				local pos, BestHit = GetBestLineFarmPosition(Q.range, Q.angle, EnemyMinions.objects)
+				local pos, BestHit = GetBestLineFarmPosition(Q.range, Q.width, EnemyMinions.objects)
 				if pos ~= nil then
 					CastSpell(_Q, pos.x, pos.z)
 				end
@@ -441,7 +441,7 @@ function JungleFarm()
 		end
 		if MenuGraves.jf.QJF then
 			if minion ~= nil and not minion.dead and GetDistance(minion) < Q.range then
-				local pos, BestHit = GetBestLineFarmPosition(Q.range, Q.angle, JungleMinions.objects)
+				local pos, BestHit = GetBestLineFarmPosition(Q.range, Q.width, JungleMinions.objects)
 				if pos ~= nil then
 					CastSpell(_Q, pos.x, pos.z)
 				end
@@ -606,7 +606,7 @@ function CastR(unit)
 		end
 		if MenuGraves.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local GravesR = LineSS(R.speed, R.range, R.width, 250, math.huge)
+			local GravesR = LineSS(math.huge, R.range, R.width, 250, math.huge)
 			local State, Position, perc = DP:predict(unit, GravesR)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuGraves.prConfig.pc then
@@ -668,7 +668,7 @@ function CastW(unit)
 		end
 		if MenuGraves.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local GravesW = CircleSS(W.speed, W.range, W.width-50, 250, math.huge)
+			local GravesW = CircleSS(math.huge, W.range, W.width, 250, math.huge)
 			local State, Position, perc = DP:predict(unit, GravesW)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuGraves.prConfig.pc then
@@ -684,7 +684,7 @@ end
 function CastQ(unit)
 	if Q.Ready() and ValidTarget(unit) then
 		if MenuGraves.prConfig.pro == 1 then
-			local CastPosition, HitChance, Position = VP:GetConeAOECastPosition(unit, Q.delay, Q.angle, Q.range-20, Q.speed, myHero)
+			local CastPosition, HitChance, Position = VP:GetConeAOECastPosition(unit, Q.delay, Q.width, Q.range-20, Q.speed, myHero)
 			if CastPosition and HitChance >= 2 then
 				if VIP_USER and MenuGraves.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
@@ -705,7 +705,7 @@ function CastQ(unit)
 		end
 		if MenuGraves.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local GravesQ = ConeSS(math.huge, Q.range, Q.width, 250, math.huge)
+			local GravesQ = ConeSS(math.huge, Q.range-20, Q.width, 250, math.huge)
 			local State, Position, perc = DP:predict(unit, GravesQ)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuGraves.prConfig.pc then
