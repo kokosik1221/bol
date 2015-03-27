@@ -2,16 +2,16 @@
 
 	Script Name: GRAVES MASTER 
     	Author: kokosik1221
-	Last Version: 0.34
-	24.03.2015
-	
+	Last Version: 0.35
+	27.03.2015
+
 ]]--
 
 if myHero.charName ~= "Graves" then return end
 
 _G.AUTOUPDATE = true
 
-local version = "0.34"
+local version = "0.35"
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kokosik1221/bol/master/GravesMaster.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
@@ -192,7 +192,7 @@ function Menu()
 	MenuGraves.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "After AA"})
 	MenuGraves.comboConfig.qConfig:addParam("USEQ2", "Dash With E", SCRIPT_PARAM_ONOFF, false)
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: W Settings", "wConfig")
-	MenuGraves.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "Can Hit X"})
+	MenuGraves.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "Can Hit X", "AA Reset"})
 	MenuGraves.comboConfig.wConfig:addParam("USEWX", "X = ", SCRIPT_PARAM_SLICE, 3, 1, 5, 0)
 	MenuGraves.comboConfig.wConfig:addParam("USEW2", "Min. Mana To Cast", SCRIPT_PARAM_SLICE, 50, 0, 100, 0)
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: E Settings", "eConfig")
@@ -386,6 +386,11 @@ end
 function Harass()
 	if QCel and QCel ~= nil and MenuGraves.harrasConfig.USEQ == 2 and GetDistance(QCel) < Q.range then
 		CastQ(QCel)
+	end
+	if MenuGraves.orb == 2 and _G.AutoCarry and QCel and QCel ~= nil and MenuGraves.harrasConfig.USEQ == 3 and GetDistance(QCel) < Q.range then
+		if AutoCarry.Orbwalker:IsAfterAttack() then
+			CastQ(QCel)
+		end
 	end
 	if WCel and WCel ~= nil and MenuGraves.harrasConfig.USEW and GetDistance(WCel) < W.range then
 		CastW(WCel)
@@ -760,6 +765,11 @@ function KillSteal()
 end
 
 function OnProcessSpell(unit, spell)
+	if unit and spell and unit.isMe and spell.name == "GravesBasicAttack" then
+		if MenuGraves.comboConfig.CEnabled and MenuGraves.comboConfig.wConfig.USEW == 4 and WCel and ValidTarget(WCel, myHero.range+65) then
+			CastW(WCel)
+		end
+	end
 	if MenuGraves.exConfig.ED then
 		if unit and unit.team ~= myHero.team and not myHero.dead and unit.type == myHero.type and spell then
 		    shottype,radius,maxdistance = 0,0,0
