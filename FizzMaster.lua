@@ -2,70 +2,138 @@
 
 	Script Name: FIZZ MASTER 
     	Author: kokosik1221
-	Last Version: 1.61
-	23.03.2015
+	Last Version: 1.62
+	31.03.2015
 	
 ]]--
 
 
 if myHero.charName ~= "Fizz" then return end
 
-_G.AUTOUPDATE = true
+local version = 1.62
+ 
+class "ScriptUpdate"
+function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
+    self.LocalVersion = LocalVersion
+    self.Host = Host
+    self.VersionPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
+    self.ScriptPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
+    self.SavePath = SavePath
+    self.CallbackUpdate = CallbackUpdate
+    self.CallbackNoUpdate = CallbackNoUpdate
+    self.CallbackNewVersion = CallbackNewVersion
+    self.LuaSocket = require("socket")
+    self.Socket = self.LuaSocket.connect('sx-bol.eu', 80)
+    self.Socket:send("GET "..self.VersionPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
+    self.Socket:settimeout(0, 'b')
+    self.Socket:settimeout(99999999, 't')
+    self.LastPrint = ""
+    self.File = ""
+    AddTickCallback(function() self:GetOnlineVersion() end)
+end
+function ScriptUpdate:Base64Encode(data)
+    local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    return ((data:gsub('.', function(x)
+        local r,b='',x:byte()
+        for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
+        return r;
+    end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+        if (#x < 6) then return '' end
+        local c=0
+        for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0) end
+        return b:sub(c+1,c+1)
+    end)..({ '', '==', '=' })[#data%3+1])
+end
+function ScriptUpdate:GetOnlineVersion()
+    if self.Status == 'closed' then return end
+    self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
 
-local version = "1.61"
-local UPDATE_HOST = "raw.github.com"
-local UPDATE_PATH = "/kokosik1221/bol/master/FizzMaster.lua".."?rand="..math.random(1,10000)
-local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
-local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
-function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>FizzMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-if _G.AUTOUPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/FizzMaster.version")
-	if ServerData then
-		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
-		if ServerVersion then
-			if tonumber(version) < ServerVersion then
-				AutoupdaterMsg("New version available "..ServerVersion)
-				AutoupdaterMsg("Updating, please don't press F9")
-				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
-			else
-				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
-			end
-		end
-	else
-		AutoupdaterMsg("Error downloading version info")
-	end
+    if self.Receive then
+        if self.LastPrint ~= self.Receive then
+            self.LastPrint = self.Receive
+            self.File = self.File .. self.Receive
+        end
+    end
+
+    if self.Snipped ~= "" and self.Snipped then
+        self.File = self.File .. self.Snipped
+    end
+    if self.Status == 'closed' then
+        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
+        if HeaderEnd and ContentStart then
+            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1))
+            if self.OnlineVersion > self.LocalVersion then
+                if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
+                    self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
+                end
+                self.DownloadSocket = self.LuaSocket.connect('sx-bol.eu', 80)
+                self.DownloadSocket:send("GET "..self.ScriptPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
+                self.DownloadSocket:settimeout(0, 'b')
+                self.DownloadSocket:settimeout(99999999, 't')
+                self.LastPrint = ""
+                self.File = ""
+                AddTickCallback(function() self:DownloadUpdate() end)
+            else
+                if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
+                    self.CallbackNoUpdate(self.LocalVersion)
+                end
+            end
+        else
+            print('Error: Could not get end of Header')
+        end
+    end
 end
-local REQUIRED_LIBS = {
-	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
-	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
-	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
-	["DivinePred"] = ""
-}
-local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
-function AfterDownload()
-	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
-	if DOWNLOAD_COUNT == 0 then
-		DOWNLOADING_LIBS = false
-		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
-	end
+function ScriptUpdate:DownloadUpdate()
+    if self.DownloadStatus == 'closed' then return end
+    self.DownloadReceive, self.DownloadStatus, self.DownloadSnipped = self.DownloadSocket:receive(1024)
+    if self.DownloadReceive then
+        if self.LastPrint ~= self.DownloadReceive then
+            self.LastPrint = self.DownloadReceive
+            self.File = self.File .. self.DownloadReceive
+        end
+    end
+    if self.DownloadSnipped ~= "" and self.DownloadSnipped then
+        self.File = self.File .. self.DownloadSnipped
+    end
+    if self.DownloadStatus == 'closed' then
+        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
+        if HeaderEnd and ContentStart then
+            local ScriptFileOpen = io.open(self.SavePath, "w+")
+            ScriptFileOpen:write(self.File:sub(ContentStart + 1))
+            ScriptFileOpen:close()
+            if self.CallbackUpdate and type(self.CallbackUpdate) == 'function' then
+                self.CallbackUpdate(self.OnlineVersion,self.LocalVersion)
+            end
+        end
+    end
 end
-for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
-	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
-		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
-			require(DOWNLOAD_LIB_NAME) 
-		end
-		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
-			require(DOWNLOAD_LIB_NAME) 
-			prodstatus = true 
-		end
-		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
-			require(DOWNLOAD_LIB_NAME) 
-		end
-	else
-		DOWNLOADING_LIBS = true
-		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
-		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
-	end
+function Update()
+	local ToUpdate = {}
+    ToUpdate.Version = version
+    ToUpdate.Host = "raw.githubusercontent.com"
+    ToUpdate.VersionPath = "/kokosik1221/bol/master/FizzMaster.version"
+    ToUpdate.ScriptPath = "/kokosik1221/bol/master/FizzMaster.lua"
+    ToUpdate.SavePath = SCRIPT_PATH.."FizzMaster.lua"
+    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Fizz Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
+    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Fizz Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
+    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Fizz Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
+    ScriptUpdate(ToUpdate.Version, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion)
+end
+if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
+	require("SxOrbWalk")
+end
+if FileExist(LIB_PATH .. "/VPrediction.lua") then
+	require("VPrediction")
+	VP = VPrediction()
+end
+if VIP_USER and FileExist(LIB_PATH .. "/Prodiction.lua") then
+	require("Prodiction")
+	prodstatus = true
+end
+if VIP_USER and FileExist(LIB_PATH .. "/DivinePred.lua") then 
+	require "DivinePred" 
+	DP = DivinePred()
+	DP.maxCalcTime = 150
 end
 
 local Items = {
@@ -493,13 +561,16 @@ local TargetTable = {
 }
 
 function OnLoad()
+	DelayAction(function()
+		Update()
+	end,0.1)
 	Menu()
-	print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	print("<b><font color=\"#FF0000\">Fizz Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
-		print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Fizz Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 	end	
 	if _G.AutoCarry then
-		print("<b><font color=\"#6699FF\">Fizz Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Fizz Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 	end
 end
 
@@ -1130,7 +1201,7 @@ function CastE(unit)
 			end
 			if MenuFizz.prConfig.pro == 3 and VIP_USER then
 				local unit = DPTarget(unit)
-				local FizzE = CircleSS(E.speed, E.range, E.width, 250, math.huge)
+				local FizzE = CircleSS(E.speed, E.range, E.width, E.delay*1000, math.huge)
 				local State, Position, perc = DP:predict(unit, FizzE)
 				if State == SkillShot.STATUS.SUCCESS_HIT then 
 					if VIP_USER and MenuFizz.prConfig.pc then
@@ -1170,7 +1241,7 @@ function CastE2(unit)
 			end
 			if MenuFizz.prConfig.pro == 3 and VIP_USER then
 				local unit = DPTarget(unit)
-				local FizzE2 = CircleSS(E2.speed, E2.range, E2.width, 250, math.huge)
+				local FizzE2 = CircleSS(E2.speed, E2.range, E2.width, E.delay*1000, math.huge)
 				local State, Position, perc = DP:predict(unit, FizzE2)
 				if State == SkillShot.STATUS.SUCCESS_HIT then 
 					if VIP_USER and MenuFizz.prConfig.pc then
@@ -1186,36 +1257,36 @@ end
 
 function CastR(unit)
 	if R.Ready() then
+		local Position = nil
 		if MenuFizz.prConfig.pro == 1 then
 			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range - 100, R.speed, myHero, false)
 			if HitChance >= MenuFizz.prConfig.vphit - 1 then
-				if VIP_USER and MenuFizz.prConfig.pc then
-					Packet("S_CAST", {spellId = _R, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
-				else
-					CastSpell(_R, CastPosition.x, CastPosition.z)
-				end
+				Position = CastPosition
 			end
 		end
 		if MenuFizz.prConfig.pro == 2 and VIP_USER and prodstatus then
-			local Position, info = Prodiction.GetPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
-			if Position ~= nil then
-				if VIP_USER and MenuFizz.prConfig.pc then
-					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
-				else
-					CastSpell(_R, Position.x, Position.z)
-				end	
+			local Posss, info = Prodiction.GetPrediction(unit, R.range, R.speed, R.delay, R.width, myHero)
+			if Posss ~= nil then
+				Position = Posss
 			end
 		end
 		if MenuFizz.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local FizzR = LineSS(R.speed, R.range, R.width, 500, math.huge)
-			local State, Position, perc = DP:predict(unit, FizzR)
+			local FizzR = LineSS(R.speed, R.range, R.width, R.delay*1000, math.huge)
+			local State, Pos, perc = DP:predict(unit, FizzR)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
-				if VIP_USER and MenuFizz.prConfig.pc then
-					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
-				else
-					CastSpell(_R, Position.x, Position.z)
-				end
+				Position = Pos
+			end
+		end
+		if Position then
+			local x,y,z = (Vector(Position) - Vector(myHero)):normalized():unpack()
+			posX = Position.x + (x * 100)
+			posY = Position.y + (y * 100)
+			posZ = Position.z + (z * 100)
+			if VIP_USER and MenuFizz.prConfig.pc then
+				Packet("S_CAST", {spellId = _R, fromX = posX, fromY = posZ, toX = posX, toY = posZ}):send()
+			else
+				CastSpell(_R, posX, posZ)
 			end
 		end
 	end
