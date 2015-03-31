@@ -1,7 +1,7 @@
 --[[
 
 	Script Name: DIANA MASTER 
-    Author: kokosik1221
+    	Author: kokosik1221
 	Last Version: 0.49
 	31.03.2015
 	
