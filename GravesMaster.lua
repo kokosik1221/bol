@@ -2,69 +2,137 @@
 
 	Script Name: GRAVES MASTER 
     	Author: kokosik1221
-	Last Version: 0.35
-	27.03.2015
+	Last Version: 0.36
+	31.03.2015
 
 ]]--
 
 if myHero.charName ~= "Graves" then return end
 
-_G.AUTOUPDATE = true
+local version = 0.36
+ 
+class "ScriptUpdate"
+function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
+    self.LocalVersion = LocalVersion
+    self.Host = Host
+    self.VersionPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
+    self.ScriptPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
+    self.SavePath = SavePath
+    self.CallbackUpdate = CallbackUpdate
+    self.CallbackNoUpdate = CallbackNoUpdate
+    self.CallbackNewVersion = CallbackNewVersion
+    self.LuaSocket = require("socket")
+    self.Socket = self.LuaSocket.connect('sx-bol.eu', 80)
+    self.Socket:send("GET "..self.VersionPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
+    self.Socket:settimeout(0, 'b')
+    self.Socket:settimeout(99999999, 't')
+    self.LastPrint = ""
+    self.File = ""
+    AddTickCallback(function() self:GetOnlineVersion() end)
+end
+function ScriptUpdate:Base64Encode(data)
+    local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    return ((data:gsub('.', function(x)
+        local r,b='',x:byte()
+        for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
+        return r;
+    end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+        if (#x < 6) then return '' end
+        local c=0
+        for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0) end
+        return b:sub(c+1,c+1)
+    end)..({ '', '==', '=' })[#data%3+1])
+end
+function ScriptUpdate:GetOnlineVersion()
+    if self.Status == 'closed' then return end
+    self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
 
-local version = "0.35"
-local UPDATE_HOST = "raw.github.com"
-local UPDATE_PATH = "/kokosik1221/bol/master/GravesMaster.lua".."?rand="..math.random(1,10000)
-local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
-local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
-function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>GravesMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-if _G.AUTOUPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/GravesMaster.version")
-	if ServerData then
-		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
-		if ServerVersion then
-			if tonumber(version) < ServerVersion then
-				AutoupdaterMsg("New version available "..ServerVersion)
-				AutoupdaterMsg("Updating, please don't press F9")
-				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
-			else
-				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
-			end
-		end
-	else
-		AutoupdaterMsg("Error downloading version info")
-	end
+    if self.Receive then
+        if self.LastPrint ~= self.Receive then
+            self.LastPrint = self.Receive
+            self.File = self.File .. self.Receive
+        end
+    end
+
+    if self.Snipped ~= "" and self.Snipped then
+        self.File = self.File .. self.Snipped
+    end
+    if self.Status == 'closed' then
+        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
+        if HeaderEnd and ContentStart then
+            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1))
+            if self.OnlineVersion > self.LocalVersion then
+                if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
+                    self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
+                end
+                self.DownloadSocket = self.LuaSocket.connect('sx-bol.eu', 80)
+                self.DownloadSocket:send("GET "..self.ScriptPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
+                self.DownloadSocket:settimeout(0, 'b')
+                self.DownloadSocket:settimeout(99999999, 't')
+                self.LastPrint = ""
+                self.File = ""
+                AddTickCallback(function() self:DownloadUpdate() end)
+            else
+                if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
+                    self.CallbackNoUpdate(self.LocalVersion)
+                end
+            end
+        else
+            print('Error: Could not get end of Header')
+        end
+    end
 end
-local REQUIRED_LIBS = {
-	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
-	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
-	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
-	["DivinePred"] = ""
-}
-local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
-function AfterDownload()
-	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
-	if DOWNLOAD_COUNT == 0 then
-		DOWNLOADING_LIBS = false
-		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
-	end
+function ScriptUpdate:DownloadUpdate()
+    if self.DownloadStatus == 'closed' then return end
+    self.DownloadReceive, self.DownloadStatus, self.DownloadSnipped = self.DownloadSocket:receive(1024)
+    if self.DownloadReceive then
+        if self.LastPrint ~= self.DownloadReceive then
+            self.LastPrint = self.DownloadReceive
+            self.File = self.File .. self.DownloadReceive
+        end
+    end
+    if self.DownloadSnipped ~= "" and self.DownloadSnipped then
+        self.File = self.File .. self.DownloadSnipped
+    end
+    if self.DownloadStatus == 'closed' then
+        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
+        if HeaderEnd and ContentStart then
+            local ScriptFileOpen = io.open(self.SavePath, "w+")
+            ScriptFileOpen:write(self.File:sub(ContentStart + 1))
+            ScriptFileOpen:close()
+            if self.CallbackUpdate and type(self.CallbackUpdate) == 'function' then
+                self.CallbackUpdate(self.OnlineVersion,self.LocalVersion)
+            end
+        end
+    end
 end
-for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
-	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
-		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
-			require(DOWNLOAD_LIB_NAME) 
-		end
-		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
-			require(DOWNLOAD_LIB_NAME) 
-			prodstatus = true 
-		end
-		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
-			require(DOWNLOAD_LIB_NAME) 
-		end
-	else
-		DOWNLOADING_LIBS = true
-		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
-		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
-	end
+function Update()
+	local ToUpdate = {}
+    ToUpdate.Version = version
+    ToUpdate.Host = "raw.githubusercontent.com"
+    ToUpdate.VersionPath = "/kokosik1221/bol/master/GravesMaster.version"
+    ToUpdate.ScriptPath = "/kokosik1221/bol/master/GravesMaster.lua"
+    ToUpdate.SavePath = SCRIPT_PATH.."GravesMaster.lua"
+    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Graves Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
+    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Graves Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
+    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Graves Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
+    ScriptUpdate(ToUpdate.Version, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion)
+end
+if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
+	require("SxOrbWalk")
+end
+if FileExist(LIB_PATH .. "/VPrediction.lua") then
+	require("VPrediction")
+	VP = VPrediction()
+end
+if VIP_USER and FileExist(LIB_PATH .. "/Prodiction.lua") then
+	require("Prodiction")
+	prodstatus = true
+end
+if VIP_USER and FileExist(LIB_PATH .. "/DivinePred.lua") then 
+	require "DivinePred" 
+	DP = DivinePred()
+	DP.maxCalcTime = 150
 end
 
 local Q = {name = "Buckshot", range = 950, speed = 2000, delay = 0.25, width = 25*math.pi/180, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
@@ -161,6 +229,9 @@ local DodgeTable =
 }
 
 function OnLoad()
+	DelayAction(function()
+		Update()
+	end,0.1)
 	Menu()
 	print("<b><font color=\"#FF0000\">Graves Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
@@ -191,6 +262,7 @@ function Menu()
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: Q Settings", "qConfig")
 	MenuGraves.comboConfig.qConfig:addParam("USEQ", "Use " .. Q.name .. " (Q)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "After AA"})
 	MenuGraves.comboConfig.qConfig:addParam("USEQ2", "Dash With E", SCRIPT_PARAM_ONOFF, false)
+	MenuGraves.comboConfig.qConfig:addParam("USEQR", "Max. Q Range", SCRIPT_PARAM_SLICE, 950, 0, 950, 0)
 	MenuGraves.comboConfig:addSubMenu("[Graves Master]: W Settings", "wConfig")
 	MenuGraves.comboConfig.wConfig:addParam("USEW", "Use " .. W.name .. " (W)", SCRIPT_PARAM_LIST, 2, { "No", "Normal", "Can Hit X", "AA Reset"})
 	MenuGraves.comboConfig.wConfig:addParam("USEWX", "X = ", SCRIPT_PARAM_SLICE, 3, 1, 5, 0)
@@ -313,6 +385,7 @@ function OnTick()
 end
 
 function Check()
+	QTargetSelector.range = MenuGraves.comboConfig.qConfig.USEQR
 	if SelectedTarget ~= nil and ValidTarget(SelectedTarget, R.range) then
 		Cel = SelectedTarget
 		QCel = SelectedTarget
@@ -332,9 +405,9 @@ function Check()
 		SxOrb:ForceTarget(Cel)
 	end
 	if MenuGraves.comboConfig.qConfig.USEQ2 and Q.Ready() and E.Ready() then
-		Q.range = 425 + 950
+		Q.range = 425 + MenuGraves.comboConfig.qConfig.USEQR
 	elseif not MenuGraves.comboConfig.qConfig.USEQ2 then
-		Q.range = 950
+		Q.range = MenuGraves.comboConfig.qConfig.USEQR
 	end
 end
 
@@ -569,6 +642,31 @@ function AutoHeal()
 	end
 end
 
+function CheckBuff(unit)
+  if TargetHaveBuff("JudicatorIntervention", unit) then
+    return true
+  end
+  if TargetHaveBuff("Undying Rage", unit) then
+    return true
+  end
+  if TargetHaveBuff("UndyingRage", unit) then
+    return true
+  end
+  if TargetHaveBuff("ZacRebirthReady", unit) then
+    return true
+  end
+  if TargetHaveBuff("AatroxPassiveReady", unit) then
+    return true
+  end
+  if TargetHaveBuff("Chrono Shift", unit) then
+    return true
+  end
+  if TargetHaveBuff("ChronoShift", unit) then
+    return true
+  end
+  return false
+end
+
 function CalcDMG(unit)
 	local dmg = 0
 	if GetDistance(unit) <= myHero.range+120 then
@@ -588,7 +686,7 @@ end
 
 function CastR(unit)
 	local DMG = CalcDMG(unit)
-	if R.Ready() and ValidTarget(unit) and DMG > unit.health then
+	if R.Ready() and ValidTarget(unit) and DMG > unit.health and not CheckBuff(unit) then
 		if MenuGraves.prConfig.pro == 1 then
 			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range, R.speed, myHero)
 			if CastPosition and HitChance >= 2 then
@@ -650,7 +748,7 @@ function CastE(unit)
 end
 
 function CastW(unit)
-	if W.Ready() and ValidTarget(unit) then
+	if W.Ready() and ValidTarget(unit) and not CheckBuff(unit) then
 		if MenuGraves.prConfig.pro == 1 then
 			local CastPosition, HitChance, Position = VP:GetCircularAOECastPosition(unit, W.delay, W.width, W.range, W.speed, myHero)
 			if CastPosition and HitChance >= 2  then
@@ -687,7 +785,7 @@ function CastW(unit)
 end
 
 function CastQ(unit)
-	if Q.Ready() and ValidTarget(unit) then
+	if Q.Ready() and ValidTarget(unit) and not CheckBuff(unit) then
 		if MenuGraves.prConfig.pro == 1 then
 			local CastPosition, HitChance, Position = VP:GetConeAOECastPosition(unit, Q.delay, Q.width, Q.range-20, Q.speed, myHero)
 			if CastPosition and HitChance >= 2 then
