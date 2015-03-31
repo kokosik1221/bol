@@ -2,14 +2,14 @@
 
 	Script Name: DIANA MASTER 
     	Author: kokosik1221
-	Last Version: 0.47
+	Last Version: 0.48
 	31.03.2015
 	
 ]]--
 
 if myHero.charName ~= "Diana" then return end
 
-local version = "0.47"
+local version = "0.48"
 
 class "SxUpdate"
 function SxUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath)
