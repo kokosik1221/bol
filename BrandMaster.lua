@@ -179,6 +179,9 @@ local TargetTable = {
 }
 
 function OnLoad()
+	DelayAction(function()
+		Update()
+	end,0.1)
 	Menu()
 	print("<b><font color=\"#FF0000\">Brand Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
