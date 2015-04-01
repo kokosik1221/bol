@@ -2,71 +2,138 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.64
-	24.03.2015
+	Last Version: 0.65
+	01.04.2015
 	
 ]]--
 
 
 if myHero.charName ~= "Lux" then return end
 
-_G.AUTOUPDATE = true
-
-
-local version = "0.64"
-local UPDATE_HOST = "raw.github.com"
-local UPDATE_PATH = "/kokosik1221/bol/master/LuxMaster.lua".."?rand="..math.random(1,10000)
-local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
-local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
-function AutoupdaterMsg(msg) print("<font color=\"#FF0000\"><b>LuxMaster:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-if _G.AUTOUPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/kokosik1221/bol/master/LuxMaster.version")
-	if ServerData then
-		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
-		if ServerVersion then
-			if tonumber(version) < ServerVersion then
-				AutoupdaterMsg("New version available "..ServerVersion)
-				AutoupdaterMsg("Updating, please don't press F9")
-				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
-			else
-				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
-			end
-		end
-	else
-		AutoupdaterMsg("Error downloading version info")
-	end
+local version = 0.65
+ 
+class "ScriptUpdate"
+function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
+    self.LocalVersion = LocalVersion
+    self.Host = Host
+    self.VersionPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
+    self.ScriptPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
+    self.SavePath = SavePath
+    self.CallbackUpdate = CallbackUpdate
+    self.CallbackNoUpdate = CallbackNoUpdate
+    self.CallbackNewVersion = CallbackNewVersion
+    self.LuaSocket = require("socket")
+    self.Socket = self.LuaSocket.connect('sx-bol.eu', 80)
+    self.Socket:send("GET "..self.VersionPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
+    self.Socket:settimeout(0, 'b')
+    self.Socket:settimeout(99999999, 't')
+    self.LastPrint = ""
+    self.File = ""
+    AddTickCallback(function() self:GetOnlineVersion() end)
 end
-local REQUIRED_LIBS = {
-	["vPrediction"] = "https://raw.githubusercontent.com/Ralphlol/BoLGit/master/VPrediction.lua",
-	["Prodiction"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/ec830facccefb3b52212dba5696c08697c3c2854/Test/Prodiction/Prodiction.lua",
-	["SxOrbWalk"] = "https://raw.githubusercontent.com/Superx321/BoL/master/common/SxOrbWalk.lua",
-	["DivinePred"] = ""
-}
-local DOWNLOADING_LIBS, DOWNLOAD_COUNT = false, 0
-function AfterDownload()
-	DOWNLOAD_COUNT = DOWNLOAD_COUNT - 1
-	if DOWNLOAD_COUNT == 0 then
-		DOWNLOADING_LIBS = false
-		print("<b><font color=\"#FF0000\">Required libraries downloaded successfully, please reload (double F9).</font>")
-	end
+function ScriptUpdate:Base64Encode(data)
+    local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    return ((data:gsub('.', function(x)
+        local r,b='',x:byte()
+        for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
+        return r;
+    end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+        if (#x < 6) then return '' end
+        local c=0
+        for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0) end
+        return b:sub(c+1,c+1)
+    end)..({ '', '==', '=' })[#data%3+1])
 end
-for DOWNLOAD_LIB_NAME, DOWNLOAD_LIB_URL in pairs(REQUIRED_LIBS) do
-	if FileExist(LIB_PATH .. DOWNLOAD_LIB_NAME .. ".lua") then
-		if DOWNLOAD_LIB_NAME ~= "Prodiction" then 
-			require(DOWNLOAD_LIB_NAME) 
-		end
-		if DOWNLOAD_LIB_NAME == "Prodiction" and VIP_USER then 
-			require(DOWNLOAD_LIB_NAME) 
-			prodstatus = true 
-		end
-		if DOWNLOAD_LIB_NAME == "DivinePred" and VIP_USER then 
-			require(DOWNLOAD_LIB_NAME) 
-		end
-	else
-		DOWNLOADING_LIBS = true
-		DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1
-		DownloadFile(DOWNLOAD_LIB_URL, LIB_PATH .. DOWNLOAD_LIB_NAME..".lua", AfterDownload)
-	end
+function ScriptUpdate:GetOnlineVersion()
+    if self.Status == 'closed' then return end
+    self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
+
+    if self.Receive then
+        if self.LastPrint ~= self.Receive then
+            self.LastPrint = self.Receive
+            self.File = self.File .. self.Receive
+        end
+    end
+
+    if self.Snipped ~= "" and self.Snipped then
+        self.File = self.File .. self.Snipped
+    end
+    if self.Status == 'closed' then
+        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
+        if HeaderEnd and ContentStart then
+            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1))
+            if self.OnlineVersion > self.LocalVersion then
+                if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
+                    self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
+                end
+                self.DownloadSocket = self.LuaSocket.connect('sx-bol.eu', 80)
+                self.DownloadSocket:send("GET "..self.ScriptPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
+                self.DownloadSocket:settimeout(0, 'b')
+                self.DownloadSocket:settimeout(99999999, 't')
+                self.LastPrint = ""
+                self.File = ""
+                AddTickCallback(function() self:DownloadUpdate() end)
+            else
+                if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
+                    self.CallbackNoUpdate(self.LocalVersion)
+                end
+            end
+        else
+            print('Error: Could not get end of Header')
+        end
+    end
+end
+function ScriptUpdate:DownloadUpdate()
+    if self.DownloadStatus == 'closed' then return end
+    self.DownloadReceive, self.DownloadStatus, self.DownloadSnipped = self.DownloadSocket:receive(1024)
+    if self.DownloadReceive then
+        if self.LastPrint ~= self.DownloadReceive then
+            self.LastPrint = self.DownloadReceive
+            self.File = self.File .. self.DownloadReceive
+        end
+    end
+    if self.DownloadSnipped ~= "" and self.DownloadSnipped then
+        self.File = self.File .. self.DownloadSnipped
+    end
+    if self.DownloadStatus == 'closed' then
+        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
+        if HeaderEnd and ContentStart then
+            local ScriptFileOpen = io.open(self.SavePath, "w+")
+            ScriptFileOpen:write(self.File:sub(ContentStart + 1))
+            ScriptFileOpen:close()
+            if self.CallbackUpdate and type(self.CallbackUpdate) == 'function' then
+                self.CallbackUpdate(self.OnlineVersion,self.LocalVersion)
+            end
+        end
+    end
+end
+function Update()
+	local ToUpdate = {}
+    ToUpdate.Version = version
+    ToUpdate.Host = "raw.githubusercontent.com"
+    ToUpdate.VersionPath = "/kokosik1221/bol/master/LuxMaster.version"
+    ToUpdate.ScriptPath = "/kokosik1221/bol/master/LuxMaster.lua"
+    ToUpdate.SavePath = SCRIPT_PATH.."LuxMaster.lua"
+    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Lux Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
+    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Lux Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
+    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Lux Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
+    ScriptUpdate(ToUpdate.Version, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion)
+end
+if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
+	require("SxOrbWalk")
+end
+if FileExist(LIB_PATH .. "/VPrediction.lua") then
+	require("VPrediction")
+	VP = VPrediction()
+end
+if VIP_USER and FileExist(LIB_PATH .. "/Prodiction.lua") then
+	require("Prodiction")
+	prodstatus = true
+end
+if VIP_USER and FileExist(LIB_PATH .. "/DivinePred.lua") then 
+	require "DivinePred" 
+	DP = DivinePred()
+	DP.maxCalcTime = 150
 end
 
 local Items = {
@@ -145,13 +212,16 @@ local TargetTable = {
 }
 
 function OnLoad()
+	DelayAction(function()
+		Update()
+	end,0.1)
 	Menu()
-	print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	print("<b><font color=\"#FF0000\">Lux Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
-		print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Lux Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 	end	
 	if _G.AutoCarry then
-		print("<b><font color=\"#6699FF\">Lux Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Lux Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 	end
 end
 
@@ -186,10 +256,6 @@ function OnTick()
 end
 
 function Menu()
-	if VIP_USER then
-		DP = DivinePred()
-	end
-	VP = VPrediction()
 	MenuLux = scriptConfig("Lux Master "..version, "Lux Master "..version)
 	MenuLux:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuLux:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
@@ -243,6 +309,7 @@ function Menu()
 	MenuLux.exConfig:addParam("AEF", "Auto (E) If Can Hit X", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.exConfig:addParam("AEX", "X = ", SCRIPT_PARAM_SLICE, 4, 1, 5, 0)
 	MenuLux:addSubMenu("[Lux Master]: Jungle Steal Settings", "jsConfig")
+	MenuLux.jsConfig:addParam("JSEnabled", "Use Jungle Steal", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("H"))
 	MenuLux.jsConfig:addParam("JSB", "Steal Baron With (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.jsConfig:addParam("JSD", "Steal Dragon With (R)", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.jsConfig:addParam("JSBL", "Steal Blue With (R)", SCRIPT_PARAM_ONOFF, true)
@@ -310,6 +377,7 @@ function Menu()
 	MenuLux.harrasConfig:permaShow("HEnabled")
 	MenuLux.harrasConfig:permaShow("HTEnabled")
 	MenuLux.prConfig:permaShow("AZ")
+	MenuLux.jsConfig:permaShow("JSEnabled")
 	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
 		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
 	end
@@ -598,6 +666,7 @@ end
 
 function StealJungle()
 	KSMinions:update()
+	if MenuLux.jsConfig.JSEnabled then
 		if MenuLux.jsConfig.JSR then
 			for i, minion in pairs(KSMinions.objects) do
 				if MenuLux.jsConfig.JST == 3 then
@@ -674,6 +743,7 @@ function StealJungle()
 				end
 			end
 		end
+	end
 end
 
 function KSandAUTO()
@@ -796,7 +866,7 @@ function CastQ(unit)
 		end
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local LuxQ = LineSS(Q.speed, Q.range, Q.width, 250, 0)
+			local LuxQ = LineSS(Q.speed, Q.range, Q.width, Q.delay*1000, 0)
 			local State, Position, perc = DP:predict(unit, LuxQ)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
@@ -827,7 +897,7 @@ function CastQ2(unit)
 		end
 		if MenuLux.prConfig.pro == 3 then
 			local unit = DPTarget(unit)
-			local LuxQ = LineSS(Q.speed, Q.range, Q.width, 250, 1)
+			local LuxQ = LineSS(Q.speed, Q.range, Q.width, Q.delay*1000, 1)
 			local State, Position, perc = DP:predict(unit, LuxQ)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
@@ -875,7 +945,7 @@ function CastE(unit)
 		end
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local LuxE = CircleSS(math.huge, E.range, E.width, 250, math.huge)
+			local LuxE = CircleSS(math.huge, E.range, E.width, E.delay*1000, math.huge)
 			local State, Position, perc = DP:predict(unit, LuxE)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
@@ -912,7 +982,7 @@ function CastR(unit)
 		end
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
-			local LuxR = LineSS(math.huge, R.range, R.width, 1000, math.huge)
+			local LuxR = LineSS(math.huge, R.range, R.width, R.delay*1000, math.huge)
 			local State, Position, perc = DP:predict(unit, LuxR)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
@@ -959,9 +1029,9 @@ function OnProcessSpell(unit,spell)
 					if spell.target and spell.target.isMe then
 						CastQ(unit)
 					elseif not spell.target then
-						local endPos1 = Vector(unit.visionPos) + 300 * (Vector(spell.endPos) - Vector(unit.visionPos)):normalized()
-						local endPos2 = Vector(unit.visionPos) + 100 * (Vector(spell.endPos) - Vector(unit.visionPos)):normalized()
-						if (GetDistanceSqr(myHero.visionPos, unit.visionPos) > GetDistanceSqr(myHero.visionPos, endPos1) or GetDistanceSqr(myHero.visionPos, unit.visionPos) > GetDistanceSqr(myHero.visionPos, endPos2))  then
+						local endPos1 = Vector(unit) + 300 * (Vector(spell.endPos) - Vector(unit)):normalized()
+						local endPos2 = Vector(unit) + 100 * (Vector(spell.endPos) - Vector(unit)):normalized()
+						if (GetDistanceSqr(myHero, unit) > GetDistanceSqr(myHero, endPos1) or GetDistanceSqr(myHero, unit) > GetDistanceSqr(myHero, endPos2))  then
 							CastQ(unit)
 						end
 					end
