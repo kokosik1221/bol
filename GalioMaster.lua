@@ -2,14 +2,14 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 2.31
+	Last Version: 2.311
 	01.04.2015
-	
+	 
 ]]--
 
 if myHero.charName ~= "Galio" then return end
 
-local version = 2.31
+local version = 2.311
  
 class "ScriptUpdate"
 function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
@@ -110,12 +110,12 @@ function Update()
 	local ToUpdate = {}
     ToUpdate.Version = version
     ToUpdate.Host = "raw.githubusercontent.com"
-    ToUpdate.VersionPath = "/kokosik1221/bol/master/OlafMaster.version"
-    ToUpdate.ScriptPath = "/kokosik1221/bol/master/OlafMaster.lua"
-    ToUpdate.SavePath = SCRIPT_PATH.."OlafMaster.lua"
-    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Olaf Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
-    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Olaf Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
-    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Olaf Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
+    ToUpdate.VersionPath = "/kokosik1221/bol/master/GalioMaster.version"
+    ToUpdate.ScriptPath = "/kokosik1221/bol/master/GalioMaster.lua"
+    ToUpdate.SavePath = SCRIPT_PATH.."GalioMaster.lua"
+    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Galio Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
+    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Galio Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
+    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Galio Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
     ScriptUpdate(ToUpdate.Version, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion)
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
