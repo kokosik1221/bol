@@ -2,14 +2,14 @@
 
 	Script Name: GRAVES MASTER 
     	Author: kokosik1221
-	Last Version: 0.36
-	31.03.2015
+	Last Version: 0.37
+	02.04.2015
 
 ]]--
 
 if myHero.charName ~= "Graves" then return end
 
-local version = 0.36
+local version = 0.37
  
 class "ScriptUpdate"
 function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
@@ -243,10 +243,6 @@ function OnLoad()
 end
 
 function Menu()
-	if VIP_USER then
-		DP = DivinePred()
-	end
-	VP = VPrediction()
 	MenuGraves = scriptConfig("Graves Master "..version, "Graves Master "..version)
 	MenuGraves:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
 	MenuGraves:addParam("qqq", "If You Change Orb. Click 2x F9", SCRIPT_PARAM_INFO,"")
@@ -564,7 +560,7 @@ function GetBestLineFarmPosition(range, width, objects)
     local BestHit = 0
     for i, object in ipairs(objects) do
         local EndPos = Vector(myHero) + range * (Vector(object) - Vector(myHero)):normalized()
-        local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
+        local hit = CountObjectsOnLineSegment(myHero, EndPos, width, objects)
         if hit > BestHit then
             BestHit = hit
             BestPos = object
