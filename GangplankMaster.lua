@@ -2,14 +2,14 @@
 
 	Script Name: GANKGPLANK MASTER 
     	Author: kokosik1221
-	Last Version: 1.91
-	01.04.2015
-	
+	Last Version: 1.92
+	02.04.2015
+
 ]]--
 
 if myHero.charName ~= "Gangplank" then return end
 
-local version = 1.91
+local version = 1.92
  
 class "ScriptUpdate"
 function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
@@ -295,11 +295,11 @@ function Menu()
 	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
 	_G.DrawCircle = DrawCircle2
 	if heroManager.iCount < 10 then
-		print("<font color=\"#FFFFFF\">Too few champions to aR.range priority.</font>")
+		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
-		aR.rangePrioritysTT()
+		arrangePrioritysTT()
     else
-		aR.rangePrioritys()
+		arrangePrioritys()
 	end
 end
 
@@ -671,7 +671,7 @@ function SetPriority(table, hero, priority)
 	end
 end
 
-function aR.rangePrioritysTT()
+function arrangePrioritysTT()
     for i, enemy in ipairs(GetEnemyHeroes()) do
 		SetPriority(TargetTable.AD_Carry, enemy, 1)
 		SetPriority(TargetTable.AP,       enemy, 1)
@@ -681,7 +681,7 @@ function aR.rangePrioritysTT()
     end
 end
 
-function aR.rangePrioritys()
+function arrangePrioritys()
 	for i, enemy in ipairs(GetEnemyHeroes()) do
 		SetPriority(TargetTable.AD_Carry, enemy, 1)
 		SetPriority(TargetTable.AP, enemy, 2)
