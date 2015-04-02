@@ -2,15 +2,15 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.65
-	01.04.2015
+	Last Version: 0.66
+	02.04.2015
 	
 ]]--
 
 
 if myHero.charName ~= "Lux" then return end
 
-local version = 0.65
+local version = 0.66
  
 class "ScriptUpdate"
 function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
@@ -180,6 +180,7 @@ local W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25,
 local E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.25, width = 275, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local IReady, zhonyaready, recall = false, false, false
+local x = 0
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local KSMinions = minionManager(MINION_JUNGLE, R.range, myHero, MINION_SORT_HEALTH_ASC)
@@ -1015,10 +1016,16 @@ end
 
 function OnProcessSpell(unit,spell)
 	if MenuLux.exConfig.UAS and not recall then
-		shieldtarget = FindShield()
+		local shieldtarget = FindShield()
+		if shieldtarget and ((shieldtarget.health/shieldtarget.maxHealth)*100) > MenuLux.exConfig.ASHP then
+			x = 0
+		end
 		if shieldtarget and ((shieldtarget.health/shieldtarget.maxHealth)*100) < MenuLux.exConfig.ASHP and GetDistance(shieldtarget) < W.range and not _G.Evade then
 			if ((myHero.mana/myHero.maxMana)*100) >= MenuLux.exConfig.ASMP then
-				CastW(shieldtarget)
+				while x < 1 do
+					CastW(shieldtarget)
+					x = x + 1
+				end 
 			end
 		end
 	end
