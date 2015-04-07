@@ -2,35 +2,55 @@
 
 	Script Name: ZED MASTER 
     	Author: kokosik1221
-	Last Version: 1.72
-	01.04.2015
+	Last Version: 1.73
+	07.04.2015
 	
 ]]--
 
 if myHero.charName ~= "Zed" then return end
 
-local version = 1.72
+local autoupdate = true
+local version = 1.73
  
-class "ScriptUpdate"
-function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
+class "_ScriptUpdate"
+function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
     self.LocalVersion = LocalVersion
     self.Host = Host
-    self.VersionPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
-    self.ScriptPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
+    self.VersionPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '3' or '4')..'.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
+    self.ScriptPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '3' or '4')..'.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
     self.SavePath = SavePath
     self.CallbackUpdate = CallbackUpdate
     self.CallbackNoUpdate = CallbackNoUpdate
     self.CallbackNewVersion = CallbackNewVersion
-    self.LuaSocket = require("socket")
-    self.Socket = self.LuaSocket.connect('sx-bol.eu', 80)
-    self.Socket:send("GET "..self.VersionPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
-    self.Socket:settimeout(0, 'b')
-    self.Socket:settimeout(99999999, 't')
-    self.LastPrint = ""
-    self.File = ""
+    self.CallbackError = CallbackError
+    --AddDrawCallback(function() self:OnDraw() end)
+    self:CreateSocket(self.VersionPath)
+    self.DownloadStatus = 'Connect to Server for VersionInfo'
     AddTickCallback(function() self:GetOnlineVersion() end)
 end
-function ScriptUpdate:Base64Encode(data)
+function _ScriptUpdate:OnDraw()
+    DrawText('Download Status: '..(self.DownloadStatus or 'Unknown'),50,10,50,ARGB(255,255,255,255))
+end
+function _ScriptUpdate:CreateSocket(url)
+    if not self.LuaSocket then
+        self.LuaSocket = require("socket")
+    else
+        self.Socket:close()
+        self.Socket = nil
+        self.Size = nil
+        self.RecvStarted = false
+    end
+    self.LuaSocket = require("socket")
+    self.Socket = self.LuaSocket.tcp()
+    self.Socket:settimeout(0, 'b')
+    self.Socket:settimeout(99999999, 't')
+    self.Socket:connect('sx-bol.eu', 80)
+    self.Url = url
+    self.Started = false
+    self.LastPrint = ""
+    self.File = ""
+end
+function _ScriptUpdate:Base64Encode(data)
     local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     return ((data:gsub('.', function(x)
         local r,b='',x:byte()
@@ -43,80 +63,107 @@ function ScriptUpdate:Base64Encode(data)
         return b:sub(c+1,c+1)
     end)..({ '', '==', '=' })[#data%3+1])
 end
-function ScriptUpdate:GetOnlineVersion()
-    if self.Status == 'closed' then return end
+function _ScriptUpdate:GetOnlineVersion()
+    if self.GotScriptVersion then return end
     self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
-
-    if self.Receive then
-        if self.LastPrint ~= self.Receive then
-            self.LastPrint = self.Receive
-            self.File = self.File .. self.Receive
+    if self.Status == 'timeout' and not self.Started then
+        self.Started = true
+        self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+    end
+    if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+        self.RecvStarted = true
+        local recv,sent,time = self.Socket:getstats()
+        self.DownloadStatus = 'Downloading VersionInfo (0%)'
+    end
+    self.File = self.File .. (self.Receive or self.Snipped)
+    if self.File:find('</size>') then
+        if not self.Size then
+            self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</s'..'ize>')-1)) + self.File:len()
         end
+        self.DownloadStatus = 'Downloading VersionInfo ('..math.round(100/self.Size*self.File:len(),2)..'%)'
     end
-
-    if self.Snipped ~= "" and self.Snipped then
-        self.File = self.File .. self.Snipped
-    end
-    if self.Status == 'closed' then
-        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
-        if HeaderEnd and ContentStart then
-            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1))
-            if self.OnlineVersion > self.LocalVersion then
+    if not (self.Receive or (#self.Snipped > 0)) and self.RecvStarted and self.Size and math.round(100/self.Size*self.File:len(),2) > 95 then
+        self.DownloadStatus = 'Downloading VersionInfo (100%)'
+        local HeaderEnd, ContentStart = self.File:find('<scr'..'ipt>')
+        local ContentEnd, _ = self.File:find('</sc'..'ript>')
+        if not ContentStart or not ContentEnd then
+            if self.CallbackError and type(self.CallbackError) == 'function' then
+                self.CallbackError()
+            end
+        else
+            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1,ContentEnd-1))
+            if self.OnlineVersion~=nil and self.OnlineVersion > self.LocalVersion then
                 if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
                     self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
                 end
-                self.DownloadSocket = self.LuaSocket.connect('sx-bol.eu', 80)
-                self.DownloadSocket:send("GET "..self.ScriptPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
-                self.DownloadSocket:settimeout(0, 'b')
-                self.DownloadSocket:settimeout(99999999, 't')
-                self.LastPrint = ""
-                self.File = ""
+                self:CreateSocket(self.ScriptPath)
+                self.DownloadStatus = 'Connect to Server for ScriptDownload'
                 AddTickCallback(function() self:DownloadUpdate() end)
             else
                 if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
                     self.CallbackNoUpdate(self.LocalVersion)
                 end
             end
-        else
-            print('Error: Could not get end of Header')
         end
+        self.GotScriptVersion = true
     end
 end
-function ScriptUpdate:DownloadUpdate()
-    if self.DownloadStatus == 'closed' then return end
-    self.DownloadReceive, self.DownloadStatus, self.DownloadSnipped = self.DownloadSocket:receive(1024)
-    if self.DownloadReceive then
-        if self.LastPrint ~= self.DownloadReceive then
-            self.LastPrint = self.DownloadReceive
-            self.File = self.File .. self.DownloadReceive
+function _ScriptUpdate:DownloadUpdate()
+    if self.GotScriptUpdate then return end
+    self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
+    if self.Status == 'timeout' and not self.Started then
+        self.Started = true
+        self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+    end
+    if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+        self.RecvStarted = true
+        local recv,sent,time = self.Socket:getstats()
+        self.DownloadStatus = 'Downloading Script (0%)'
+    end
+    self.File = self.File .. (self.Receive or self.Snipped)
+    if self.File:find('</si'..'ze>') then
+        if not self.Size then
+            self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</si'..'ze>')-1)) + self.File:len()
         end
+        self.DownloadStatus = 'Downloading Script ('..math.round(100/self.Size*self.File:len(),2)..'%)'
     end
-    if self.DownloadSnipped ~= "" and self.DownloadSnipped then
-        self.File = self.File .. self.DownloadSnipped
-    end
-    if self.DownloadStatus == 'closed' then
-        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
-        if HeaderEnd and ContentStart then
-            local ScriptFileOpen = io.open(self.SavePath, "w+")
-            ScriptFileOpen:write(self.File:sub(ContentStart + 1))
-            ScriptFileOpen:close()
+    if not (self.Receive or (#self.Snipped > 0)) and self.RecvStarted and math.round(100/self.Size*self.File:len(),2) > 95 then
+        self.DownloadStatus = 'Downloading Script (100%)'
+        local HeaderEnd, ContentStart = self.File:find('<sc'..'ript>')
+        local ContentEnd, _ = self.File:find('</scr'..'ipt>')
+        if not ContentStart or not ContentEnd then
+            if self.CallbackError and type(self.CallbackError) == 'function' then
+                self.CallbackError()
+            end
+        else
+            local f = io.open(self.SavePath,"w+b")
+            f:write(self.File:sub(ContentStart + 1,ContentEnd-1))
+            f:close()
             if self.CallbackUpdate and type(self.CallbackUpdate) == 'function' then
                 self.CallbackUpdate(self.OnlineVersion,self.LocalVersion)
             end
         end
+        self.GotScriptUpdate = true
     end
 end
 function Update()
-	local ToUpdate = {}
+	if not autoupdate then return end
+	local scriptName = "ZedMaster"
+    local ToUpdate = {}
     ToUpdate.Version = version
+    ToUpdate.UseHttps = true
     ToUpdate.Host = "raw.githubusercontent.com"
-    ToUpdate.VersionPath = "/kokosik1221/bol/master/ZedMaster.version"
-    ToUpdate.ScriptPath = "/kokosik1221/bol/master/ZedMaster.lua"
-    ToUpdate.SavePath = SCRIPT_PATH.."ZedMaster.lua"
-    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Zed Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
-    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Zed Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
-    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Zed Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
-    ScriptUpdate(ToUpdate.Version, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion)
+    ToUpdate.VersionPath = "/kokosik1221/bol/master/"..scriptName..".version"
+    ToUpdate.ScriptPath = "/kokosik1221/bol/master/"..scriptName..".lua"
+    ToUpdate.SavePath = SCRIPT_PATH.._ENV.FILE_NAME
+    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) PrintMessage("Updated to "..NewVersion..". Please reload with 2x F9.") end
+    ToUpdate.CallbackNoUpdate = function(OldVersion) PrintMessage("No Updates Found.") end
+    ToUpdate.CallbackNewVersion = function(NewVersion) PrintMessage("New Version found ("..NewVersion..").") end
+    ToUpdate.CallbackError = function(NewVersion) PrintMessage("Error while downloading.") end
+    _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
+end
+function PrintMessage(message)
+    print("<font color=\"#FFFFFF\"><b>" .. "ZedMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -132,7 +179,6 @@ end
 if VIP_USER and FileExist(LIB_PATH .. "/DivinePred.lua") then 
 	require "DivinePred" 
 	DP = DivinePred()
-	DP.maxCalcTime = 150
 end
 
 local interputtspells = {
@@ -232,13 +278,12 @@ local Q = {name = "Razor Shuriken", range = 900, speed = 1700, delay = 0.25, wid
 local W = {name = "Living Shadow", range = 580, speed = math.huge, delay = 0.25, Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Shadow Slash", range = 290, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Death Mark", range = 625, Ready = function() return myHero:CanUseSpell(_R) == READY end}
-local IReady, DeadMark, recall, WCasted, RCasted = false, false, false, false, false
+local DeadMark, recall, WCasted, RCasted = false, false, false, false
 local idmg, qdmg, edmg, rdmg, qdmg2 = 0, 0, 0, 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, WShadow, RShadow = nil, nil, nil
+local WShadow, RShadow = nil, nil
 local killstring = {}
-local Shadows = {}
 local Spells = {_Q,_W,_E,_R}
 local Spells2 = {"Q","W","E","R"}
 local TargetSelectorH = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range + W.range, DAMAGE_PHYSICAL)
@@ -270,6 +315,7 @@ function OnLoad()
 		Update()
 	end,0.1)
 	Menu()
+	SSpells = SumSpells()
 	print("<b><font color=\"#FF0000\">Zed Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Zed Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -282,7 +328,6 @@ end
 function OnTick()
 	Check()
 	if Cel ~= nil and MenuZed.comboConfig.CEnabled and not recall then
-		caa()
 		Combo()
 	end
 	if MenuZed.comboConfig2.CEnabled2 and not recall then
@@ -339,7 +384,6 @@ function Menu()
 		end
 	end
 	MenuZed.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuZed.comboConfig:addParam("uaa", "Use AA In Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuZed.comboConfig:addParam("IAU", "Use Items After ULT", SCRIPT_PARAM_ONOFF, true)
 	MenuZed.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
 	MenuZed.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -388,7 +432,6 @@ function Menu()
 	end 
 	MenuZed.exConfig:addParam("UIS", "Use Dodge Enemy Skills", SCRIPT_PARAM_ONOFF, true)
 	MenuZed:addSubMenu("[Zed Master]: Draw Settings", "drawConfig")
-	MenuZed.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuZed.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
 	MenuZed.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
 	MenuZed.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -410,36 +453,18 @@ function Menu()
 	MenuZed.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 2, { "MID" })
 	MenuZed.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuZed.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
-	MenuZed.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuZed.comboConfig:permaShow("CEnabled")
 	MenuZed.harrasConfig:permaShow("HEnabled")
 	MenuZed.harrasConfig:permaShow("HTEnabled")
 	MenuZed.farm:permaShow("LaneClear")
 	MenuZed.jf:permaShow("JFEnabled")
 	MenuZed.exConfig:permaShow("UIS")
-	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then 
-		IgniteKey = SUMMONER_1 
-	elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then 
-		IgniteKey = SUMMONER_2
-	end
-	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
-	_G.DrawCircle = DrawCircle2
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
 		arrangePrioritysTT()
     else
 		arrangePrioritys()
-	end
-end
-
-function caa()
-	if MenuZed.orb == 1 then
-		if MenuZed.comboConfig.uaa then
-			SxOrb:EnableAttacks()
-		elseif not MenuZed.comboConfig.uaa then
-			SxOrb:DisableAttacks()
-		end
 	end
 end
 
@@ -473,11 +498,6 @@ function Check()
 	QMana = myHero:GetSpellData(_Q).mana
     WMana = myHero:GetSpellData(_W).mana
     EMana = myHero:GetSpellData(_E).mana
-	if MenuZed.drawConfig.DLC then 
-		_G.DrawCircle = DrawCircle2 
-	else 
-		_G.DrawCircle = _G.oldDrawCircle 
-	end
 end
 
 function EnemyCount(point, range)
@@ -632,30 +652,30 @@ end
 
 function Farm()
 	EnemyMinions:update()
-	QMode =  MenuZed.farm.QF
-	WMode =  MenuZed.farm.WF
-	EMode =  MenuZed.farm.EF
+	local QMode =  MenuZed.farm.QF
+	local WMode =  MenuZed.farm.WF
+	local EMode =  MenuZed.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and ValidTarget(minion, Q.range) then
 				local BestPos, BestHit = GetBestLineFarmPosition(Q.range, Q.width, EnemyMinions.objects)
 				if BestPos ~= nil then
 					CastSpell(_Q, BestPos.x, BestPos.z)
 				end
 			end
 		elseif QMode == 2 then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero) then
 					CastQ(minion)
 				end
 			end
 		end
 		if EMode == 3 then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and ValidTarget(minion, E.range)then
 				CastE(minion)
 			end
 		elseif EMode == 2 then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and ValidTarget(minion, E.range) then
 				if minion.health <= getDmg("E", minion, myHero) then
 					CastE(minion)
 				end
@@ -676,7 +696,7 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuZed.jf.QJF then
-			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and ValidTarget(minion, Q.range) then
 				local BestPos, BestHit = GetBestLineFarmPosition(Q.range, Q.width, JungleMinions.objects)
 				if BestPos ~= nil then
 					CastSpell(_Q, BestPos.x, BestPos.z)
@@ -689,7 +709,7 @@ function JungleFarmm()
 			end
 		end
 		if MenuZed.jf.EJF then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and ValidTarget(minion, E.range) then
 				CastE(minion)
 			end
 		end
@@ -701,7 +721,7 @@ function GetBestLineFarmPosition(range, width, objects)
     local BestHit = 0
     for i, object in ipairs(objects) do
         local EndPos = Vector(myHero) + range * (Vector(object) - Vector(myHero)):normalized()
-        local hit = CountObjectsOnLineSegment(myHero.visionPos, EndPos, width, objects)
+        local hit = CountObjectsOnLineSegment(myHero, EndPos, width, objects)
         if hit > BestHit then
             BestHit = hit
             BestPos = object
@@ -745,7 +765,7 @@ function BestEFarmPos(range, radius, objects)
     local BestPos 
     local BestHit = 0
     for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        local hit = CountObjectsNearPos(object or object, range, radius, objects)
         if hit > BestHit then
             BestHit = hit
             BestPos = object
@@ -771,7 +791,7 @@ function KillSteall()
 		local health = Enemy.health
 		ComboDamage(Enemy)
 		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+			local IReady = SSpells:Ready("summonerdot")
 			if health <= edmg and MenuZed.ksConfig.EKS then
 				CastE(Enemy)
 			elseif health < qdmg2 and MenuZed.ksConfig.QKS then
@@ -785,17 +805,17 @@ function KillSteall()
 				if MenuZed.ksConfig.QKS and MenuZed.ksConfig.EKS and MenuZed.ksConfig.IKS then
 					CastQ(Enemy)
 					CastE(Enemy)
-					CastSpell(IgniteKey, Enemy)
+					CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
 				end
 			elseif health < idmg and MenuZed.ksConfig.IKS and ValidTarget(Enemy, 600) and IReady then
-				CastSpell(IgniteKey, Enemy)
+				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
 			end
 		end
 	end
 end
 		
 function ComboDamage(enemy)
-	IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+	IReady = (SSpells:GetSlot("summonerdot") ~= nil and myHero:CanUseSpell(SSpells:GetSlot("summonerdot")) == READY)
     if IReady then
         idmg = 50 + (20 * myHero.level)
 	end
@@ -844,30 +864,29 @@ end
 function OnDraw()
 	if MenuZed.drawConfig.DST then
 		if SelectedTarget ~= nil and not SelectedTarget.dead then
-			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuZed.drawConfig.DQRC[2], MenuZed.drawConfig.DQRC[3], MenuZed.drawConfig.DQRC[4]))
+			DrawCircle2(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuZed.drawConfig.DQRC[2], MenuZed.drawConfig.DQRC[3], MenuZed.drawConfig.DQRC[4]))
 		end
 	end
 	if MenuZed.drawConfig.DD then	
-		DmgCalc()
-		for i = 1, heroManager.iCount do
-			local enemy = heroManager:GetHero(i)
-			if ValidTarget(enemy) and killstring[enemy.networkID] ~= nil then
+		for _,enemy in pairs(GetEnemyHeroes()) do
+			DmgCalc()
+			if ValidTarget(enemy, 1500) and killstring[enemy.networkID] ~= nil then
                 local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
                 DrawText(killstring[enemy.networkID], 20, pos.x - 35, pos.y - 10, 0xFFFFFF00)
             end
 		end
 	end
 	if MenuZed.drawConfig.DQR and Q.Ready() then
-		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuZed.drawConfig.DQRC[2], MenuZed.drawConfig.DQRC[3], MenuZed.drawConfig.DQRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuZed.drawConfig.DQRC[2], MenuZed.drawConfig.DQRC[3], MenuZed.drawConfig.DQRC[4]))
 	end
 	if MenuZed.drawConfig.DWR and W.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuZed.drawConfig.DWRC[2], MenuZed.drawConfig.DWRC[3], MenuZed.drawConfig.DWRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuZed.drawConfig.DWRC[2], MenuZed.drawConfig.DWRC[3], MenuZed.drawConfig.DWRC[4]))
 	end
 	if MenuZed.drawConfig.DER and E.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuZed.drawConfig.DERC[2], MenuZed.drawConfig.DERC[3], MenuZed.drawConfig.DERC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuZed.drawConfig.DERC[2], MenuZed.drawConfig.DERC[3], MenuZed.drawConfig.DERC[4]))
 	end
 	if MenuZed.drawConfig.DRR and R.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuZed.drawConfig.DRRC[2], MenuZed.drawConfig.DRRC[3], MenuZed.drawConfig.DRRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuZed.drawConfig.DRRC[2], MenuZed.drawConfig.DRRC[3], MenuZed.drawConfig.DRRC[4]))
 	end
 end
 
@@ -909,7 +928,7 @@ function CastQ(unit)
 		local from = GetShadow()
 		if MenuZed.prConfig.pro == 1 then
 			local castPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, from, false)
-			if HitChance >= MenuZed.prConfig.vphit - 1 then
+			if HitChance >= 2 then
 				if VIP_USER and MenuZed.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = castPosition.x, fromY = castPosition.z, toX = castPosition.x, toY = castPosition.z}):send()
 				else
@@ -990,13 +1009,13 @@ function RState()
 end
 
 function OnApplyBuff(source, unit, buff)	
-	if unit.isMe and buff and buff.name == "Recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "Recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -1282,6 +1301,27 @@ function getSpellType(unit, spellName)
 	end
 
 	return spelltype, casttype
+end
+
+class 'SumSpells'
+function SumSpells:__init()
+	names = {"summonerdot", "summonerflash", "summonerexhaust", "summonerheal", "summonersmite"}
+end
+
+function SumSpells:Ready(name)
+	local Ready = false
+	local Spel = self:GetSlot(name)
+	Ready = (Spel ~= nil and myHero:CanUseSpell(Spel) == READY)
+	return Ready
+end
+
+function SumSpells:GetSlot(name)
+	if myHero:GetSpellData(SUMMONER_1).name == name then 
+		return SUMMONER_1 
+	end
+	if myHero:GetSpellData(SUMMONER_2).name == name then 
+		return SUMMONER_2 
+	end
 end
 
 -----SCRIPT STATUS------------
