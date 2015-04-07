@@ -2,7 +2,7 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 1.33
+	Last Version: 1.34
 	07.04.2015
 	
 ]]--
@@ -11,7 +11,7 @@
 if myHero.charName ~= "Blitzcrank" then return end
 
 local autoupdate = true
-local version = 1.33
+local version = 1.34
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -805,7 +805,7 @@ function CastQ(unit)
 		end
 		if MenuBlitz.prConfig.pro == 1 then
 			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, true)
-			if HitChance >= MenuBlitz.prConfig.vphit - 1 then
+			if HitChance >= 2 then
 				if VIP_USER and MenuBlitz.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = CastPosition.x, fromY = CastPosition.z, toX = CastPosition.x, toY = CastPosition.z}):send()
 				else
