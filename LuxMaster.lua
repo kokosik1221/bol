@@ -2,36 +2,56 @@
 
 	Script Name: LUX MASTER 
     	Author: kokosik1221
-	Last Version: 0.66
-	02.04.2015
-	
+	Last Version: 0.67
+	07.04.2015
+
 ]]--
 
 
 if myHero.charName ~= "Lux" then return end
 
-local version = 0.66
+local autoupdate = true
+local version = 0.67
  
-class "ScriptUpdate"
-function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
+class "_ScriptUpdate"
+function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
     self.LocalVersion = LocalVersion
     self.Host = Host
-    self.VersionPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
-    self.ScriptPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
+    self.VersionPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '3' or '4')..'.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
+    self.ScriptPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '3' or '4')..'.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
     self.SavePath = SavePath
     self.CallbackUpdate = CallbackUpdate
     self.CallbackNoUpdate = CallbackNoUpdate
     self.CallbackNewVersion = CallbackNewVersion
-    self.LuaSocket = require("socket")
-    self.Socket = self.LuaSocket.connect('sx-bol.eu', 80)
-    self.Socket:send("GET "..self.VersionPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
-    self.Socket:settimeout(0, 'b')
-    self.Socket:settimeout(99999999, 't')
-    self.LastPrint = ""
-    self.File = ""
+    self.CallbackError = CallbackError
+    --AddDrawCallback(function() self:OnDraw() end)
+    self:CreateSocket(self.VersionPath)
+    self.DownloadStatus = 'Connect to Server for VersionInfo'
     AddTickCallback(function() self:GetOnlineVersion() end)
 end
-function ScriptUpdate:Base64Encode(data)
+function _ScriptUpdate:OnDraw()
+    DrawText('Download Status: '..(self.DownloadStatus or 'Unknown'),50,10,50,ARGB(255,255,255,255))
+end
+function _ScriptUpdate:CreateSocket(url)
+    if not self.LuaSocket then
+        self.LuaSocket = require("socket")
+    else
+        self.Socket:close()
+        self.Socket = nil
+        self.Size = nil
+        self.RecvStarted = false
+    end
+    self.LuaSocket = require("socket")
+    self.Socket = self.LuaSocket.tcp()
+    self.Socket:settimeout(0, 'b')
+    self.Socket:settimeout(99999999, 't')
+    self.Socket:connect('sx-bol.eu', 80)
+    self.Url = url
+    self.Started = false
+    self.LastPrint = ""
+    self.File = ""
+end
+function _ScriptUpdate:Base64Encode(data)
     local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     return ((data:gsub('.', function(x)
         local r,b='',x:byte()
@@ -44,80 +64,107 @@ function ScriptUpdate:Base64Encode(data)
         return b:sub(c+1,c+1)
     end)..({ '', '==', '=' })[#data%3+1])
 end
-function ScriptUpdate:GetOnlineVersion()
-    if self.Status == 'closed' then return end
+function _ScriptUpdate:GetOnlineVersion()
+    if self.GotScriptVersion then return end
     self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
-
-    if self.Receive then
-        if self.LastPrint ~= self.Receive then
-            self.LastPrint = self.Receive
-            self.File = self.File .. self.Receive
+    if self.Status == 'timeout' and not self.Started then
+        self.Started = true
+        self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+    end
+    if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+        self.RecvStarted = true
+        local recv,sent,time = self.Socket:getstats()
+        self.DownloadStatus = 'Downloading VersionInfo (0%)'
+    end
+    self.File = self.File .. (self.Receive or self.Snipped)
+    if self.File:find('</size>') then
+        if not self.Size then
+            self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</s'..'ize>')-1)) + self.File:len()
         end
+        self.DownloadStatus = 'Downloading VersionInfo ('..math.round(100/self.Size*self.File:len(),2)..'%)'
     end
-
-    if self.Snipped ~= "" and self.Snipped then
-        self.File = self.File .. self.Snipped
-    end
-    if self.Status == 'closed' then
-        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
-        if HeaderEnd and ContentStart then
-            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1))
-            if self.OnlineVersion > self.LocalVersion then
+    if not (self.Receive or (#self.Snipped > 0)) and self.RecvStarted and self.Size and math.round(100/self.Size*self.File:len(),2) > 95 then
+        self.DownloadStatus = 'Downloading VersionInfo (100%)'
+        local HeaderEnd, ContentStart = self.File:find('<scr'..'ipt>')
+        local ContentEnd, _ = self.File:find('</sc'..'ript>')
+        if not ContentStart or not ContentEnd then
+            if self.CallbackError and type(self.CallbackError) == 'function' then
+                self.CallbackError()
+            end
+        else
+            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1,ContentEnd-1))
+            if self.OnlineVersion~=nil and self.OnlineVersion > self.LocalVersion then
                 if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
                     self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
                 end
-                self.DownloadSocket = self.LuaSocket.connect('sx-bol.eu', 80)
-                self.DownloadSocket:send("GET "..self.ScriptPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
-                self.DownloadSocket:settimeout(0, 'b')
-                self.DownloadSocket:settimeout(99999999, 't')
-                self.LastPrint = ""
-                self.File = ""
+                self:CreateSocket(self.ScriptPath)
+                self.DownloadStatus = 'Connect to Server for ScriptDownload'
                 AddTickCallback(function() self:DownloadUpdate() end)
             else
                 if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
                     self.CallbackNoUpdate(self.LocalVersion)
                 end
             end
-        else
-            print('Error: Could not get end of Header')
         end
+        self.GotScriptVersion = true
     end
 end
-function ScriptUpdate:DownloadUpdate()
-    if self.DownloadStatus == 'closed' then return end
-    self.DownloadReceive, self.DownloadStatus, self.DownloadSnipped = self.DownloadSocket:receive(1024)
-    if self.DownloadReceive then
-        if self.LastPrint ~= self.DownloadReceive then
-            self.LastPrint = self.DownloadReceive
-            self.File = self.File .. self.DownloadReceive
+function _ScriptUpdate:DownloadUpdate()
+    if self.GotScriptUpdate then return end
+    self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
+    if self.Status == 'timeout' and not self.Started then
+        self.Started = true
+        self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+    end
+    if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+        self.RecvStarted = true
+        local recv,sent,time = self.Socket:getstats()
+        self.DownloadStatus = 'Downloading Script (0%)'
+    end
+    self.File = self.File .. (self.Receive or self.Snipped)
+    if self.File:find('</si'..'ze>') then
+        if not self.Size then
+            self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</si'..'ze>')-1)) + self.File:len()
         end
+        self.DownloadStatus = 'Downloading Script ('..math.round(100/self.Size*self.File:len(),2)..'%)'
     end
-    if self.DownloadSnipped ~= "" and self.DownloadSnipped then
-        self.File = self.File .. self.DownloadSnipped
-    end
-    if self.DownloadStatus == 'closed' then
-        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
-        if HeaderEnd and ContentStart then
-            local ScriptFileOpen = io.open(self.SavePath, "w+")
-            ScriptFileOpen:write(self.File:sub(ContentStart + 1))
-            ScriptFileOpen:close()
+    if not (self.Receive or (#self.Snipped > 0)) and self.RecvStarted and math.round(100/self.Size*self.File:len(),2) > 95 then
+        self.DownloadStatus = 'Downloading Script (100%)'
+        local HeaderEnd, ContentStart = self.File:find('<sc'..'ript>')
+        local ContentEnd, _ = self.File:find('</scr'..'ipt>')
+        if not ContentStart or not ContentEnd then
+            if self.CallbackError and type(self.CallbackError) == 'function' then
+                self.CallbackError()
+            end
+        else
+            local f = io.open(self.SavePath,"w+b")
+            f:write(self.File:sub(ContentStart + 1,ContentEnd-1))
+            f:close()
             if self.CallbackUpdate and type(self.CallbackUpdate) == 'function' then
                 self.CallbackUpdate(self.OnlineVersion,self.LocalVersion)
             end
         end
+        self.GotScriptUpdate = true
     end
 end
 function Update()
-	local ToUpdate = {}
+	if not autoupdate then return end
+	local scriptName = "LuxMaster"
+    local ToUpdate = {}
     ToUpdate.Version = version
+    ToUpdate.UseHttps = true
     ToUpdate.Host = "raw.githubusercontent.com"
-    ToUpdate.VersionPath = "/kokosik1221/bol/master/LuxMaster.version"
-    ToUpdate.ScriptPath = "/kokosik1221/bol/master/LuxMaster.lua"
-    ToUpdate.SavePath = SCRIPT_PATH.."LuxMaster.lua"
-    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Lux Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
-    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Lux Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
-    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Lux Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
-    ScriptUpdate(ToUpdate.Version, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion)
+    ToUpdate.VersionPath = "/kokosik1221/bol/master/"..scriptName..".version"
+    ToUpdate.ScriptPath = "/kokosik1221/bol/master/"..scriptName..".lua"
+    ToUpdate.SavePath = SCRIPT_PATH.._ENV.FILE_NAME
+    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) PrintMessage("Updated to "..NewVersion..". Please reload with 2x F9.") end
+    ToUpdate.CallbackNoUpdate = function(OldVersion) PrintMessage("No Updates Found.") end
+    ToUpdate.CallbackNewVersion = function(NewVersion) PrintMessage("New Version found ("..NewVersion..").") end
+    ToUpdate.CallbackError = function(NewVersion) PrintMessage("Error while downloading.") end
+    _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
+end
+function PrintMessage(message)
+    print("<font color=\"#FFFFFF\"><b>" .. "LuxMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -133,7 +180,6 @@ end
 if VIP_USER and FileExist(LIB_PATH .. "/DivinePred.lua") then 
 	require "DivinePred" 
 	DP = DivinePred()
-	DP.maxCalcTime = 150
 end
 
 local Items = {
@@ -179,7 +225,7 @@ local Q = {name = "Light Binding", range = 1150, speed = 1200, delay = 0.25, wid
 local W = {name = "Prismatic Barrier", range = 1175, speed = 1200, delay = 0.25, width = 140, Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.25, width = 275, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190, Ready = function() return myHero:CanUseSpell(_R) == READY end}
-local IReady, zhonyaready, recall = false, false, false
+local recall = false
 local x = 0
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -187,7 +233,6 @@ local KSMinions = minionManager(MINION_JUNGLE, R.range, myHero, MINION_SORT_HEAL
 local QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 local ETargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 local RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_MAGIC)
-local IgniteKey, zhonyaslot = nil, nil
 local killstring = {}
 local TargetTable = {
 	AP = {
@@ -217,6 +262,7 @@ function OnLoad()
 		Update()
 	end,0.1)
 	Menu()
+	SSpells = SumSpells()
 	print("<b><font color=\"#FF0000\">Lux Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Lux Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -229,7 +275,6 @@ end
 function OnTick()
 	Check()
 	if MenuLux.comboConfig.CEnabled and myHero.mana >= MenuLux.comboConfig.manac and not recall then
-		caa()
 		Combo()
 	end
 	if (MenuLux.harrasConfig.HEnabled or MenuLux.harrasConfig.HTEnabled) and myHero.mana >= MenuLux.harrasConfig.manah and not recall then
@@ -281,7 +326,6 @@ function Menu()
 	MenuLux.comboConfig.rConfig:addParam('USERX', 'X = ', SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
 	MenuLux.comboConfig.rConfig:addParam("CRKD", "Cast (R) Key Down", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 	MenuLux.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
-	MenuLux.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
 	MenuLux.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuLux.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
@@ -349,7 +393,6 @@ function Menu()
 	MenuLux.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
 	MenuLux.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuLux:addSubMenu("[Lux Master]: Draw Settings", "drawConfig")
-	MenuLux.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
 	MenuLux.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -379,27 +422,12 @@ function Menu()
 	MenuLux.harrasConfig:permaShow("HTEnabled")
 	MenuLux.prConfig:permaShow("AZ")
 	MenuLux.jsConfig:permaShow("JSEnabled")
-	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
-		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
-	end
-	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
-	_G.DrawCircle = DrawCircle2
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
 		arrangePrioritysTT()
     else
 		arrangePrioritys()
-	end
-end
-
-function caa()
-	if MenuLux.orb == 1 then
-		if MenuLux.comboConfig.uaa then
-			SxOrb:EnableAttacks()
-		elseif not MenuLux.comboConfig.uaa then
-			SxOrb:DisableAttacks()
-		end
 	end
 end
 
@@ -431,11 +459,6 @@ function Check()
 	end
 	if MenuLux.orb == 1 then
 		SxOrb:ForceTarget(Cel)
-	end
-	if MenuLux.drawConfig.DLC then 
-		_G.DrawCircle = DrawCircle2 
-	else 
-		_G.DrawCircle = _G.oldDrawCircle 
 	end
 end
 
@@ -493,7 +516,7 @@ function Combo()
 			if MenuLux.comboConfig.rConfig.RM == 3 then
 				for _, enemy in pairs(GetEnemyHeroes()) do
 					local rPos, HitChance, maxHit, Positions = VP:GetLineAOECastPosition(enemy, R.delay, R.width, R.range, R.speed, myHero)
-					if ValidTarget(enemy) and rPos ~= nil and maxHit >= MenuLux.comboConfig.rConfig.USERX and HitChance >=2 then		
+					if ValidTarget(enemy) and rPos ~= nil and maxHit >= MenuLux.comboConfig.rConfig.USERX and HitChance >= 2 then		
 						if VIP_USER and MenuLux.prConfig.pc then
 							Packet("S_CAST", {spellId = _R, fromX = rPos.x, fromY = rPos.z, toX = rPos.x, toY = rPos.z}):send()
 						else
@@ -532,15 +555,15 @@ end
 
 function Farm()
 	EnemyMinions:update()
-	QMode =  MenuLux.farm.QF
-	EMode =  MenuLux.farm.EF
+	local QMode =  MenuLux.farm.QF
+	local EMode =  MenuLux.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and GetDistance(minion) < Q.range then
 				CastQ(minion)
 			end
 		elseif QMode == 2 then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and GetDistance(minion) < Q.range then
 				if minion.health <= getDmg("Q", minion, myHero, 1) then
 					CastQ(minion)
 				end
@@ -553,7 +576,7 @@ function Farm()
 			end
 			CastSpell(_E)
 		elseif EMode == 2 then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and GetDistance(minion) < E.range then
 				if minion.health <= getDmg("E", minion, myHero, 1) then
 					CastE(minion)
 					CastSpell(_E)
@@ -574,7 +597,7 @@ function JungleFarm()
 			CastSpell(_E)
 		end
 		if MenuLux.jf.QJF then
-			if minion ~= nil and not minion.dead then
+			if minion ~= nil and GetDistance(minion) < Q.range then
 				CastQ(minion)
 			end
 		end
@@ -602,7 +625,7 @@ function BestEFarmPos(range, radius, objects)
     local BestPos 
     local BestHit = 0
     for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        local hit = CountObjectsNearPos(object or object, range, radius, objects)
         if hit > BestHit then
             BestHit = hit
             BestPos = object
@@ -616,8 +639,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuLux.prConfig.AZMR)
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
+	local zhonyaslot = GetInventorySlotItem(3157)
+	local zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuLux.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -639,26 +662,26 @@ end
 function OnDraw()
 	if MenuLux.drawConfig.DST and MenuLux.comboConfig.ST then
 		if SelectedTarget ~= nil and not SelectedTarget.dead then
-			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuLux.drawConfig.DQRC[2], MenuLux.drawConfig.DQRC[3], MenuLux.drawConfig.DQRC[4]))
+			DrawCircle2(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuLux.drawConfig.DQRC[2], MenuLux.drawConfig.DQRC[3], MenuLux.drawConfig.DQRC[4]))
 		end
 	end
 	if MenuLux.drawConfig.DD then
-		DmgCalc()
 		for _,enemy in pairs(GetEnemyHeroes()) do
-            if ValidTarget(enemy) and killstring[enemy.networkID] ~= nil then
+			DmgCalc()
+            if ValidTarget(enemy, 2000) and killstring[enemy.networkID] ~= nil then
                 local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
                 DrawText(killstring[enemy.networkID], 20, pos.x - 35, pos.y - 10, 0xFFFFFF00)
             end
         end
 	end
 	if MenuLux.drawConfig.DQR and Q.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuLux.drawConfig.DQRC[2], MenuLux.drawConfig.DQRC[3], MenuLux.drawConfig.DQRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuLux.drawConfig.DQRC[2], MenuLux.drawConfig.DQRC[3], MenuLux.drawConfig.DQRC[4]))
 	end
 	if MenuLux.drawConfig.DWR and W.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuLux.drawConfig.DWRC[2], MenuLux.drawConfig.DWRC[3], MenuLux.drawConfig.DWRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuLux.drawConfig.DWRC[2], MenuLux.drawConfig.DWRC[3], MenuLux.drawConfig.DWRC[4]))
 	end
 	if MenuLux.drawConfig.DER and E.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuLux.drawConfig.DERC[2], MenuLux.drawConfig.DERC[3], MenuLux.drawConfig.DERC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuLux.drawConfig.DERC[2], MenuLux.drawConfig.DERC[3], MenuLux.drawConfig.DERC[4]))
 	end
 	if MenuLux.drawConfig.DRR then			
 		DrawCircleMinimap(myHero.x, myHero.y, myHero.z, R.range)
@@ -672,25 +695,20 @@ function StealJungle()
 			for i, minion in pairs(KSMinions.objects) do
 				if MenuLux.jsConfig.JST == 3 then
 					if minion.name == "SRU_Red4.1.1" or minion.name == "SRU_Red10.1.1" then
-						red = minion
+						monster = minion
 					end
 				elseif MenuLux.jsConfig.JST == 2 then
 					if myHero.team == 100 and minion.name == "SRU_Red4.1.1" then
-						red = minion
+						monster = minion
 					elseif myHero.team == 200 and minion.name == "SRU_Red10.1.1" then
-						red = minion
+						monster = minion
 					end
 				elseif MenuLux.jsConfig.JST == 1 then
 					if myHero.team == 100 and minion.name == "SRU_Red10.1.1" then
-						red = minion
+						monster = minion
 					elseif myHero.team == 200 and minion.name == "SRU_Red4.1.1" then
-						red = minion
+						monster = minion
 					end
-				end
-			end
-			if ValidTarget(red) then
-				if red.health < getDmg("R", red, myHero, 1) and GetDistance(red) < R.range then
-					CastSpell(_R, red.x, red.z)
 				end
 			end
 		end
@@ -698,50 +716,42 @@ function StealJungle()
 			for i, minion in pairs(KSMinions.objects) do
 				if MenuLux.jsConfig.JST == 3 then
 					if minion.name == "SRU_Blue1.1.1" or minion.name == "SRU_Blue7.1.1" then
-						blue = minion
+						monster = minion
 					end
 				elseif MenuLux.jsConfig.JST == 2 then
 					if myHero.team == 100 and minion.name == "SRU_Blue1.1.1" then
-						blue = minion
+						monster = minion
 					elseif myHero.team == 200 and minion.name == "SRU_Blue7.1.1" then
-						blue = minion
+						monster = minion
 					end
 				elseif MenuLux.jsConfig.JST == 1 then
 					if myHero.team == 100 and minion.name == "SRU_Blue7.1.1" then
-						blue = minion
+						monster = minion
 					elseif myHero.team == 200 and minion.name == "SRU_Blue1.1.1" then
-						blue = minion
+						monster = minion
 					end
-				end
-			end
-			if ValidTarget(blue) then
-				if blue.health < getDmg("R", blue, myHero, 1) and GetDistance(blue) < R.range then
-					CastSpell(_R, blue.x, blue.z)
 				end
 			end
 		end
 		if MenuLux.jsConfig.JSD then
 			for i, minion in pairs(KSMinions.objects) do
 				if minion.name == "SRU_Dragon6.1.1" then
-					dragon = minion
-				end
-			end
-			if ValidTarget(dragon) then
-				if dragon.health < getDmg("R", dragon, myHero, 1) and GetDistance(dragon) < R.range then
-					CastSpell(_R, dragon.x, dragon.z)
+					monster = minion
 				end
 			end
 		end
 		if MenuLux.jsConfig.JSB then
 			for i, minion in pairs(KSMinions.objects) do
 				if minion.name == "SRU_Baron12.1.1" then
-					baron = minion
+					monster = minion
 				end
 			end
-			if ValidTarget(baron) then
-				if baron.health < getDmg("R", baron, myHero, 1) and GetDistance(baron) < R.range then
-					CastSpell(_R, baron.x, baron.z)
-				end
+		end
+		if monster and ValidTarget(monster, R.range) then
+			local pred = VP:GetPredictedHealth(monster, 1, 0)
+			local RDMG = getDmg("R", monster, myHero)
+			if pred < RDMG then
+				CastSpell(_R, monster.x, monster.z)
 			end
 		end
 	end
@@ -755,8 +765,8 @@ function KSandAUTO()
 			end
 		end
 		if MenuLux.ksConfig.QKS or MenuLux.ksConfig.EKS or MenuLux.ksConfig.RKS or MenuLux.ksConfig.IKS then
-			if ValidTarget(enemy, R.range) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
-				IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+			if ValidTarget(enemy, R.range) and enemy ~= nil then
+				local IReady = SSpells:Ready("summonerdot")
 				local QDMG = getDmg("Q", enemy, myHero, 1)
 				local EDMG = getDmg("E", enemy, myHero, 1)
 				local RDMG = getDmg("R", enemy, myHero, 1)
@@ -768,7 +778,7 @@ function KSandAUTO()
 				elseif enemy.health < RDMG and R.Ready() and GetDistance(enemy) < R.range and MenuLux.ksConfig.RKS then
 					CastR(enemy)
 				elseif enemy.health < IDMG and IReady and GetDistance(enemy) <= 600 and MenuLux.ksConfig.IKS then
-					CastSpell(IgniteKey, enemy)
+					CastSpell(SSpells:GetSlot("summonerdot"), enemy)
 				end
 			end
 		end
@@ -1049,13 +1059,13 @@ function OnProcessSpell(unit,spell)
 end
 
 function OnApplyBuff(source, unit, buff)	
-	if unit.isMe and buff and buff.name == "Recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "Recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -1306,6 +1316,27 @@ end
 
 function getHitBoxRadius2(target)
     return GetDistance(target, target.minBBox)/2
+end
+
+class 'SumSpells'
+function SumSpells:__init()
+	names = {"summonerdot", "summonerflash", "summonerexhaust", "summonerheal", "summonersmite"}
+end
+
+function SumSpells:Ready(name)
+	local Ready = false
+	local Spel = self:GetSlot(name)
+	Ready = (Spel ~= nil and myHero:CanUseSpell(Spel) == READY)
+	return Ready
+end
+
+function SumSpells:GetSlot(name)
+	if myHero:GetSpellData(SUMMONER_1).name == name then 
+		return SUMMONER_1 
+	end
+	if myHero:GetSpellData(SUMMONER_2).name == name then 
+		return SUMMONER_2 
+	end
 end
 
 -----SCRIPT STATUS------------
