@@ -2,16 +2,16 @@
 
 	Script Name: FIZZ MASTER 
     	Author: kokosik1221
-	Last Version: 1.63
+	Last Version: 1.64
 	07.04.2015
-
+	
 ]]--
 
 
 if myHero.charName ~= "Fizz" then return end
 
 local autoupdate = true
-local version = 1.63
+local version = 1.64
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -1273,7 +1273,7 @@ function CastR(unit)
 	if R.Ready() then
 		local Position = nil
 		if MenuFizz.prConfig.pro == 1 then
-			local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, R.delay, R.width, R.range - 100, R.speed, myHero, false)
+			local CastPosition, HitChance, Positionn = VP:GetLineCastPosition(unit, R.delay, R.width, R.range, R.speed, myHero)
 			if HitChance >= 2 then
 				Position = CastPosition
 			end
