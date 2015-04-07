@@ -2,36 +2,56 @@
 
 	Script Name: Blitzcrank MASTER 
     	Author: kokosik1221
-	Last Version: 1.32
-	31.03.2015
+	Last Version: 1.33
+	07.04.2015
 	
 ]]--
 
 
 if myHero.charName ~= "Blitzcrank" then return end
 
-local version = 1.32
+local autoupdate = true
+local version = 1.33
  
-class "ScriptUpdate"
-function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
+class "_ScriptUpdate"
+function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
     self.LocalVersion = LocalVersion
     self.Host = Host
-    self.VersionPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
-    self.ScriptPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
+    self.VersionPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '3' or '4')..'.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
+    self.ScriptPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '3' or '4')..'.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
     self.SavePath = SavePath
     self.CallbackUpdate = CallbackUpdate
     self.CallbackNoUpdate = CallbackNoUpdate
     self.CallbackNewVersion = CallbackNewVersion
-    self.LuaSocket = require("socket")
-    self.Socket = self.LuaSocket.connect('sx-bol.eu', 80)
-    self.Socket:send("GET "..self.VersionPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
-    self.Socket:settimeout(0, 'b')
-    self.Socket:settimeout(99999999, 't')
-    self.LastPrint = ""
-    self.File = ""
+    self.CallbackError = CallbackError
+    --AddDrawCallback(function() self:OnDraw() end)
+    self:CreateSocket(self.VersionPath)
+    self.DownloadStatus = 'Connect to Server for VersionInfo'
     AddTickCallback(function() self:GetOnlineVersion() end)
 end
-function ScriptUpdate:Base64Encode(data)
+function _ScriptUpdate:OnDraw()
+    DrawText('Download Status: '..(self.DownloadStatus or 'Unknown'),50,10,50,ARGB(255,255,255,255))
+end
+function _ScriptUpdate:CreateSocket(url)
+    if not self.LuaSocket then
+        self.LuaSocket = require("socket")
+    else
+        self.Socket:close()
+        self.Socket = nil
+        self.Size = nil
+        self.RecvStarted = false
+    end
+    self.LuaSocket = require("socket")
+    self.Socket = self.LuaSocket.tcp()
+    self.Socket:settimeout(0, 'b')
+    self.Socket:settimeout(99999999, 't')
+    self.Socket:connect('sx-bol.eu', 80)
+    self.Url = url
+    self.Started = false
+    self.LastPrint = ""
+    self.File = ""
+end
+function _ScriptUpdate:Base64Encode(data)
     local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     return ((data:gsub('.', function(x)
         local r,b='',x:byte()
@@ -44,80 +64,107 @@ function ScriptUpdate:Base64Encode(data)
         return b:sub(c+1,c+1)
     end)..({ '', '==', '=' })[#data%3+1])
 end
-function ScriptUpdate:GetOnlineVersion()
-    if self.Status == 'closed' then return end
+function _ScriptUpdate:GetOnlineVersion()
+    if self.GotScriptVersion then return end
     self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
-
-    if self.Receive then
-        if self.LastPrint ~= self.Receive then
-            self.LastPrint = self.Receive
-            self.File = self.File .. self.Receive
+    if self.Status == 'timeout' and not self.Started then
+        self.Started = true
+        self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+    end
+    if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+        self.RecvStarted = true
+        local recv,sent,time = self.Socket:getstats()
+        self.DownloadStatus = 'Downloading VersionInfo (0%)'
+    end
+    self.File = self.File .. (self.Receive or self.Snipped)
+    if self.File:find('</size>') then
+        if not self.Size then
+            self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</s'..'ize>')-1)) + self.File:len()
         end
+        self.DownloadStatus = 'Downloading VersionInfo ('..math.round(100/self.Size*self.File:len(),2)..'%)'
     end
-
-    if self.Snipped ~= "" and self.Snipped then
-        self.File = self.File .. self.Snipped
-    end
-    if self.Status == 'closed' then
-        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
-        if HeaderEnd and ContentStart then
-            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1))
-            if self.OnlineVersion > self.LocalVersion then
+    if not (self.Receive or (#self.Snipped > 0)) and self.RecvStarted and self.Size and math.round(100/self.Size*self.File:len(),2) > 95 then
+        self.DownloadStatus = 'Downloading VersionInfo (100%)'
+        local HeaderEnd, ContentStart = self.File:find('<scr'..'ipt>')
+        local ContentEnd, _ = self.File:find('</sc'..'ript>')
+        if not ContentStart or not ContentEnd then
+            if self.CallbackError and type(self.CallbackError) == 'function' then
+                self.CallbackError()
+            end
+        else
+            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1,ContentEnd-1))
+            if self.OnlineVersion~=nil and self.OnlineVersion > self.LocalVersion then
                 if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
                     self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
                 end
-                self.DownloadSocket = self.LuaSocket.connect('sx-bol.eu', 80)
-                self.DownloadSocket:send("GET "..self.ScriptPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
-                self.DownloadSocket:settimeout(0, 'b')
-                self.DownloadSocket:settimeout(99999999, 't')
-                self.LastPrint = ""
-                self.File = ""
+                self:CreateSocket(self.ScriptPath)
+                self.DownloadStatus = 'Connect to Server for ScriptDownload'
                 AddTickCallback(function() self:DownloadUpdate() end)
             else
                 if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
                     self.CallbackNoUpdate(self.LocalVersion)
                 end
             end
-        else
-            print('Error: Could not get end of Header')
         end
+        self.GotScriptVersion = true
     end
 end
-function ScriptUpdate:DownloadUpdate()
-    if self.DownloadStatus == 'closed' then return end
-    self.DownloadReceive, self.DownloadStatus, self.DownloadSnipped = self.DownloadSocket:receive(1024)
-    if self.DownloadReceive then
-        if self.LastPrint ~= self.DownloadReceive then
-            self.LastPrint = self.DownloadReceive
-            self.File = self.File .. self.DownloadReceive
+function _ScriptUpdate:DownloadUpdate()
+    if self.GotScriptUpdate then return end
+    self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
+    if self.Status == 'timeout' and not self.Started then
+        self.Started = true
+        self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+    end
+    if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+        self.RecvStarted = true
+        local recv,sent,time = self.Socket:getstats()
+        self.DownloadStatus = 'Downloading Script (0%)'
+    end
+    self.File = self.File .. (self.Receive or self.Snipped)
+    if self.File:find('</si'..'ze>') then
+        if not self.Size then
+            self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</si'..'ze>')-1)) + self.File:len()
         end
+        self.DownloadStatus = 'Downloading Script ('..math.round(100/self.Size*self.File:len(),2)..'%)'
     end
-    if self.DownloadSnipped ~= "" and self.DownloadSnipped then
-        self.File = self.File .. self.DownloadSnipped
-    end
-    if self.DownloadStatus == 'closed' then
-        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
-        if HeaderEnd and ContentStart then
-            local ScriptFileOpen = io.open(self.SavePath, "w+")
-            ScriptFileOpen:write(self.File:sub(ContentStart + 1))
-            ScriptFileOpen:close()
+    if not (self.Receive or (#self.Snipped > 0)) and self.RecvStarted and math.round(100/self.Size*self.File:len(),2) > 95 then
+        self.DownloadStatus = 'Downloading Script (100%)'
+        local HeaderEnd, ContentStart = self.File:find('<sc'..'ript>')
+        local ContentEnd, _ = self.File:find('</scr'..'ipt>')
+        if not ContentStart or not ContentEnd then
+            if self.CallbackError and type(self.CallbackError) == 'function' then
+                self.CallbackError()
+            end
+        else
+            local f = io.open(self.SavePath,"w+b")
+            f:write(self.File:sub(ContentStart + 1,ContentEnd-1))
+            f:close()
             if self.CallbackUpdate and type(self.CallbackUpdate) == 'function' then
                 self.CallbackUpdate(self.OnlineVersion,self.LocalVersion)
             end
         end
+        self.GotScriptUpdate = true
     end
 end
 function Update()
-	local ToUpdate = {}
+	if not autoupdate then return end
+	local scriptName = "BlitzcrankMaster"
+    local ToUpdate = {}
     ToUpdate.Version = version
+    ToUpdate.UseHttps = true
     ToUpdate.Host = "raw.githubusercontent.com"
-    ToUpdate.VersionPath = "/kokosik1221/bol/master/BlitzcrankMaster.version"
-    ToUpdate.ScriptPath = "/kokosik1221/bol/master/BlitzcrankMaster.lua"
-    ToUpdate.SavePath = SCRIPT_PATH.."MorganaMaster.lua"
-    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Blitzcrank Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
-    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Blitzcrank Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
-    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Blitzcrank Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
-    ScriptUpdate(ToUpdate.Version, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion)
+    ToUpdate.VersionPath = "/kokosik1221/bol/master/"..scriptName..".version"
+    ToUpdate.ScriptPath = "/kokosik1221/bol/master/"..scriptName..".lua"
+    ToUpdate.SavePath = SCRIPT_PATH.._ENV.FILE_NAME
+    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) PrintMessage("Updated to "..NewVersion..". Please reload with 2x F9.") end
+    ToUpdate.CallbackNoUpdate = function(OldVersion) PrintMessage("No Updates Found.") end
+    ToUpdate.CallbackNewVersion = function(NewVersion) PrintMessage("New Version found ("..NewVersion..").") end
+    ToUpdate.CallbackError = function(NewVersion) PrintMessage("Error while downloading.") end
+    _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
+end
+function PrintMessage(message)
+    print("<font color=\"#FFFFFF\"><b>" .. "BlitzcrankMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -133,7 +180,6 @@ end
 if VIP_USER and FileExist(LIB_PATH .. "/DivinePred.lua") then 
 	require "DivinePred" 
 	DP = DivinePred()
-	DP.maxCalcTime = 150
 end
 
 local Counterspells = {
@@ -165,10 +211,9 @@ local Q = {name = "Rocket Grab", range = 1050, speed = 1800, delay = 0.25, width
 local W = {name = "Overdrive", Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Power Fist", range = myHero.range+130, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Static Field", range = 600, Ready = function() return myHero:CanUseSpell(_R) == READY end}
-local IReady, zhonyaready, recall, ExhaustReady, HealReady = false, false, false, false, false
+local recall, ExhaustReady, HealReady = false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
-local IgniteKey, SmiteKey, zhonyaslot, ExhaustKey, HealKey = nil, nil, nil, nil, nil
 local AllCastGrabCount, FailGrabCount, PrecentGrabCount, SuccesGrabCount = 0, 0, 0, 0
 local killstring = {}
 local Spells = {_Q,_W,_E,_R}
@@ -201,6 +246,7 @@ function OnLoad()
 		Update()
 	end,0.1)
 	Menu()
+	SSpells = SumSpells()
 	print("<b><font color=\"#FF0000\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
 		print("<b><font color=\"#FF0000\">Blitzcrank Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
@@ -274,18 +320,23 @@ function Menu()
 	MenuBlitz.ss:addParam("qqq", "---- Mikael's Crucible ----", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.ss:addParam("mchp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuBlitz.ss:addParam("umc", "Use Mikael's Crucible", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("sep", "",                          SCRIPT_PARAM_INFO, "")
 	MenuBlitz.ss:addParam("qqq", "---- Frost Queen's Claim ----", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.ss:addParam("fqhp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
 	MenuBlitz.ss:addParam("ufq", "Use Frost Queen's Claim", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("sep", "",                          SCRIPT_PARAM_INFO, "")
 	MenuBlitz.ss:addParam("qqq", "---- Locket of the Iron Solari ----", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.ss:addParam("ishp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuBlitz.ss:addParam("uis", "Use Locket of the Iron Solari", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("sep", "",                          SCRIPT_PARAM_INFO, "")
 	MenuBlitz.ss:addParam("qqq", "---- Twin Shadows ----", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.ss:addParam("tshp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
 	MenuBlitz.ss:addParam("uts", "Use Twin Shadows", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("sep", "",                          SCRIPT_PARAM_INFO, "")
 	MenuBlitz.ss:addParam("qqq", "---- Exhaust ----", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.ss:addParam("exhp", "Min. Enemy HP% To Use", SCRIPT_PARAM_SLICE, 60, 0, 100, 0)
 	MenuBlitz.ss:addParam("uex", "Use Exhaust", SCRIPT_PARAM_ONOFF, true)
+	MenuBlitz.ss:addParam("sep", "",                          SCRIPT_PARAM_INFO, "")
 	MenuBlitz.ss:addParam("qqq", "---- Heal ----", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.ss:addParam("hhp", "Min. Hero HP% To Use", SCRIPT_PARAM_SLICE, 40, 0, 100, 0)
 	MenuBlitz.ss:addParam("uh", "Use Heal", SCRIPT_PARAM_ONOFF, true)
@@ -312,7 +363,6 @@ function Menu()
 	MenuBlitz.jf:addParam("JFEnabled", "Jungle Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
 	MenuBlitz.jf:addParam("manajf", "Min. Mana To Jungle Farm", SCRIPT_PARAM_SLICE, 40, 0, 100, 0) 
 	MenuBlitz:addSubMenu("[Blitzcrank Master]: Draw Settings", "drawConfig")
-	MenuBlitz.drawConfig:addParam("DLC", "Use Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
 	MenuBlitz.drawConfig:addParam("DT", "Draw Current Target Name", SCRIPT_PARAM_ONOFF, true)
@@ -356,26 +406,11 @@ function Menu()
 	MenuBlitz.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, { "SUPP" })
 	MenuBlitz.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuBlitz.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
-	MenuBlitz.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuBlitz.comboConfig:permaShow("CEnabled")
 	MenuBlitz.harrasConfig:permaShow("HEnabled")
 	MenuBlitz.harrasConfig:permaShow("HTEnabled")
 	MenuBlitz.prConfig:permaShow("AZ")
 	MenuBlitz.blConfig:permaShow("UBL")
-	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
-		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
-	end
-	if myHero:GetSpellData(SUMMONER_1).name:find("summonersmite") then SmiteKey = SUMMONER_1
-		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonersmite") then SmiteKey = SUMMONER_2
-	end
-	if myHero:GetSpellData(SUMMONER_1).name:find("summonerexhaust") then ExhaustKey = SUMMONER_1
-		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerexhaust") then ExhaustKey = SUMMONER_2
-	end
-	if myHero:GetSpellData(SUMMONER_1).name:find("summonerheal") then HealKey = SUMMONER_1
-		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerheal") then HealKey = SUMMONER_2
-	end
-	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
-	_G.DrawCircle = DrawCircle2
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
@@ -421,11 +456,6 @@ function Check()
 	end
 	if MenuBlitz.orb == 1 then
 		SxOrb:ForceTarget(Cel)
-	end
-	if MenuBlitz.drawConfig.DLC then 
-		_G.DrawCircle = DrawCircle2 
-	else 
-		_G.DrawCircle = _G.oldDrawCircle 
 	end
 	Q.range = MenuBlitz.comboConfig.QMAXR
 end
@@ -510,12 +540,12 @@ function Farm()
 	EnemyMinions:update()
 	for i, minion in pairs(EnemyMinions.objects) do
 		if MenuBlitz.farm.QF then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if minion ~= nil and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
 		end
 		if MenuBlitz.farm.EF then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if minion ~= nil and ValidTarget(minion, E.range) then
 				CastE()
 			end
 		end
@@ -526,12 +556,12 @@ function JungleFarmm()
 	JungleMinions:update()
 	for i, minion in pairs(JungleMinions.objects) do
 		if MenuBlitz.jf.QJF then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if minion ~= nil and ValidTarget(minion, Q.range) then
 				CastQ(minion)
 			end
 		end
 		if MenuBlitz.jf.EJF then
-			if minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if minion ~= nil and ValidTarget(minion, E.range) then
 				CastE()
 			end
 		end
@@ -540,8 +570,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuBlitz.prConfig.AZMR)
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
+	local zhonyaslot = GetInventorySlotItem(3157)
+	local zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuBlitz.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -562,7 +592,7 @@ function OnDraw()
 	end
 	if MenuBlitz.drawConfig.DST and MenuBlitz.comboConfig.ST then
 		if SelectedTarget ~= nil and not SelectedTarget.dead then
-			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
+			DrawCircle2(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
 		end
 	end
 	if MenuBlitz.drawConfig.DQL and ValidTarget(Cel, Q.range) and not GetMinionCollision(myHero, Cel, Q.width) then
@@ -570,25 +600,25 @@ function OnDraw()
 		DrawLine3D(myHero.x, myHero.y, myHero.z, QMark.x, QMark.y, QMark.z, Q.width, ARGB(MenuBlitz.drawConfig.DQLC[1], MenuBlitz.drawConfig.DQLC[2], MenuBlitz.drawConfig.DQLC[3], MenuBlitz.drawConfig.DQLC[4]))
 	end
 	if MenuBlitz.drawConfig.DD then	
-		DmgCalc()
 		for _,enemy in pairs(GetEnemyHeroes()) do
-            if ValidTarget(enemy) and killstring[enemy.networkID] ~= nil then
+			DmgCalc()
+            if ValidTarget(enemy, 1500) and killstring[enemy.networkID] ~= nil then
                 local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
                 DrawText(killstring[enemy.networkID], 20, pos.x - 35, pos.y - 10, 0xFFFFFF00)
             end
         end
 	end
 	if MenuBlitz.drawConfig.DQR and Q.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuBlitz.drawConfig.DQRC[2], MenuBlitz.drawConfig.DQRC[3], MenuBlitz.drawConfig.DQRC[4]))
 	end
 	if MenuBlitz.drawConfig.DRR and R.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuBlitz.drawConfig.DRRC[2], MenuBlitz.drawConfig.DRRC[3], MenuBlitz.drawConfig.DRRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuBlitz.drawConfig.DRRC[2], MenuBlitz.drawConfig.DRRC[3], MenuBlitz.drawConfig.DRRC[4]))
 	end
 	if MenuBlitz.drawConfig.DGS then
 		local pos = WorldToScreen(D3DXVECTOR3(myHero.x, myHero.y, myHero.z))
 		DrawText("Succes Grab's : "..SuccesGrabCount, 18, pos.x - 400, pos.y - 200, 0xFFFFFF00)
 		DrawText("Fail Grab's : "..FailGrabCount,18, pos.x - 400, pos.y - 220, 0xFFFFFF00)
-		DrawText("Precent Grab's: " ..PrecentGrabCount .."%", 18, pos.x - 400, pos.y - 240, 0xFFFFFF00)
+		DrawText("Precent Grab's: " ..math.floor(PrecentGrabCount) .."%", 18, pos.x - 400, pos.y - 240, 0xFFFFFF00)
 	end
 end
 
@@ -599,8 +629,8 @@ function KillSteall()
 		local eDmg = getDmg("E", Enemy, myHero, 1)
 		local rDmg = getDmg("R", Enemy, myHero, 3)
 		local iDmg = (50 + (20 * myHero.level))
-		if ValidTarget(Enemy, Q.range) and Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
-			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+		local IReady = SSpells:Ready("summonerdot")
+		if ValidTarget(Enemy, Q.range) and Enemy ~= nil then
 			if health < qDmg and MenuBlitz.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
 			elseif health < eDmg and MenuBlitz.ksConfig.EKS and ValidTarget(Enemy, E.range) then
@@ -609,7 +639,7 @@ function KillSteall()
 			elseif health < rDmg and MenuBlitz.ksConfig.RKS and ValidTarget(Enemy, R.range) then
 				CastR(Enemy)
 			elseif health < iDmg and MenuBlitz.ksConfig.IKS and IReady and ValidTarget(Enemy, 600) then
-				CastSpell(IgniteKey, Enemy)
+				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
 			elseif health < (qDmg + eDmg) and MenuBlitz.ksConfig.QKS and MenuBlitz.ksConfig.EKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
 				CastE()
@@ -668,21 +698,21 @@ function OnApplyBuff(source, unit, buff)
 			CastE()
 		end
 	end	
-	if unit.isMe and buff and buff.name == "Recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "Recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
 
 function Support()
 	if MenuBlitz.ss.umc then
-		mikael = GetInventorySlotItem(3222)
-		mikaelready = (mikael ~= nil and (myHero:CanUseSpell(mikael) == READY))
+		local mikael = GetInventorySlotItem(3222)
+		local mikaelready = (mikael ~= nil and (myHero:CanUseSpell(mikael) == READY))
 		for i = 1, heroManager.iCount do
 			local hero = heroManager:GetHero(i)
 			if hero.team == myHero.team then
@@ -695,8 +725,8 @@ function Support()
 		end
 	end
 	if MenuBlitz.ss.ufq then
-		frost = GetInventorySlotItem(3092)
-		frostready = (frost ~= nil and (myHero:CanUseSpell(frost) == READY))
+		local frost = GetInventorySlotItem(3092)
+		local frostready = (frost ~= nil and (myHero:CanUseSpell(frost) == READY))
 		for i, enemy in ipairs(GetEnemyHeroes()) do
 			if ValidTarget(enemy, 880) and ((enemy.health/enemy.maxHealth)*100) < MenuBlitz.ss.fqhp then
 				if frostready then
@@ -706,8 +736,8 @@ function Support()
 		end
 	end
 	if MenuBlitz.ss.uis then
-		solari = GetInventorySlotItem(3190)
-		solariready = (solari ~= nil and (myHero:CanUseSpell(solari) == READY))
+		local solari = GetInventorySlotItem(3190)
+		local solariready = (solari ~= nil and (myHero:CanUseSpell(solari) == READY))
 		for i = 1, heroManager.iCount do
 			local hero = heroManager:GetHero(i)
 			if hero.team == myHero.team then
@@ -720,8 +750,8 @@ function Support()
 		end
 	end
 	if MenuBlitz.ss.uts then
-		twin = GetInventorySlotItem(3023)
-		twinready = (twin ~= nil and (myHero:CanUseSpell(twin) == READY))
+		local twin = GetInventorySlotItem(3023)
+		local twinready = (twin ~= nil and (myHero:CanUseSpell(twin) == READY))
 		for i, enemy in ipairs(GetEnemyHeroes()) do
 			if ValidTarget(enemy, 1000) and ((enemy.health/enemy.maxHealth)*100) < MenuBlitz.ss.tshp then
 				if twinready then
@@ -733,9 +763,9 @@ function Support()
 	if MenuBlitz.ss.uex then
 		for i, enemy in ipairs(GetEnemyHeroes()) do
 			if ValidTarget(enemy, 550) and ((enemy.health/enemy.maxHealth)*100) < MenuBlitz.ss.exhp then
-				ExhaustReady = (ExhaustKey ~= nil and myHero:CanUseSpell(ExhaustKey) == READY)
+				local ExhaustReady = SSpells:Ready("summonerexhaust")
 				if ExhaustReady then
-					CastSpell(ExhaustKey, enemy)
+					CastSpell(SSpells:GetSlot("summonerexhaust"), enemy)
 				end
 			end
 		end
@@ -745,9 +775,9 @@ function Support()
 			local hero = heroManager:GetHero(i)
 			if hero.team == myHero.team then
 				if ValidTarget(hero, 700) and ((hero.health/hero.maxHealth)*100) < MenuBlitz.ss.hhp then
-					HealReady = (HealKey ~= nil and myHero:CanUseSpell(HealKey) == READY)
+					local HealReady = SSpells:Ready("summonerheal")
 					if HealReady then
-						CastSpell(HealKey, enemy)
+						CastSpell(SSpells:GetSlot("summonerheal"), enemy)
 					end
 				end
 			end
@@ -766,11 +796,11 @@ end
 
 function CastQ(unit)
 	if Q.Ready() then
-		SReady = (SmiteKey ~= nil and myHero:CanUseSpell(SmiteKey) == READY)
+		local SReady = SSpells:Ready("summonersmite")
 		if MenuBlitz.comboConfig.USEQS then
 			local willCollide1, ColTable2 = GetMinionCollisionM(unit, myHero)
 			if #ColTable2 == 1 and SReady and GetDistance(myHero, ColTable2[1]) < 800 then
-				CastSpell(SmiteKey, ColTable2[1])
+				CastSpell(SSpells:GetSlot("summonersmite"), ColTable2[1])
 			end
 		end
 		if MenuBlitz.prConfig.pro == 1 then
@@ -1007,6 +1037,27 @@ end
 
 function getHitBoxRadius2(target)
     return GetDistance(target, target.minBBox)/2
+end
+
+class 'SumSpells'
+function SumSpells:__init()
+	names = {"summonerdot", "summonerflash", "summonerexhaust", "summonerheal", "summonersmite"}
+end
+
+function SumSpells:Ready(name)
+	local Ready = false
+	local Spel = self:GetSlot(name)
+	Ready = (Spel ~= nil and myHero:CanUseSpell(Spel) == READY)
+	return Ready
+end
+
+function SumSpells:GetSlot(name)
+	if myHero:GetSpellData(SUMMONER_1).name == name then 
+		return SUMMONER_1 
+	end
+	if myHero:GetSpellData(SUMMONER_2).name == name then 
+		return SUMMONER_2 
+	end
 end
 
 -----SCRIPT STATUS------------
