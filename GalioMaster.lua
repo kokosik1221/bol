@@ -2,35 +2,55 @@
 
 	Script Name: GALIO MASTER 
     	Author: kokosik1221
-	Last Version: 2.311
-	01.04.2015
-	 
+	Last Version: 2.4
+	07.04.2015
+	
 ]]--
 
 if myHero.charName ~= "Galio" then return end
 
-local version = 2.311
+local autoupdate = true
+local version = 2.4
  
-class "ScriptUpdate"
-function ScriptUpdate:__init(LocalVersion, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion)
+class "_ScriptUpdate"
+function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
     self.LocalVersion = LocalVersion
     self.Host = Host
-    self.VersionPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
-    self.ScriptPath = '/BoL/TCPUpdater/GetScript2.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
+    self.VersionPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '3' or '4')..'.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
+    self.ScriptPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '3' or '4')..'.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
     self.SavePath = SavePath
     self.CallbackUpdate = CallbackUpdate
     self.CallbackNoUpdate = CallbackNoUpdate
     self.CallbackNewVersion = CallbackNewVersion
-    self.LuaSocket = require("socket")
-    self.Socket = self.LuaSocket.connect('sx-bol.eu', 80)
-    self.Socket:send("GET "..self.VersionPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
-    self.Socket:settimeout(0, 'b')
-    self.Socket:settimeout(99999999, 't')
-    self.LastPrint = ""
-    self.File = ""
+    self.CallbackError = CallbackError
+    --AddDrawCallback(function() self:OnDraw() end)
+    self:CreateSocket(self.VersionPath)
+    self.DownloadStatus = 'Connect to Server for VersionInfo'
     AddTickCallback(function() self:GetOnlineVersion() end)
 end
-function ScriptUpdate:Base64Encode(data)
+function _ScriptUpdate:OnDraw()
+    DrawText('Download Status: '..(self.DownloadStatus or 'Unknown'),50,10,50,ARGB(255,255,255,255))
+end
+function _ScriptUpdate:CreateSocket(url)
+    if not self.LuaSocket then
+        self.LuaSocket = require("socket")
+    else
+        self.Socket:close()
+        self.Socket = nil
+        self.Size = nil
+        self.RecvStarted = false
+    end
+    self.LuaSocket = require("socket")
+    self.Socket = self.LuaSocket.tcp()
+    self.Socket:settimeout(0, 'b')
+    self.Socket:settimeout(99999999, 't')
+    self.Socket:connect('sx-bol.eu', 80)
+    self.Url = url
+    self.Started = false
+    self.LastPrint = ""
+    self.File = ""
+end
+function _ScriptUpdate:Base64Encode(data)
     local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     return ((data:gsub('.', function(x)
         local r,b='',x:byte()
@@ -43,80 +63,107 @@ function ScriptUpdate:Base64Encode(data)
         return b:sub(c+1,c+1)
     end)..({ '', '==', '=' })[#data%3+1])
 end
-function ScriptUpdate:GetOnlineVersion()
-    if self.Status == 'closed' then return end
+function _ScriptUpdate:GetOnlineVersion()
+    if self.GotScriptVersion then return end
     self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
-
-    if self.Receive then
-        if self.LastPrint ~= self.Receive then
-            self.LastPrint = self.Receive
-            self.File = self.File .. self.Receive
+    if self.Status == 'timeout' and not self.Started then
+        self.Started = true
+        self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+    end
+    if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+        self.RecvStarted = true
+        local recv,sent,time = self.Socket:getstats()
+        self.DownloadStatus = 'Downloading VersionInfo (0%)'
+    end
+    self.File = self.File .. (self.Receive or self.Snipped)
+    if self.File:find('</size>') then
+        if not self.Size then
+            self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</s'..'ize>')-1)) + self.File:len()
         end
+        self.DownloadStatus = 'Downloading VersionInfo ('..math.round(100/self.Size*self.File:len(),2)..'%)'
     end
-
-    if self.Snipped ~= "" and self.Snipped then
-        self.File = self.File .. self.Snipped
-    end
-    if self.Status == 'closed' then
-        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
-        if HeaderEnd and ContentStart then
-            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1))
-            if self.OnlineVersion > self.LocalVersion then
+    if not (self.Receive or (#self.Snipped > 0)) and self.RecvStarted and self.Size and math.round(100/self.Size*self.File:len(),2) > 95 then
+        self.DownloadStatus = 'Downloading VersionInfo (100%)'
+        local HeaderEnd, ContentStart = self.File:find('<scr'..'ipt>')
+        local ContentEnd, _ = self.File:find('</sc'..'ript>')
+        if not ContentStart or not ContentEnd then
+            if self.CallbackError and type(self.CallbackError) == 'function' then
+                self.CallbackError()
+            end
+        else
+            self.OnlineVersion = tonumber(self.File:sub(ContentStart + 1,ContentEnd-1))
+            if self.OnlineVersion~=nil and self.OnlineVersion > self.LocalVersion then
                 if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
                     self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
                 end
-                self.DownloadSocket = self.LuaSocket.connect('sx-bol.eu', 80)
-                self.DownloadSocket:send("GET "..self.ScriptPath.." HTTP/1.0\r\nHost: sx-bol.eu\r\n\r\n")
-                self.DownloadSocket:settimeout(0, 'b')
-                self.DownloadSocket:settimeout(99999999, 't')
-                self.LastPrint = ""
-                self.File = ""
+                self:CreateSocket(self.ScriptPath)
+                self.DownloadStatus = 'Connect to Server for ScriptDownload'
                 AddTickCallback(function() self:DownloadUpdate() end)
             else
                 if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
                     self.CallbackNoUpdate(self.LocalVersion)
                 end
             end
-        else
-            print('Error: Could not get end of Header')
         end
+        self.GotScriptVersion = true
     end
 end
-function ScriptUpdate:DownloadUpdate()
-    if self.DownloadStatus == 'closed' then return end
-    self.DownloadReceive, self.DownloadStatus, self.DownloadSnipped = self.DownloadSocket:receive(1024)
-    if self.DownloadReceive then
-        if self.LastPrint ~= self.DownloadReceive then
-            self.LastPrint = self.DownloadReceive
-            self.File = self.File .. self.DownloadReceive
+function _ScriptUpdate:DownloadUpdate()
+    if self.GotScriptUpdate then return end
+    self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
+    if self.Status == 'timeout' and not self.Started then
+        self.Started = true
+        self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+    end
+    if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+        self.RecvStarted = true
+        local recv,sent,time = self.Socket:getstats()
+        self.DownloadStatus = 'Downloading Script (0%)'
+    end
+    self.File = self.File .. (self.Receive or self.Snipped)
+    if self.File:find('</si'..'ze>') then
+        if not self.Size then
+            self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</si'..'ze>')-1)) + self.File:len()
         end
+        self.DownloadStatus = 'Downloading Script ('..math.round(100/self.Size*self.File:len(),2)..'%)'
     end
-    if self.DownloadSnipped ~= "" and self.DownloadSnipped then
-        self.File = self.File .. self.DownloadSnipped
-    end
-    if self.DownloadStatus == 'closed' then
-        local HeaderEnd, ContentStart = self.File:find('\r\n\r\n')
-        if HeaderEnd and ContentStart then
-            local ScriptFileOpen = io.open(self.SavePath, "w+")
-            ScriptFileOpen:write(self.File:sub(ContentStart + 1))
-            ScriptFileOpen:close()
+    if not (self.Receive or (#self.Snipped > 0)) and self.RecvStarted and math.round(100/self.Size*self.File:len(),2) > 95 then
+        self.DownloadStatus = 'Downloading Script (100%)'
+        local HeaderEnd, ContentStart = self.File:find('<sc'..'ript>')
+        local ContentEnd, _ = self.File:find('</scr'..'ipt>')
+        if not ContentStart or not ContentEnd then
+            if self.CallbackError and type(self.CallbackError) == 'function' then
+                self.CallbackError()
+            end
+        else
+            local f = io.open(self.SavePath,"w+b")
+            f:write(self.File:sub(ContentStart + 1,ContentEnd-1))
+            f:close()
             if self.CallbackUpdate and type(self.CallbackUpdate) == 'function' then
                 self.CallbackUpdate(self.OnlineVersion,self.LocalVersion)
             end
         end
+        self.GotScriptUpdate = true
     end
 end
 function Update()
-	local ToUpdate = {}
+	if not autoupdate then return end
+	local scriptName = "GalioMaster"
+    local ToUpdate = {}
     ToUpdate.Version = version
+    ToUpdate.UseHttps = true
     ToUpdate.Host = "raw.githubusercontent.com"
-    ToUpdate.VersionPath = "/kokosik1221/bol/master/GalioMaster.version"
-    ToUpdate.ScriptPath = "/kokosik1221/bol/master/GalioMaster.lua"
-    ToUpdate.SavePath = SCRIPT_PATH.."GalioMaster.lua"
-    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) print("<font color=\"#FF0000\"><b>Galio Master: </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". Please Reload with 2x F9</b></font>") end
-    ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#FF0000\"><b>Galio Master: </b></font> <font color=\"#FFFFFF\">No Updates Found</b></font>") end
-    ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#FF0000\"><b>Galio Master: </b></font> <font color=\"#FFFFFF\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
-    ScriptUpdate(ToUpdate.Version, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion)
+    ToUpdate.VersionPath = "/kokosik1221/bol/master/"..scriptName..".version"
+    ToUpdate.ScriptPath = "/kokosik1221/bol/master/"..scriptName..".lua"
+    ToUpdate.SavePath = SCRIPT_PATH.._ENV.FILE_NAME
+    ToUpdate.CallbackUpdate = function(NewVersion,OldVersion) PrintMessage("Updated to "..NewVersion..". Please reload with 2x F9.") end
+    ToUpdate.CallbackNoUpdate = function(OldVersion) PrintMessage("No Updates Found.") end
+    ToUpdate.CallbackNewVersion = function(NewVersion) PrintMessage("New Version found ("..NewVersion..").") end
+    ToUpdate.CallbackError = function(NewVersion) PrintMessage("Error while downloading.") end
+    _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
+end
+function PrintMessage(message)
+    print("<font color=\"#FFFFFF\"><b>" .. "GalioMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -132,7 +179,6 @@ end
 if VIP_USER and FileExist(LIB_PATH .. "/DivinePred.lua") then 
 	require "DivinePred" 
 	DP = DivinePred()
-	DP.maxCalcTime = 150
 end
 
 local Items = {
@@ -146,14 +192,13 @@ local Q = {range = 940, speed = 1400, delay = 0.25, width = 235, Ready = functio
 local W = {range = 800, Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {range = 1180, speed = 1400, delay = 0.25, width = 235, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {range = 560, Ready = function() return myHero:CanUseSpell(_R) == READY end}
-local IReady, zhonyaready, ultbuff, recall = false, false, false, false
+local ultbuff, recall = false, false
 local lasttickchecked, lasthealthchecked = 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
 local ETargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, E.range, DAMAGE_MAGIC)
 local RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_MAGIC)
-local IgniteKey, zhonyaslot = nil, nil
 local killstring = {}
 local TargetTable = {
 	AP = {
@@ -183,12 +228,13 @@ function OnLoad()
 		Update()
 	end,0.1)
 	Menu()
-	print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	SSpells = SumSpells()
+	print("<b><font color=\"#FF0000\">Galio Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
 	if _G.MMA_Loaded then
-		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Galio Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
 	end	
 	if _G.AutoCarry then
-		print("<b><font color=\"#6699FF\">Galio Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+		print("<b><font color=\"#FF0000\">Galio Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
 	end
 end
 
@@ -196,7 +242,6 @@ function OnTick()
 	Check()
 	CheckUlt()
 	if MenuGalio.comboConfig.CEnabled and not ultbuff and ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.comboConfig.manac and not recall then
-		caa()
 		Combo()
 	end
 	if (MenuGalio.harrasConfig.HEnabled or MenuGalio.harrasConfig.HTEnabled) and ((myHero.mana/myHero.maxMana)*100) >= MenuGalio.harrasConfig.manah and not recall then
@@ -245,7 +290,6 @@ function Menu()
 	MenuGalio.comboConfig:addParam("ENEMYTOR", "Min Enemies to Cast R: ", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
 	MenuGalio.comboConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.comboConfig:addParam("ST", "Focus Selected Target", SCRIPT_PARAM_ONOFF, false)
-	MenuGalio.comboConfig:addParam("uaa", "Use AA in Combo", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.comboConfig:addParam("CEnabled", "Full Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	MenuGalio.comboConfig:addParam("manac", "Min. Mana To Cast Combo", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	MenuGalio:addSubMenu("[Galio Master]: Harras Settings", "harrasConfig")
@@ -277,7 +321,6 @@ function Menu()
 	MenuGalio:addSubMenu("[Galio Master]: Extra Settings", "exConfig")
 	MenuGalio.exConfig:addParam("AR", "Use R To Stop Enemy Ultimates", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio:addSubMenu("[Galio Master]: Draw Settings", "drawConfig")
-	MenuGalio.drawConfig:addParam("DLC", "Draw Lag-Free Circles", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("DD", "Draw DMG Text", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("DST", "Draw Selected Target", SCRIPT_PARAM_ONOFF, true)
 	MenuGalio.drawConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
@@ -303,32 +346,16 @@ function Menu()
 	MenuGalio.prConfig:addParam("AL", "Auto lvl sequence", SCRIPT_PARAM_LIST, 1, {"MID"})
 	MenuGalio.prConfig:addParam("qqq", "--------------------------------------------------------", SCRIPT_PARAM_INFO,"")
 	MenuGalio.prConfig:addParam("pro", "Prodiction To Use:", SCRIPT_PARAM_LIST, 1, {"VPrediction","Prodiction","DivinePred"}) 
-	MenuGalio.prConfig:addParam("vphit", "VPrediction HitChance", SCRIPT_PARAM_LIST, 3, {"[0]Target Position","[1]Low Hitchance", "[2]High Hitchance", "[3]Target slowed/close", "[4]Target immobile", "[5]Target dashing" })
 	MenuGalio.comboConfig:permaShow("CEnabled")
 	MenuGalio.harrasConfig:permaShow("HEnabled")
 	MenuGalio.harrasConfig:permaShow("HTEnabled")
 	MenuGalio.prConfig:permaShow("AZ")
-	if myHero:GetSpellData(SUMMONER_1).name:find("summonerdot") then IgniteKey = SUMMONER_1
-		elseif myHero:GetSpellData(SUMMONER_2).name:find("summonerdot") then IgniteKey = SUMMONER_2
-	end
-	_G.oldDrawCircle = rawget(_G, 'DrawCircle')
-	_G.DrawCircle = DrawCircle2
 	if heroManager.iCount < 10 then
 		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
 	elseif heroManager.iCount == 6 then
 		arrangePrioritysTT()
     else
 		arrangePrioritys()
-	end
-end
-
-function caa()
-	if MenuGalio.orb == 1 then
-		if MenuGalio.comboConfig.uaa then
-			SxOrb:EnableAttacks()
-		elseif not MenuGalio.comboConfig.uaa then
-			SxOrb:DisableAttacks()
-		end
 	end
 end
 
@@ -365,7 +392,6 @@ function Check()
 		lasthealthchecked = myHero.health
 		lasttickchecked = GetTickCount()
 	end
-	if MenuGalio.drawConfig.DLC then _G.DrawCircle = DrawCircle2 else _G.DrawCircle = _G.oldDrawCircle end
 end
 
 function EnemyCount(point, range)
@@ -458,32 +484,32 @@ end
 
 function Farm()
 	EnemyMinions:update()
-	QMode =  MenuGalio.farm.QF
-	EMode =  MenuGalio.farm.EF
+	local QMode =  MenuGalio.farm.QF
+	local EMode =  MenuGalio.farm.EF
 	for i, minion in pairs(EnemyMinions.objects) do
 		if QMode == 3 then
-			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and ValidTarget(minion, Q.range) then
 				local Pos, Hit = BestQFarmPos(Q.range, Q.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_Q, Pos.x, Pos.z)
 				end
 			end
 		elseif QMode == 2 then
-			if Q.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, Q.range) then
+			if Q.Ready() and minion ~= nil and ValidTarget(minion, Q.range) then
 				if minion.health <= getDmg("Q", minion, myHero) then
 					CastQ(minion)
 				end
 			end
 		end
 		if EMode == 3 then
-			if E.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if E.Ready() and minion ~= nil and ValidTarget(minion, E.range) then
 				local Pos, Hit = BestQFarmPos(E.range, E.width, EnemyMinions.objects)
 				if Pos ~= nil then
 					CastSpell(_E, Pos.x, Pos.z)
 				end
 			end
 		elseif EMode == 2 then
-			if E.Ready() and minion ~= nil and not minion.dead and ValidTarget(minion, E.range) then
+			if E.Ready() and minion ~= nil and ValidTarget(minion, E.range) then
 				if minion.health <= getDmg("E", minion, myHero) then
 					CastE(minion)
 				end
@@ -513,7 +539,7 @@ function BestQFarmPos(range, radius, objects)
     local BestPos 
     local BestHit = 0
     for i, object in ipairs(objects) do
-        local hit = CountObjectsNearPos(object.visionPos or object, range, radius, objects)
+        local hit = CountObjectsNearPos(object or object, range, radius, objects)
         if hit > BestHit then
             BestHit = hit
             BestPos = object
@@ -528,14 +554,14 @@ end
 function JungleFarmm()
 	if MenuGalio.jf.QJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if Q.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= Q.range then
+			if Q.Ready() and minion ~= nil and GetDistance(minion) <= Q.range then
 				CastQ(minion)
 			end
 		end
 	end
 	if MenuGalio.jf.EJF then
 		for i, minion in pairs(JungleMinions.objects) do
-			if E.Ready() and minion ~= nil and not minion.dead and GetDistance(minion) <= E.range then
+			if E.Ready() and minion ~= nil and GetDistance(minion) <= E.range then
 				CastE(minion)
 			end
 		end
@@ -551,7 +577,7 @@ if not ultbuff then
 		local eDmg = myHero:CalcDamage(Enemy, (45 * myHero:GetSpellData(2).level + 15 + 0.5 * myHero.ap))
 		local rDmg = myHero:CalcDamage(Enemy, (110 * myHero:GetSpellData(3).level + 110 + 0.6 * myHero.ap))
 		local iDmg = 50 + (20 * myHero.level)
-		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+		if Enemy ~= nil and ValidTarget(Enemy, 1500) then
 			if health < qDmg and Q.Ready() and (distance < Q.range) and MenuGalio.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif health < eDmg and E.Ready() and (distance < E.range) and MenuGalio.ksConfig.EKS then
@@ -572,9 +598,9 @@ if not ultbuff then
 				CastE(Enemy)
 				CastSpell(_R)
 			end
-			IReady = (IgniteKey ~= nil and myHero:CanUseSpell(IgniteKey) == READY)
+			local IReady = SSpells:Ready("summonerdot")
 			if IReady and health <= iDmg and MenuGalio.ksConfig.IKS and (distance < 600) then
-				CastSpell(IgniteKey, Enemy)
+				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
 			end
 		end
 	end
@@ -584,20 +610,20 @@ end
 function OnDraw()
 	if MenuGalio.drawConfig.DST and MenuGalio.comboConfig.ST then
 		if SelectedTarget ~= nil and not SelectedTarget.dead then
-			DrawCircle(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
+			DrawCircle2(SelectedTarget.x, SelectedTarget.y, SelectedTarget.z, 100, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
 		end
 	end
 	if MenuGalio.drawConfig.DQR and Q.Ready() then
-		DrawCircle(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, Q.range, RGB(MenuGalio.drawConfig.DQRC[2], MenuGalio.drawConfig.DQRC[3], MenuGalio.drawConfig.DQRC[4]))
 	end
 	if MenuGalio.drawConfig.DWR and W.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, W.range, RGB(MenuGalio.drawConfig.DWRC[2], MenuGalio.drawConfig.DWRC[3], MenuGalio.drawConfig.DWRC[4]))
 	end
 	if MenuGalio.drawConfig.DER and E.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, E.range, RGB(MenuGalio.drawConfig.DERC[2], MenuGalio.drawConfig.DERC[3], MenuGalio.drawConfig.DERC[4]))
 	end
 	if MenuGalio.drawConfig.DRR and R.Ready() then			
-		DrawCircle(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
+		DrawCircle2(myHero.x, myHero.y, myHero.z, R.range, RGB(MenuGalio.drawConfig.DRRC[2], MenuGalio.drawConfig.DRRC[3], MenuGalio.drawConfig.DRRC[4]))
 	end
 	if MenuGalio.drawConfig.DD then	
 		DmgCalc()
@@ -611,7 +637,7 @@ function OnDraw()
 end
 
 function OnApplyBuff(unit, source, buff)
-	if unit.isMe and buff and buff.name == "GalioIdolOfDurand" then
+	if unit and unit.isMe and buff and buff.name == "GalioIdolOfDurand" then
 		if MenuGalio.orb == 1 then
 			SxOrb:DisableMove()
 			SxOrb:DisableAttacks()
@@ -620,13 +646,13 @@ function OnApplyBuff(unit, source, buff)
 			AutoCarry.MyHero:AttacksEnabled(false)
 		end
 	end
-	if unit.isMe and buff and buff.name == "Recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = true
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit.isMe and buff and buff.name == "GalioIdolOfDurand" then
+	if unit and unit.isMe and buff and buff.name == "GalioIdolOfDurand" then
 		if not _G.AutoCarry then
 			SxOrb:EnableMove()
 			SxOrb:EnableAttacks()
@@ -636,7 +662,7 @@ function OnRemoveBuff(unit, buff)
 		end
 		ultbuff = false
 	end
-	if unit.isMe and buff and buff.name == "Recall" then
+	if unit and unit.isMe and buff and buff.name == "Recall" then
 		recall = false
 	end
 end
@@ -655,8 +681,8 @@ end
 
 function autozh()
 	local count = EnemyCount(myHero, MenuGalio.prConfig.AZMR)
-	zhonyaslot = GetInventorySlotItem(3157)
-	zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
+	local zhonyaslot = GetInventorySlotItem(3157)
+	local zhonyaready = (zhonyaslot ~= nil and myHero:CanUseSpell(zhonyaslot) == READY)
 	if zhonyaready and ((myHero.health/myHero.maxHealth)*100) < MenuGalio.prConfig.AZHP and count == 0 then
 		CastSpell(zhonyaslot)
 	end
@@ -716,7 +742,7 @@ end
 function CastQ(unit)
 	if MenuGalio.prConfig.pro == 1 then
 		local CastPosition,  HitChance,  Position = VP:GetCircularCastPosition(unit, Q.delay, Q.width, Q.range, Q.speed, myHero, false)
-		if HitChance >= MenuGalio.prConfig.vphit - 1 then
+		if HitChance >= 2 then
 			SpellCast(_Q, CastPosition)
 		end
 	end
@@ -739,7 +765,7 @@ end
 function CastE(unit)
 	if MenuGalio.prConfig.pro == 1 then
 		local CastPosition,  HitChance,  Position = VP:GetLineCastPosition(unit, E.delay, E.width, E.range, E.speed, myHero, false)
-		if HitChance >= MenuGalio.prConfig.vphit - 1 then
+		if HitChance >= 2 then
 			SpellCast(_E, CastPosition)
 		end
 	end
@@ -843,6 +869,27 @@ function DrawCircle2(x, y, z, radius, color)
   if OnScreen({ x = sPos.x, y = sPos.y }, { x = sPos.x, y = sPos.y }) then
     DrawCircleNextLvl(x, y, z, radius, 1, color, 75) 
   end
+end
+
+class 'SumSpells'
+function SumSpells:__init()
+	names = {"summonerdot", "summonerflash", "summonerexhaust", "summonerheal", "summonersmite"}
+end
+
+function SumSpells:Ready(name)
+	local Ready = false
+	local Spel = self:GetSlot(name)
+	Ready = (Spel ~= nil and myHero:CanUseSpell(Spel) == READY)
+	return Ready
+end
+
+function SumSpells:GetSlot(name)
+	if myHero:GetSpellData(SUMMONER_1).name == name then 
+		return SUMMONER_1 
+	end
+	if myHero:GetSpellData(SUMMONER_2).name == name then 
+		return SUMMONER_2 
+	end
 end
 
 -----SCRIPT STATUS------------
