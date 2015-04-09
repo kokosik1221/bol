@@ -1,7 +1,7 @@
 --[[
 
 	Script Name: AHRI MASTER 
-    	Author: kokosik1221
+    	Author: kokosik1221666
 	Last Version: 0.57
 	07.04.2015
 
