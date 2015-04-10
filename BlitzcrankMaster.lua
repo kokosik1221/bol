@@ -1,17 +1,17 @@
 --[[
 
 	Script Name: Blitzcrank MASTER 
-    	Author: kokosik1221
-	Last Version: 1.34
-	07.04.2015
-	
+    Author: kokosik1221
+	Last Version: 1.35
+	10.04.2015
+
 ]]--
 
 
 if myHero.charName ~= "Blitzcrank" then return end
 
 local autoupdate = true
-local version = 1.34
+local version = 1.35
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -164,7 +164,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "BlitzcrankMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "BlitzcrankMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -215,6 +215,8 @@ local recall, ExhaustReady, HealReady = false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local AllCastGrabCount, FailGrabCount, PrecentGrabCount, SuccesGrabCount = 0, 0, 0, 0
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local killstring = {}
 local Spells = {_Q,_W,_E,_R}
 local Spells2 = {"Q","W","E","R"}
@@ -491,6 +493,7 @@ function FindBL()
 end
 
 function Combo()
+	if 30 < os.clock() * 100 - LastCheck then
 	blacktarget = FindBL()
 	if Cel ~= nil and ValidTarget(Cel) and Cel ~= blacktarget then
 		UseItems(Cel)
@@ -516,9 +519,12 @@ function Combo()
 			end
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	blacktarget = FindBL()
 	if Cel ~= nil and ValidTarget(Cel) and Cel ~= blacktarget then
 		if MenuBlitz.harrasConfig.HM == 1 then
@@ -533,6 +539,8 @@ function Harrass()
 			CastQ(Cel)
 			CastE()
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -631,6 +639,7 @@ function KillSteall()
 		local iDmg = (50 + (20 * myHero.level))
 		local IReady = SSpells:Ready("summonerdot")
 		if ValidTarget(Enemy, Q.range) and Enemy ~= nil then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			if health < qDmg and MenuBlitz.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
 			elseif health < eDmg and MenuBlitz.ksConfig.EKS and ValidTarget(Enemy, E.range) then
@@ -656,6 +665,8 @@ function KillSteall()
 				CastE()
 				myHero:Attack(Enemy)
 				CastR(Enemy)	
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -826,7 +837,7 @@ function CastQ(unit)
 		if MenuBlitz.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local BlitzQ = SkillShot.PRESETS['RocketGrab']
-			local State, Position, perc = DP:predict(unit, BlitzQ)
+			local State, Position, perc = DP:predict(unit, BlitzQ, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuBlitz.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()

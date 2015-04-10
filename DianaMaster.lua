@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: DIANA MASTER 
-    	Author: kokosik1221
-	Last Version: 0.5
-	07.04.2015
+    Author: kokosik1221
+	Last Version: 0.51
+	10.04.2015
 
 ]]--
 
 if myHero.charName ~= "Diana" then return end
 
 local autoupdate = true
-local version = 0.5
+local version = 0.51
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "DianaMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "DianaMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -212,6 +212,8 @@ local W = {name = "Pale Cascade", range = 200, Ready = function() return myHero:
 local E = {name = "Moonfall", range = 450, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Lunar Rush", range = 825, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local moonlight, recall = false, false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local lasttickchecked, lasthealthchecked = 0, 0
@@ -416,6 +418,7 @@ end
 
 function Combo()
 	UseItems(Cel)
+	if 30 < os.clock() * 100 - LastCheck then
 	if Q.Ready() and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
@@ -433,9 +436,12 @@ function Combo()
 	if W.Ready() and MenuDiana.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) then
 		CastW()
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Combo2()
+	if 30 < os.clock() * 100 - LastCheck then
 	if Q.Ready() and MenuDiana.comboConfig.qConfig.USEQ and ValidTarget(Cel, R.range) then
 		CastQ(Cel)
 	end
@@ -452,9 +458,12 @@ function Combo2()
 			CastE()
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if Q.Ready() and MenuDiana.harrasConfig.QH and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
@@ -463,6 +472,8 @@ function Harrass()
 	end
 	if E.Ready() and MenuDiana.harrasConfig.EH and ValidTarget(Cel, E.range) then
 		CastE()
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -534,6 +545,7 @@ function KillSteall()
 		local RDMG = getDmg("R", Enemy, myHero, 3)
 		local IDMG = 50 + (20 * myHero.level)
 		if Enemy ~= nil and ValidTarget(Enemy, 1500) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			local IReady = SSpells:Ready("summonerdot")
 			if IReady and hp < IDMG and MenuDiana.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
@@ -548,6 +560,8 @@ function KillSteall()
 				if moonlight then
 					CastR(Enemy)
 				end
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -763,7 +777,7 @@ function CastQ(unit)
 	if MenuDiana.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local DianaQ = CircleSS(math.huge, Q.range, Q.width, Q.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, DianaQ)
+		local State, Position, perc = DP:predict(unit, DianaQ, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuDiana.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()

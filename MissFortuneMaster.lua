@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: MISS FORUNTE MASTER 
-    	Author: kokosik1221
-	Last Version: 0.4
-	07.04.2015
+    Author: kokosik1221
+	Last Version: 0.41
+	10.04.2015
 	
 ]]--
 
 if myHero.charName ~= "MissFortune" then return end
 
 local autoupdate = true
-local version = 0.4
+local version = 0.41
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "MissFortuneMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "MissFortuneMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -194,6 +194,8 @@ local W = {name = "Impure Shots", range = 550, Ready = function() return myHero:
 local E = {name = "Make It Rain", range = 800, width = 400, delay = 0.65, speed = 500, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Bullet Time", range = 1400, width = 400, angle = 30, delay = 1, speed = 780, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local recall, rcasting, r2 = false, false, false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, E.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_PHYSICAL)
@@ -522,6 +524,7 @@ function Getminion(tar)
 end
 
 function Combo()
+	if 30 < os.clock() * 100 - LastCheck then
 	if Cel ~= nil then 
 		UseItems(Cel)
 		if MFMenu.comboConfig.wConfig.USEW and ValidTarget(Cel, W.range) and not rcasting then
@@ -577,9 +580,12 @@ function Combo()
 			end
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if MFMenu.harrasConfig.USEQ and not rcasting and not MFMenu.harrasConfig.USEQ2 then
 		if ValidTarget(QCel, Q.range) then
 			CastQ(QCel)
@@ -607,6 +613,8 @@ function Harrass()
 		if ValidTarget(ECel, E.range) then
 			CastE(ECel)
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -858,12 +866,15 @@ function KillSteal()
 		local eDmg = getDmg("E", Enemy, myHero, 3)
 		local rDmg = getDmg("R", Enemy, myHero, 3) * 7
 		if Enemy ~= nil and ValidTarget(Enemy, 2000) and not rcasting then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			if health < qDmg and MFMenu.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
 			elseif health < eDmg and MFMenu.ksConfig.EKS and ValidTarget(Enemy, E.range+50) then
 				CastE(Enemy)
 			elseif health < rDmg and MFMenu.ksConfig.RKS and ValidTarget(Enemy, R.range) then
 				CastR(Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -914,7 +925,7 @@ function CastE(unit)
 		if MFMenu.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local MFE = CircleSS(math.huge, E.range, E.width, E.delay*1000, math.huge)
-			local State, Position, perc = DP:predict(unit, MFE)
+			local State, Position, perc = DP:predict(unit, MFE, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MFMenu.prConfig.pc then
 					Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -953,7 +964,7 @@ function CastR(unit)
 		if MFMenu.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local MFR = ConeSS(math.huge, R.range, R.angle, R.delay*1000, math.huge)
-			local State, Position, perc = DP:predict(unit, MFR)
+			local State, Position, perc = DP:predict(unit, MFR, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MFMenu.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()

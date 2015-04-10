@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: ZILEAN MASTER 
-    	Author: kokosik1221
-	Last Version: 0.24
-	07.04.2015
+    Author: kokosik1221
+	Last Version: 0.25
+	10.04.2015
 	
 ]]--
 
 if myHero.charName ~= "Zilean" then return end
 
 local autoupdate = true
-local version = 0.24
+local version = 0.25
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "ZileanMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "ZileanMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -184,11 +184,13 @@ local Items = {
 	BFT = { id = 3188, range = 750, reqTarget = true, slot = nil },
 }
  
-local Q = {name = "Time Bomb", range = 900, speed = 1800, delay = 0.25, width = 130, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
+local Q = {name = "Time Bomb", range = 900, speed = 1800, delay = 0.25, width = 100, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
 local W = {name = "Rewind", Ready = function() return myHero:CanUseSpell(_W) == READY end}
 local E = {name = "Time Warp", range = 700, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Chronoshift", range = 900, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local recall, MAQCel = false, false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local killstring = {}
@@ -385,6 +387,7 @@ end
 
 function Combo()
 	UseItems(Cel)
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuZilean.comboConfig.USEQ and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
@@ -393,6 +396,8 @@ function Combo()
 	end
 	if MenuZilean.comboConfig.USEW and ValidTarget(Cel, Q.range) and not Q.Ready() or not E.Ready() then
 		CastW()
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -428,11 +433,14 @@ function CheckBomb()
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuZilean.harrasConfig.QH and ValidTarget(Cel, Q.range) then
 		CastQ(Cel)
 	end
 	if MenuZilean.harrasConfig.EH and ValidTarget(Cel, E.range) then
 		CastE(Cel)
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -484,12 +492,15 @@ function KillSteall()
 		local hp = Enemy.health
 		local QDMG = getDmg("Q", Enemy, myHero, 3)
 		local IDMG = 50 + (20 * myHero.level)
-		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+		if Enemy ~= nil and ValidTarget(Enemy, Q.range) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			local IReady = SSpells:Ready("summonerdot")
 			if IReady and hp < IDMG and MenuZilean.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
 			elseif hp < QDMG and MenuZilean.ksConfig.QKS and ValidTarget(Enemy, Q.range) then
 				CastQ(Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -751,7 +762,7 @@ function CastQ(unit)
 		if MenuZilean.prConfig.pro == 2 and VIP_USER then
 			local unit = DPTarget(unit)
 			local ZilQ = CircleSS(Q.speed, Q.range, Q.width, Q.delay*1000, math.huge)
-			local State, Position, perc = DP:predict(unit, ZilQ)
+			local State, Position, perc = DP:predict(unit, ZilQ, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuZilean.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()

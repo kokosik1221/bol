@@ -1,17 +1,17 @@
 --[[
 
 	Script Name: ANNIE MASTER 
-    	Author: kokosik1221
-	Last Version: 0.69
-	07.04.2015
-
+    Author: kokosik1221
+	Last Version: 0.7
+	10.04.2015
+	
 ]]--
 
 
 if myHero.charName ~= "Annie" then return end
 
 local autoupdate = true
-local version = 0.69
+local version = 0.7
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -172,7 +172,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "AnnieMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "AnnieMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -205,6 +205,8 @@ local stun, tibbers, recall = false, false, false
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local RFTS = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range + 400, DAMAGE_MAGIC)
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local killstring = {}
 local TargetTable = {
 	AP = {
@@ -453,6 +455,7 @@ end
 
 function Combo()
 	UseItems(Cel)
+	if 30 < os.clock() * 100 - LastCheck then
 	if R.Ready() and ValidTarget(Cel, R.range) and MenuAnnie.comboConfig.rConfig[Cel.charName] then
 		if MenuAnnie.comboConfig.rConfig.RM == 2 then
 			CastR(Cel)
@@ -485,9 +488,12 @@ function Combo()
 	if MenuAnnie.comboConfig.eConfig.USEE then
 		CastE()
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuAnnie.harrasConfig.HM == 1 then
 		if Q.Ready() and ValidTarget(Cel, Q.range) then
 			CastQ(Cel)
@@ -497,6 +503,8 @@ function Harrass()
 		if W.Ready() and ValidTarget(Cel, W.range) then
 			CastW(Cel)
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -666,6 +674,7 @@ function KillSteall()
 		local WDMG = getDmg("W", enemy, myHero, 3) 
 		local RDMG = getDmg("R", enemy, myHero, 3) 
 		if ValidTarget(enemy, 700) and enemy ~= nil and enemy.team ~= player.team and not enemy.dead and enemy.visible then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			local IReady = SSpells:Ready("summonerdot")
 			if health < QDMG and MenuAnnie.ksConfig.QKS and ValidTarget(enemy, Q.range) and Q.Ready() then
 				CastQ(enemy)
@@ -714,6 +723,8 @@ function KillSteall()
 				CastQ(enemy)
 				CastW(enemy)
 				CastSpell(SSpells:GetSlot("summonerdot"), enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -793,7 +804,7 @@ function CastW(unit)
 	if MenuAnnie.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local AnnieW = ConeSS(W.speed, W.range, W.width, W.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, AnnieW)
+		local State, Position, perc = DP:predict(unit, AnnieW, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuAnnie.prConfig.pc then
 				Packet("S_CAST", {spellId = _W, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -838,7 +849,7 @@ function CastR(unit)
 	if MenuAnnie.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local AnnieR = CircleSS(R.speed, R.range, R.width, R.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, AnnieR)
+		local State, Position, perc = DP:predict(unit, AnnieR, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuAnnie.prConfig.pc then
 				Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()

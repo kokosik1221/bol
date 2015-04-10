@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: GALIO MASTER 
-    	Author: kokosik1221
-	Last Version: 2.4
-	07.04.2015
+    Author: kokosik1221
+	Last Version: 2.41
+	10.04.2015
 	
 ]]--
 
 if myHero.charName ~= "Galio" then return end
 
 local autoupdate = true
-local version = 2.4
+local version = 2.41
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "GalioMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "GalioMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -193,6 +193,8 @@ local W = {range = 800, Ready = function() return myHero:CanUseSpell(_W) == READ
 local E = {range = 1180, speed = 1400, delay = 0.25, width = 235, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {range = 560, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local ultbuff, recall = false, false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local lasttickchecked, lasthealthchecked = 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -429,6 +431,7 @@ function Combo()
 	if Cel ~= nil then
 		UseItems(Cel)
 	end
+	if 30 < os.clock() * 100 - LastCheck then
 	if QCel ~= nil and MenuGalio.comboConfig.USEQ and ValidTarget(QCel) then
 		if Q.Ready() and GetDistance(QCel) < Q.range then
 			CastQ(QCel)
@@ -455,9 +458,12 @@ function Combo()
 			CastSpell(_R)
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if QCel ~= nil and MenuGalio.harrasConfig.QH then
 		if Q.Ready() and ValidTarget(QCel) and GetDistance(QCel) < Q.range then
 			CastQ(QCel)
@@ -467,6 +473,8 @@ function Harrass()
 		if E.Ready() and ValidTarget(ECel) and GetDistance(ECel) < E.range then
 			CastE(ECel)
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -578,6 +586,7 @@ if not ultbuff then
 		local rDmg = myHero:CalcDamage(Enemy, (110 * myHero:GetSpellData(3).level + 110 + 0.6 * myHero.ap))
 		local iDmg = 50 + (20 * myHero.level)
 		if Enemy ~= nil and ValidTarget(Enemy, 1500) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			if health < qDmg and Q.Ready() and (distance < Q.range) and MenuGalio.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif health < eDmg and E.Ready() and (distance < E.range) and MenuGalio.ksConfig.EKS then
@@ -601,6 +610,8 @@ if not ultbuff then
 			local IReady = SSpells:Ready("summonerdot")
 			if IReady and health <= iDmg and MenuGalio.ksConfig.IKS and (distance < 600) then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -755,7 +766,7 @@ function CastQ(unit)
 	if MenuGalio.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local GalioQ = CircleSS(math.huge, Q.range, Q.width, Q.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, GalioQ)
+		local State, Position, perc = DP:predict(unit, GalioQ, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_Q, Position)
 		end
@@ -778,7 +789,7 @@ function CastE(unit)
 	if MenuGalio.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local GalioE = LineSS(E.speed, E.range, E.width, E.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, GalioE)
+		local State, Position, perc = DP:predict(unit, GalioE, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_E, Position)
 		end

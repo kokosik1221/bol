@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: LULU MASTER 
-    	Author: kokosik1221
-	Last Version: 0.24
-	07.04.2015
+    Author: kokosik1221
+	Last Version: 0.25
+	10.04.2015
 
 ]]-- 
 
 if myHero.charName ~= "Lulu" then return end
 
 local autoupdate = true
-local version = 0.24
+local version = 0.25
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "LuluMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "LuluMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -630,6 +630,8 @@ local E = {name = "Help, Pix!", range = 650, Ready = function() return myHero:Ca
 local R = {name = "Wild Growth", range = 900, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local killstring = {}
 local recall, ECasted = false, false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, 925, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, 925, myHero, MINION_SORT_MAXHEALTH_DEC)
 local AllMinions = minionManager(MINION_ALLY, 650, myHero, MINION_SORT_MAXHEALTH_DES)
@@ -882,6 +884,7 @@ function Combo()
 	if Cel ~= nil then
 		UseItems(Cel)
 	end
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuLulu.comboConfig.rConfig.USER then
 		if ((myHero.health/myHero.maxHealth)*100) <= MenuLulu.comboConfig.rConfig.HP then
 			CastR(myHero)
@@ -914,9 +917,12 @@ function Combo()
 			CastE(WECel)
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if QCel ~= nil and MenuLulu.harrasConfig.USEQ and ValidTarget(QCel, Q.range) and not MenuLulu.harrasConfig.EQ then
 		CastQ(QCel, myHero)
 	end
@@ -943,6 +949,8 @@ function Harrass()
 		if WECel ~= nil and MenuLulu.harrasConfig.USEE and ValidTarget(WECel, E.range) then
 			CastE(WECel)
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -1330,7 +1338,8 @@ function KillSteal()
 		local QDMG = getDmg("Q", Enemy, myHero, 3)
 		local EDMG = getDmg("E", Enemy, myHero, 3)
 		local IDMG = 50 + (20 * myHero.level)
-		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+		if Enemy ~= nil and ValidTarget(Enemy, 1500) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			local IReady = SSpells:Ready("summonerdot")
 			if hp < QDMG and MenuLulu.ksConfig.QKS and ValidTarget(Enemy, Q.range - 30) then
 				CastQ(Enemy, myHero)
@@ -1338,6 +1347,8 @@ function KillSteal()
 				CastE(Enemy)
 			elseif hp < IDMG and MenuLulu.ksConfig.IKS and ValidTarget(Enemy, 600) and IReady then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end

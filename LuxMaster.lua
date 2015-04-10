@@ -1,17 +1,17 @@
 --[[
 
 	Script Name: LUX MASTER 
-    	Author: kokosik1221
-	Last Version: 0.67
-	07.04.2015
-
+    Author: kokosik1221
+	Last Version: 0.68
+	10.04.2015
+	
 ]]--
 
 
 if myHero.charName ~= "Lux" then return end
 
 local autoupdate = true
-local version = 0.67
+local version = 0.68
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -164,7 +164,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "LuxMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "LuxMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -227,6 +227,8 @@ local E = {name = "Lucent Singularity", range = 1100, speed = 1300, delay = 0.25
 local R = {name = "Final Spark", range = 3340, speed = math.huge, delay = 1, width = 190, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local recall = false
 local x = 0
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local KSMinions = minionManager(MINION_JUNGLE, R.range, myHero, MINION_SORT_HEALTH_ASC)
@@ -484,6 +486,7 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
+	if 30 < os.clock() * 100 - LastCheck then
 	if Cel ~= nil then
 		UseItems(Cel)
 		if MenuLux.comboConfig.wConfig.USEW then
@@ -538,9 +541,12 @@ function Combo()
 			end
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if QCel ~= nil then
 		if MenuLux.harrasConfig.HM == 1 and GetDistance(QCel) < Q.range then
 			CastQ(QCel)
@@ -550,6 +556,8 @@ function Harrass()
 	end
 	if ECel ~= nil and MenuLux.harrasConfig.HM == 2 and GetDistance(ECel) < E.range then
 		CastE(ECel)
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -766,6 +774,7 @@ function KSandAUTO()
 		end
 		if MenuLux.ksConfig.QKS or MenuLux.ksConfig.EKS or MenuLux.ksConfig.RKS or MenuLux.ksConfig.IKS then
 			if ValidTarget(enemy, R.range) and enemy ~= nil then
+				if 30 < os.clock() * 100 - LastCheck2 then
 				local IReady = SSpells:Ready("summonerdot")
 				local QDMG = getDmg("Q", enemy, myHero, 1)
 				local EDMG = getDmg("E", enemy, myHero, 1)
@@ -779,6 +788,8 @@ function KSandAUTO()
 					CastR(enemy)
 				elseif enemy.health < IDMG and IReady and GetDistance(enemy) <= 600 and MenuLux.ksConfig.IKS then
 					CastSpell(SSpells:GetSlot("summonerdot"), enemy)
+				end
+				LastCheck2 = os.clock() * 100
 				end
 			end
 		end
@@ -878,7 +889,7 @@ function CastQ(unit)
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local LuxQ = LineSS(Q.speed, Q.range, Q.width, Q.delay*1000, 0)
-			local State, Position, perc = DP:predict(unit, LuxQ)
+			local State, Position, perc = DP:predict(unit, LuxQ, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -957,7 +968,7 @@ function CastE(unit)
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local LuxE = CircleSS(math.huge, E.range, E.width, E.delay*1000, math.huge)
-			local State, Position, perc = DP:predict(unit, LuxE)
+			local State, Position, perc = DP:predict(unit, LuxE, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -994,7 +1005,7 @@ function CastR(unit)
 		if MenuLux.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local LuxR = LineSS(math.huge, R.range, R.width, R.delay*1000, math.huge)
-			local State, Position, perc = DP:predict(unit, LuxR)
+			local State, Position, perc = DP:predict(unit, LuxR, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuLux.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -1071,15 +1082,15 @@ function OnRemoveBuff(unit, buff)
 end
 
 function OnCreateObj(object)
-	if object.name:find("LuxLightstrike_tar_green") then
+	if object and object.name:find("LuxLightstrike_tar_green") then
 		eobject = object
-	elseif object.name:find("LuxBlitz_nova") then
+	elseif object and object.name:find("LuxBlitz_nova") then
 		eobject = nil
 	end
 end		
 		
 function OnDeleteObj(object)
-	if object.name:find("LuxBlitz_nova") then
+	if object and object.name:find("LuxBlitz_nova") then
 		eobject = nil
 	end
 end

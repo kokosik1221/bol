@@ -1,17 +1,17 @@
 --[[
 
 	Script Name: Gragas MASTER 
-    	Author: kokosik1221
-	Last Version: 0.83
-	07.04.2015
-
+    Author: kokosik1221
+	Last Version: 0.84
+	10.04.2015
+	
 ]]--
 
 
 if myHero.charName ~= "Gragas" then return end
 
 local autoupdate = true
-local version = 0.83
+local version = 0.84
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -164,7 +164,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "GragasMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "GragasMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -217,6 +217,8 @@ local W = {name = "Drunken Rage", Ready = function() return myHero:CanUseSpell(_
 local E = {name = "Body Slam", range = 650, speed = math.huge, delay = 0.25, width = 100, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Explosive Cask", range = 1150, speed = 1300, delay = 0.5, width = 400, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local recall  = false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local killstring = {}
@@ -464,6 +466,7 @@ end
 
 function Combo()
 	UseItems(Cel)
+	if 30 < os.clock() * 100 - LastCheck then
 	if R.Ready() and MenuGragy.comboConfig.rConfig.USER and GetDistance(Cel) < R.range then
 		if MenuGragy.comboConfig.rConfig.RMODE == 1 then
 			if not MenuGragy.comboConfig.rConfig.CBE then
@@ -500,9 +503,12 @@ function Combo()
 	if W.Ready() and MenuGragy.comboConfig.wConfig.USEW and GetDistance(Cel) < E.range and not Q.Ready() and not E.Ready() then
 		CastW()
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuGragy.harrasConfig.HM == 1 then
 		if Q.Ready() and GetDistance(Cel) < Q.range then
 			CastQ(Cel)
@@ -515,6 +521,8 @@ function Harrass()
 		if TargetHaveBuff("Stun", Cel) and GetDistance(Cel) <= Q.range then
 			CastQ(Cel)
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -672,6 +680,7 @@ function KillSteall()
 		local RDMG = myHero:CalcDamage(enemy, (100 * myHero:GetSpellData(3).level + 100 + 0.7 * myHero.ap))
 		local IDMG = 50 + (20 * myHero.level)
 		if ValidTarget(enemy, 1500) and enemy ~= nil then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			local IReady = SSpells:Ready("summonerdot")
 			if health < QDMG and MenuGragy.ksConfig.QKS and GetDistance(enemy) < Q.range and Q.Ready() then
 				CastQ(enemy)
@@ -694,6 +703,8 @@ function KillSteall()
 				CastR(enemy)
 			elseif health < IDMG and MenuGragy.ksConfig.IKS and GetDistance(enemy) <= 600 and IReady then
 				CastSpell(SSpells:GetSlot("summonerdot"), enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -778,7 +789,7 @@ function CastQ(unit)
 	if MenuGragy.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local GragQ = CircleSS(math.huge, Q.range, 300, Q.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, GragQ)
+		local State, Position, perc = DP:predict(unit, GragQ, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuGragy.prConfig.pc then
 				Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -822,7 +833,7 @@ function CastE(unit)
 	if MenuGragy.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local GragE = LineSS(E.speed, E.range, E.width, E.delay*1000, 0)
-		local State, Position, perc = DP:predict(unit, GragE)
+		local State, Position, perc = DP:predict(unit, GragE, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuGragy.prConfig.pc then
 				Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -857,7 +868,7 @@ function CastR(unit)
 	if MenuGragy.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local GragR = CircleSS(R.speed, R.range, R.width, R.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, GragR)
+		local State, Position, perc = DP:predict(unit, GragR, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			if VIP_USER and MenuGragy.prConfig.pc then
 				Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()

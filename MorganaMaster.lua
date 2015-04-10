@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: MORGANA MASTER 
-    	Author: kokosik1221
-	Last Version: 2.55
-	07.04.2015
+    Author: kokosik1221
+	Last Version: 2.56
+	10.04.2015
 	
 ]]--
 
 if myHero.charName ~= "Morgana" then return end
 
 local autoupdate = true
-local version = 2.55
+local version = 2.56
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "MorganaMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "MorganaMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -610,6 +610,8 @@ local W = {name = "Tormented Soil", range = 900, speed = 1200, delay = 0.150, wi
 local E = {name = "Black Shield", range = 750, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Soul Shackles", range = 600, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local recall = false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local Spells = {_Q,_W,_E,_R}
@@ -643,21 +645,8 @@ function OnLoad()
 		Update()
 	end,0.1)
 	Menu()
+	Messages()
 	SSpells = SumSpells()
-	print("<b><font color=\"#FFFFFF\">Morgana Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
-	if _G.MMA_Loaded then
-		print("<b><font color=\"#FFFFFF\">Morgana Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
-	end	
-	if _G.AutoCarry then
-		print("<b><font color=\"#FFFFFF\">Morgana Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
-	end
-	if heroManager.iCount < 10 then
-		print("<font color=\"#FFFFFF\">Too few champions to arrange priority.</font>")
-	elseif heroManager.iCount == 6 then
-		arrangePrioritysTT()
-    else
-		arrangePrioritys()
-	end
 end
 
 function OnTick()
@@ -686,6 +675,23 @@ function OnTick()
 	end
 end
 		
+function Messages()
+	print("<b><font color=\"#FF0000\">Morgana Master:</font></b> <font color=\"#FFFFFF\">Good luck and give me feedback!</font>")
+	if _G.MMA_Loaded then
+		print("<b><font color=\"#FF0000\">Morgana Master:</font></b> <font color=\"#FFFFFF\">MMA Support Loaded.</font>")
+	end	
+	if _G.AutoCarry then
+		print("<b><font color=\"#FF0000\">Morgana Master:</font></b> <font color=\"#FFFFFF\">SAC Support Loaded.</font>")
+	end
+	if heroManager.iCount < 10 then
+		print("<font color=\"#FF0000\">Too few champions to arrange priority.</font>")
+	elseif heroManager.iCount == 6 then
+		arrangePrioritysTT()
+    else
+		arrangePrioritys()
+	end
+end
+
 function Menu()
 	MenuMorg = scriptConfig("Morgana Master "..version, "Morgana Master "..version)
 	MenuMorg:addParam("orb", "Orbwalker:", SCRIPT_PARAM_LIST, 1, {"SxOrb","SAC:R/MMA"}) 
@@ -964,6 +970,7 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
+	if 30 < os.clock() * 100 - LastCheck then
 	UseItems(Cel)
 	if MenuMorg.comboConfig.USEQ then
 		if Q.Ready() and MenuMorg.comboConfig.USEQ and ValidTarget(Cel, Q.range) then
@@ -996,9 +1003,12 @@ function Combo()
 			CastSpell(_R)
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuMorg.harrasConfig.QH then
 		if Q.Ready() and ValidTarget(Cel, Q.range) then
 			CastQ(Cel)
@@ -1018,6 +1028,8 @@ function Harrass()
 				end
 			end
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -1114,6 +1126,7 @@ function KillSteall()
 		local rDmg = myHero:CalcMagicDamage(Enemy, (75*myHero:GetSpellData(3).level)+75+0.7*myHero.ap)
 		local iDmg = 50 + (20 * myHero.level)
 		if Enemy ~= nil and ValidTarget(Enemy, 1500) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			if health <= qDmg and Q.Ready() and ValidTarget(Enemy, Q.range) and MenuMorg.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif health < wDmg and W.Ready() and ValidTarget(Enemy, W.range) and MenuMorg.ksConfig.WKS then
@@ -1137,6 +1150,8 @@ function KillSteall()
 			local IReady = SSpells:Ready("summonerdot")
 			if health < iDmg and MenuMorg.ksConfig.IKS and ValidTarget(Enemy, 600) and IReady then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -1162,8 +1177,8 @@ function OnDraw()
 	end
 	if MenuMorg.drawConfig.DD then	
 		for _,enemy in pairs(GetEnemyHeroes()) do
+			DmgCalc()
             if ValidTarget(enemy, 2000) and killstring[enemy.networkID] ~= nil then
-				DmgCalc()
                 local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
                 DrawText(killstring[enemy.networkID], 20, pos.x - 35, pos.y - 10, 0xFFFFFF00)
             end
@@ -1324,7 +1339,7 @@ function CastQ(unit)
 	if MenuMorg.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local MorgQ = LineSS(Q.speed, Q.range, Q.width, Q.delay*1000,0)
-		local State, Position, perc = DP:predict(unit, MorgQ)
+		local State, Position, perc = DP:predict(unit, MorgQ, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_Q, Position)
 		end
@@ -1347,7 +1362,7 @@ function CastW(unit)
 	if MenuMorg.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local MorgW = CircleSS(W.speed, W.range, W.width, W.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, MorgW)
+		local State, Position, perc = DP:predict(unit, MorgW, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_W, Position)
 		end

@@ -1,17 +1,17 @@
 --[[
 
 	Script Name: AHRI MASTER 
-    	Author: kokosik1221666
-	Last Version: 0.57
-	07.04.2015
-
+    Author: kokosik1221
+	Last Version: 0.58
+	10.04.2015
+	
 ]]--
 
 
 if myHero.charName ~= "Ahri" then return end
 
 local autoupdate = true
-local version = 0.57
+local version = 0.58
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -164,7 +164,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "AhriMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "AhriMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -245,9 +245,11 @@ local Items = {
 
 local Q = {name = "Orb of Deception", range = 880, speed = 1600, delay = 0.5, width = 80, Ready = function() return myHero:CanUseSpell(_Q) == READY end}
 local W = {name = "Fox-Fire", range = 700, Ready = function() return myHero:CanUseSpell(_W) == READY end}
-local E = {name = "Charm", range = 975, speed = 1500, delay = 0.25, width = 85, Ready = function() return myHero:CanUseSpell(_E) == READY end}
+local E = {name = "Charm", range = 1025, speed = 1500, delay = 0.25, width = 85, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Spirit Rush", range = 450, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local recall = false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local killstring = {}
@@ -500,6 +502,7 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
+	if 30 < os.clock() * 100 - LastCheck then
 	if Cel ~= nil and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.comboConfig.manac then
 		UseItems(Cel)
 		if MenuAhri.comboConfig.USER and not MenuAhri.comboConfig.Kilable then
@@ -533,9 +536,12 @@ function Combo()
 			end
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if Cel ~= nil and ((myHero.mana/myHero.maxMana)*100) >= MenuAhri.harrasConfig.manah then
 		if MenuAhri.harrasConfig.QH then
 			if GetDistance(Cel) < Q.range then
@@ -552,6 +558,8 @@ function Harrass()
 				CastE(Cel)
 			end
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -694,6 +702,7 @@ function KillSteall()
 		local rDmg = getDmg("R", Enemy, myHero, 3)*3
 		local iDmg = getDmg("IGNITE", Enemy, myHero) 
 		if Enemy ~= nil and ValidTarget(Enemy, 1500) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			if health <= qDmg and Q.Ready() and ValidTarget(Enemy, Q.range - 30) and MenuAhri.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif health <= wDmg and W.Ready() and ValidTarget(Enemy, W.range) and MenuAhri.ksConfig.WKS then
@@ -726,6 +735,8 @@ function KillSteall()
 			local IReady = SSpells:Ready("summonerdot")
 			if IReady and health <= iDmg and MenuAhri.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -790,7 +801,7 @@ function CastQ(unit)
 		if MenuAhri.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local AhriQ = LineSS(Q.speed, Q.range, Q.width, Q.delay*1000, math.huge)
-			local State, Position, perc = DP:predict(unit, AhriQ)
+			local State, Position, perc = DP:predict(unit, AhriQ, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuAhri.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -837,7 +848,7 @@ function CastE(unit)
 		if MenuAhri.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local AhriE = LineSS(E.speed, E.range, E.width, E.delay*1000, 0)
-			local State, Position, perc = DP:predict(unit, AhriE)
+			local State, Position, perc = DP:predict(unit, AhriE, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuAhri.prConfig.pc then
 					Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()

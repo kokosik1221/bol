@@ -1,17 +1,17 @@
 --[[
 
 	Script Name: FIZZ MASTER 
-    	Author: kokosik1221
-	Last Version: 1.64
-	07.04.2015
-	
+    Author: kokosik1221
+	Last Version: 1.65
+	10.04.2015
+
 ]]--
 
 
 if myHero.charName ~= "Fizz" then return end
 
 local autoupdate = true
-local version = 1.64
+local version = 1.65
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -164,7 +164,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "FizzMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "FizzMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -578,6 +578,8 @@ local E2 = {name = "Trickster", range = 400, speed = 1200, delay = 0.25, width =
 local R = {name = "Chum the Waters", range = 1175, speed = 1200, delay = 0.5, width = 80, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local killstring = {}
 local recall = false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local Spells = {_Q,_W,_E,_R}
@@ -829,10 +831,13 @@ end
 
 function Combo()
 	UseItems(Cel)
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuFizz.comboConfig.CT == 1 then
 		comboQRWE()
 	elseif MenuFizz.comboConfig.CT == 2 then
 		comboRQWE()
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -906,6 +911,7 @@ function Harrass()
 	local QMana = myHero:GetSpellData(_Q).mana
     local WMana = myHero:GetSpellData(_W).mana
     local EMana = myHero:GetSpellData(_E).mana
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuFizz.harrasConfig.HM == 1 then
 		if ValidTarget(Cel, Q.range) and myHero.mana > QMana then
 			CastQ(Cel)
@@ -925,6 +931,8 @@ function Harrass()
 		if E.Ready() then
 			CastSpell(_E, mousePos.x, mousePos.z)
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -1089,6 +1097,7 @@ function KillSteall()
 		local RDMG = getDmg("R", Enemy, myHero, 1)
 		local IDMG = 50 + (20 * myHero.level)
 		if Enemy ~= nil and ValidTarget(Enemy, 1500) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			if hp < QDMG and ValidTarget(Enemy, Q.range) and MenuFizz.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif hp < WDMG and ValidTarget(Enemy, myHero.range+120) and MenuFizz.ksConfig.WKS then
@@ -1129,6 +1138,8 @@ function KillSteall()
 			local IReady = SSpells:Ready("summonerdot")
 			if IReady and hp < IDMG and MenuFizz.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -1216,7 +1227,7 @@ function CastE(unit)
 			if MenuFizz.prConfig.pro == 3 and VIP_USER then
 				local unit = DPTarget(unit)
 				local FizzE = CircleSS(E.speed, E.range, E.width, E.delay*1000, math.huge)
-				local State, Position, perc = DP:predict(unit, FizzE)
+				local State, Position, perc = DP:predict(unit, FizzE, 2)
 				if State == SkillShot.STATUS.SUCCESS_HIT then 
 					if VIP_USER and MenuFizz.prConfig.pc then
 						Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -1256,7 +1267,7 @@ function CastE2(unit)
 			if MenuFizz.prConfig.pro == 3 and VIP_USER then
 				local unit = DPTarget(unit)
 				local FizzE2 = CircleSS(E2.speed, E2.range, E2.width, E.delay*1000, math.huge)
-				local State, Position, perc = DP:predict(unit, FizzE2)
+				local State, Position, perc = DP:predict(unit, FizzE2, 2)
 				if State == SkillShot.STATUS.SUCCESS_HIT then 
 					if VIP_USER and MenuFizz.prConfig.pc then
 						Packet("S_CAST", {spellId = _E, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -1287,7 +1298,7 @@ function CastR(unit)
 		if MenuFizz.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local FizzR = LineSS(R.speed, R.range, R.width, R.delay*1000, math.huge)
-			local State, Pos, perc = DP:predict(unit, FizzR)
+			local State, Pos, perc = DP:predict(unit, FizzR, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				Position = Pos
 			end
