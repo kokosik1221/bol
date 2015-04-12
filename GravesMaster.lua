@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: GRAVES MASTER 
-    	Author: kokosik1221
-	Last Version: 0.38
-	07.04.2015
-
+    Author: kokosik1221
+	Last Version: 0.39
+	12.04.2015
+	
 ]]--
 
 if myHero.charName ~= "Graves" then return end
 
 local autoupdate = true
-local version = 0.38
+local version = 0.39
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "GravesMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "GravesMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -189,6 +189,8 @@ local QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAG
 local WTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, W.range, DAMAGE_PHYSICAL)
 local RTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, R.range, DAMAGE_PHYSICAL)
 local recall = false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local Spells = {_Q,_W,_E,_R}
@@ -447,6 +449,7 @@ function Check()
 end
 
 function Combo()
+	if 30 < os.clock() * 100 - LastCheck then
 	if QCel and QCel ~= nil and MenuGraves.comboConfig.qConfig.USEQ == 2 and GetDistance(QCel) < Q.range then
 		if MenuGraves.comboConfig.qConfig.USEQ2 then
 			CastE(QCel)
@@ -489,9 +492,12 @@ function Combo()
 	if MenuGraves.comboConfig.rConfig.USER and MenuGraves.comboConfig.rConfig.USER2 == 4 then
 		CastR2()
 	end
+	LastCheck = os.clock() * 100
+	end
 end
 
 function Harass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if QCel and QCel ~= nil and MenuGraves.harrasConfig.USEQ == 2 and GetDistance(QCel) < Q.range then
 		CastQ(QCel)
 	end
@@ -502,6 +508,8 @@ function Harass()
 	end
 	if WCel and WCel ~= nil and MenuGraves.harrasConfig.USEW and GetDistance(WCel) < W.range then
 		CastW(WCel)
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -745,7 +753,7 @@ function CastR(unit)
 		if MenuGraves.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local GravesR = LineSS(math.huge, R.range, R.width, 250, math.huge)
-			local State, Position, perc = DP:predict(unit, GravesR)
+			local State, Position, perc = DP:predict(unit, GravesR, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuGraves.prConfig.pc then
 					Packet("S_CAST", {spellId = _R, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -807,7 +815,7 @@ function CastW(unit)
 		if MenuGraves.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local GravesW = CircleSS(math.huge, W.range, W.width, 250, math.huge)
-			local State, Position, perc = DP:predict(unit, GravesW)
+			local State, Position, perc = DP:predict(unit, GravesW, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuGraves.prConfig.pc then
 					Packet("S_CAST", {spellId = _W, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -844,7 +852,7 @@ function CastQ(unit)
 		if MenuGraves.prConfig.pro == 3 and VIP_USER then
 			local unit = DPTarget(unit)
 			local GravesQ = ConeSS(math.huge, Q.range-20, Q.width, 250, math.huge)
-			local State, Position, perc = DP:predict(unit, GravesQ)
+			local State, Position, perc = DP:predict(unit, GravesQ, 2)
 			if State == SkillShot.STATUS.SUCCESS_HIT then 
 				if VIP_USER and MenuGraves.prConfig.pc then
 					Packet("S_CAST", {spellId = _Q, fromX = Position.x, fromY = Position.z, toX = Position.x, toY = Position.z}):send()
@@ -886,12 +894,15 @@ function KillSteal()
 		local wDmg = getDmg("W", Enemy, myHero)
 		local rDmg = getDmg("R", Enemy, myHero, 3)
 		if Enemy ~= nil and ValidTarget(Enemy, 2000) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			if health < qDmg and MenuGraves.ksConfig.QKS and GetDistance(Enemy) < Q.range then
 				CastQ(Enemy)
 			elseif health < wDmg and MenuGraves.ksConfig.WKS and GetDistance(Enemy) < W.range then
 				CastW(Enemy)
 			elseif health < rDmg and MenuGraves.ksConfig.RKS and GetDistance(Enemy) < R.range then
 				CastR(Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end

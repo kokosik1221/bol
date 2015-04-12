@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: ZED MASTER 
-    	Author: kokosik1221
-	Last Version: 1.73
-	07.04.2015
+    Author: kokosik1221
+	Last Version: 1.74
+	12.04.2015
 	
 ]]--
 
 if myHero.charName ~= "Zed" then return end
 
 local autoupdate = true
-local version = 1.73
+local version = 1.74
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "ZedMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "ZedMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -283,6 +283,8 @@ local idmg, qdmg, edmg, rdmg, qdmg2 = 0, 0, 0, 0, 0
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local WShadow, RShadow = nil, nil
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local killstring = {}
 local Spells = {_Q,_W,_E,_R}
 local Spells2 = {"Q","W","E","R"}
@@ -532,6 +534,7 @@ function getHitBoxRadius(target)
 end
 
 function Combo()
+	if 30 < os.clock() * 100 - LastCheck then
 	if not (TargetHaveBuff("JudicatorIntervention", Cel) or TargetHaveBuff("Undying Rage", Cel)) then
 		if ValidTarget(Cel) and R.Ready() and myHero.mana > (QMana + EMana) then 
 			if GetDistance(Cel) <= R.range and RState() == 1 then
@@ -570,6 +573,8 @@ function Combo()
 			UseItems(Cel)
 		end
 	end
+	LastCheck = os.clock() * 100
+	end
 	if MenuZed.comboConfig.wConfig.USW then
 		Swap()
 	end
@@ -579,6 +584,7 @@ function Combo()
 end
 
 function Combo2()
+	if 30 < os.clock() * 100 - LastCheck then
 	if Cel ~= nil and not (TargetHaveBuff("JudicatorIntervention", Cel) or TargetHaveBuff("Undying Rage", Cel)) then
 		if (not W.Ready() or WShadow ~= nil or WCasted) then
             CastE(Cel)
@@ -594,6 +600,8 @@ function Combo2()
 		elseif MenuZed.comboConfig.IAU and TargetHaveBuff("zedulttargetmark", Cel) then
 			UseItems(Cel)
 		end
+	end
+	LastCheck = os.clock() * 100
 	end
 	if MenuZed.comboConfig.wConfig.USW then
 		Swap()
@@ -621,6 +629,7 @@ function SwapR()
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuZed.harrasConfig.HM == 1 then
 		if ValidTarget(CelH) and GetDistance(CelH, myHero) < 1450 and GetDistance(CelH, myHero) > 900 then
             local Shadow = myHero + Vector(CelH.x - myHero.x, 0, CelH.z - myHero.z):normalized()*550
@@ -647,7 +656,9 @@ function Harrass()
 	end	
 	if MenuZed.harrasConfig.HM == 3 then
 		CastQ(CelH)
-	end	          
+	end	    
+	LastCheck = os.clock() * 100
+	end	
 end
 
 function Farm()
@@ -790,7 +801,8 @@ function KillSteall()
 		local Enemy = heroManager:getHero(i)
 		local health = Enemy.health
 		ComboDamage(Enemy)
-		if Enemy ~= nil and Enemy.team ~= player.team and not Enemy.dead and Enemy.visible then
+		if Enemy ~= nil and ValidTarget(Enemy, 2000) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			local IReady = SSpells:Ready("summonerdot")
 			if health <= edmg and MenuZed.ksConfig.EKS then
 				CastE(Enemy)
@@ -809,6 +821,8 @@ function KillSteall()
 				end
 			elseif health < idmg and MenuZed.ksConfig.IKS and ValidTarget(Enemy, 600) and IReady then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end

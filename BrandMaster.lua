@@ -1,16 +1,16 @@
 --[[
 
 	Script Name: BRAND MASTER 
-    	Author: kokosik1221
-	Last Version: 1.36
-	07.04.2015
-
+    Author: kokosik1221
+	Last Version: 1.37
+	12.04.2015
+	
 ]]--
 	
 if myHero.charName ~= "Brand" then return end
 
 local autoupdate = true
-local version = 1.36
+local version = 1.37
  
 class "_ScriptUpdate"
 function _ScriptUpdate:__init(LocalVersion, UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -163,7 +163,7 @@ function Update()
     _ScriptUpdate(ToUpdate.Version, ToUpdate.UseHttps, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 end
 function PrintMessage(message)
-    print("<font color=\"#FFFFFF\"><b>" .. "BrandMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
+    print("<font color=\"#FF0000\"><b>" .. "BrandMaster" .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") 
 end
 if FileExist(LIB_PATH .. "/SxOrbWalk.lua") then
 	require("SxOrbWalk")
@@ -193,6 +193,8 @@ local W = {name = "Pillar of Flame", range = 900, speed = math.huge, delay = 0.7
 local E = {name = "Conflagration", range = 625, Ready = function() return myHero:CanUseSpell(_E) == READY end}
 local R = {name = "Pyroclasm", range = 750, Ready = function() return myHero:CanUseSpell(_R) == READY end}
 local recall = false
+local LastCheck = os.clock()*100
+local LastCheck2 = os.clock()*100
 local EnemyMinions = minionManager(MINION_ENEMY, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local JungleMinions = minionManager(MINION_JUNGLE, Q.range, myHero, MINION_SORT_MAXHEALTH_DEC)
 local QTargetSelector = TargetSelector(TARGET_LESS_CAST_PRIORITY, Q.range, DAMAGE_MAGIC)
@@ -457,6 +459,7 @@ function Combo()
 	if ValidTarget(Cel) then
 		UseItems(Cel)
 	end
+	if 30 < os.clock() * 100 - LastCheck then
 	CastRC()
 	if W.Ready() and MenuBrand.comboConfig.wConfig.USEW and ValidTarget(WCel, W.range) then
 		CastW(WCel)
@@ -472,6 +475,8 @@ function Combo()
 	end
 	if E.Ready() and MenuBrand.comboConfig.eConfig.USEE and ValidTarget(ECel, E.range) then
 		CastSpell(_E, ECel)
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -498,6 +503,7 @@ function CastRC()
 end
 
 function Harrass()
+	if 30 < os.clock() * 100 - LastCheck then
 	if MenuBrand.harrasConfig.QH and Q.Ready() and ValidTarget(QCel, Q.range) then
 		if MenuBrand.harrasConfig.QHS then
 			if TargetHaveBuff("brandablaze", QCel) then
@@ -512,6 +518,8 @@ function Harrass()
 	end
 	if MenuBrand.harrasConfig.EH and E.Ready() and ValidTarget(ECel, E.range)then
 		CastSpell(_E, ECel)
+	end
+	LastCheck = os.clock() * 100
 	end
 end
 
@@ -716,6 +724,7 @@ function KillSteall()
 		local rDmg = getDmg("R", Enemy, myHero,3)
 		local iDmg = (50 + (20 * myHero.level))
 		if Enemy ~= nil and ValidTarget(Enemy, 1500) then
+			if 30 < os.clock() * 100 - LastCheck2 then
 			if health <= qDmg and Q.Ready() and GetDistance(Enemy) - getHitBoxRadius(Enemy)/2 < Q.range and MenuBrand.ksConfig.QKS then
 				CastQ(Enemy)
 			elseif health < wDmg and W.Ready() and GetDistance(Enemy) < W.range and MenuBrand.ksConfig.WKS then
@@ -741,6 +750,8 @@ function KillSteall()
 			local IReady = SSpells:Ready("summonerdot")
 			if IReady and health <= iDmg and MenuBrand.ksConfig.IKS and ValidTarget(Enemy, 600) then
 				CastSpell(SSpells:GetSlot("summonerdot"), Enemy)
+			end
+			LastCheck2 = os.clock() * 100
 			end
 		end
 	end
@@ -808,7 +819,7 @@ function CastQ(unit)
 	if MenuBrand.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local BrandQ = LineSS(Q.speed, Q.range, Q.width, Q.delay*1000, 0)
-		local State, Position, perc = DP:predict(unit, BrandQ)
+		local State, Position, perc = DP:predict(unit, BrandQ, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_Q, Position)
 		end
@@ -831,7 +842,7 @@ function CastW(unit)
 	if MenuBrand.prConfig.pro == 3 and VIP_USER then
 		local unit = DPTarget(unit)
 		local BrandW = CircleSS(W.speed, W.range, W.width, W.delay*1000, math.huge)
-		local State, Position, perc = DP:predict(unit, BrandW)
+		local State, Position, perc = DP:predict(unit, BrandW, 2)
 		if State == SkillShot.STATUS.SUCCESS_HIT then 
 			SpellCast(_W, Position)
 		end
